@@ -12,9 +12,13 @@ mod nodes;
 mod support;
 
 fn main() {
-    let mut project: Option<Project> = None;
 
+    
+    let mut project: Option<Project> = None;
+    
     let mut ctx = create_context();
+    
+    
     
     Style::use_light_colors(ctx.style_mut());
     // ctx.load_ini_settings();
