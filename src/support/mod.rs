@@ -1,8 +1,8 @@
 use glium::glutin::surface::WindowSurface;
-use glium::{Display, Program, Surface};
+use glium::{program, Display, Program, Surface};
 use imgui::sys::{igSetNextWindowSize, ImGuiCond, ImGuiCond_Always, ImGuiCond_Once, ImVec2};
 use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, Ui};
-use imgui_glium_renderer::Renderer;
+use imgui_glium_renderer::{Renderer, Texture};
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
@@ -44,13 +44,19 @@ where
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
         .set_window_builder(builder)
         .build(&event_loop);
-    let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
+    // program!()
     
+    let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
+
+        
+        
+
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
     } else {
         eprintln!("Failed to initialize clipboard");
     }
+
 
     let mut platform = WinitPlatform::init(imgui);
     {
@@ -70,7 +76,7 @@ where
     let mut last_frame = Instant::now();
 
     startup(imgui, &mut renderer, &display);
-
+    
     event_loop
         .run(move |event, window_target| match event {
             Event::NewEvents(_) => {

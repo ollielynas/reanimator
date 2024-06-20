@@ -1,4 +1,6 @@
+use glium::Program;
 use imgui::{sys::{igSetNextWindowSize, ImVec2}, Style};
+use imgui_winit_support::winit::window;
 use savefile;
 use project::Project;
 use support::create_context;
@@ -13,7 +15,7 @@ mod support;
 
 fn main() {
 
-    
+
     let mut project: Option<Project> = None;
     
     let mut ctx = create_context();

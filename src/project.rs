@@ -3,6 +3,7 @@ use imgui::{
 };
 use strum::IntoEnumIterator;
 use std::collections::HashMap;
+use glium::{backend::Facade, program, Program};
 
 use crate::{
     node::{MyNode},
@@ -10,7 +11,6 @@ use crate::{
 };
 use crate::nodes::node_enum::*;
 
-use std::env;
 
 pub struct Storage {
     frames: HashMap<String, Image>,
@@ -18,6 +18,7 @@ pub struct Storage {
 
 impl Storage {
     fn new() -> Storage {
+
         Storage {
             frames: HashMap::new(),
         }
@@ -152,6 +153,7 @@ impl Project {
                 let draw_list = ui.get_background_draw_list();
                 
 
+                
                 let mouse_pos = ui.io().mouse_pos;
                 match (
                     self.selected_input.clone(),
@@ -182,7 +184,9 @@ impl Project {
                                     ImColor32::BLACK,
                                 )
                                 .build();
+
                         }
+                        self.connections.remove(&a);
                     }
                     (Some(a), Some(b), _) => {
                         self.connections.insert(a, b);
@@ -192,6 +196,14 @@ impl Project {
                     }
                     (None, None, _) => {}
                 }
+
+                if self.selected_input.is_some() || self.selected_output.is_some() {
+                    if ui.is_any_mouse_down() && !ui.is_any_item_hovered() {
+                        self.selected_input = None;
+                        self.selected_output = None;
+                    }
+                }
+
                 
                 
                 for (a, b) in &self.connections {
@@ -235,7 +247,7 @@ impl Project {
             self.new_node_menu(ui);
         }
 
-        ui.show_user_guide();
+        // ui.show_user_guide();
     }
 
 
