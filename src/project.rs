@@ -100,11 +100,14 @@ impl Project {
                 if ui.is_window_focused() {
                     self.selected = None;
                 }
-                for node in self.nodes.iter_mut() {
+                let mut delete_node: Option<usize> = None;
+                for (i, node) in self.nodes.iter_mut().enumerate() {
+                    let mut del_window_not = true;
                     ui.window(format!("{}{}({})",node.name()," ".repeat(40),node.id()))
                         .resizable(false)
                         .focus_on_appearing(true)
                         .always_auto_resize(true)
+                        .opened(&mut del_window_not)
                         .bg_alpha(0.9)
                         .collapsible(false)
                         .movable(true)
@@ -148,6 +151,27 @@ impl Project {
                             let window_pos = ui.window_pos();
                             node.set_xy(window_pos[0], window_pos[1]);
                         });
+
+                        
+                        if !del_window_not {
+                            ui.open_popup(format!("delete node? ({})",node.id()));
+                        }
+                        ui.popup(format!("delete node? ({})",node.id()), || {
+                            ui.text("are you sure you want to delete the node?");
+                            if ui.button("kill!") {
+                                // self.nodes.remove(node.);
+                                delete_node = Some(i);
+                                ui.close_current_popup();
+                            }
+                            if ui.button("cancel") {
+                                ui.close_current_popup();
+                            }
+                        });
+
+                }
+
+                if let Some(kill) = delete_node {
+                    self.nodes.remove(kill);
                 }
 
                 let draw_list = ui.get_background_draw_list();
