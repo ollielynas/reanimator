@@ -1,3 +1,7 @@
+use std::path::PathBuf;
+
+use basic_shader_nodes::invert::InvertTextureNode;
+use default_image::DefaultImage;
 use image_io::OutputNode;
 use savefile::{self, SavefileError};
 use strum_macros::EnumIter;
@@ -12,24 +16,36 @@ use crate::nodes::*;
 pub enum NodeType {
     Debug,
     Output,
+    DefaultImageOut,
+    InvertTexture,
 }
 
 impl NodeType  {
     pub fn name(&self) -> String {
         match self {
             NodeType::Debug => "Debug",
-            NodeType::Output => "Output"
+            NodeType::Output => "Output",
+            NodeType::DefaultImageOut => "Default Image",
+            NodeType::InvertTexture => "Invert Texture",
         }.to_owned()
     }
 
-    pub fn load_node(&self, node_id: String, project_file: String) -> Option<Box<dyn MyNode>>  {
+    pub fn load_node(&self, node_id: String, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
         match self {
             NodeType::Debug => {
-                let a: Result<DebugNode, SavefileError> = savefile::load_file(format!("{project_file}/nodes/{}/{}.bat", self.name(), node_id), VERSION);
+                let a: Result<DebugNode, SavefileError> = savefile::load_file(project_file, VERSION);
                 match a {Ok(b) => Some(Box::new(b)), Err(a) => None}
             },
             NodeType::Output => {
-                let a: Result<DebugNode, SavefileError> = savefile::load_file(format!("{project_file}/nodes/{}/{}.bat", self.name(), node_id), VERSION);
+                let a: Result<OutputNode, SavefileError> = savefile::load_file(project_file, VERSION);
+                match a {Ok(b) => Some(Box::new(b)), Err(a) => None}
+            },
+            NodeType::DefaultImageOut => {
+                let a: Result<DefaultImage, SavefileError> = savefile::load_file(project_file, VERSION);
+                match a {Ok(b) => Some(Box::new(b)), Err(a) => None}
+            },
+            NodeType::InvertTexture => {
+                let a: Result<InvertTextureNode, SavefileError> = savefile::load_file(project_file, VERSION);
                 match a {Ok(b) => Some(Box::new(b)), Err(a) => None}
             },
         }
@@ -39,6 +55,8 @@ impl NodeType  {
         match self {
             NodeType::Debug => Box::new(DebugNode::default()),
             NodeType::Output => Box::new(OutputNode::default()),
+            NodeType::DefaultImageOut => Box::new(DefaultImage::default()),
+            NodeType::InvertTexture => Box::new(InvertTextureNode::default())
             }
     }
 }

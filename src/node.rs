@@ -1,11 +1,11 @@
-use std::{collections::HashMap, process::Output};
+use std::{collections::HashMap, path::{self, PathBuf}, process::Output};
 
 use fastrand;
 use savefile::prelude::*;
 
 use crate::{
     nodes::{image_io::OutputNode, node_enum::NodeType},
-    project::Storage,
+    storage::Storage,
 };
 
 pub const VERSION: u32 = 0;
@@ -13,6 +13,8 @@ pub const VERSION: u32 = 0;
 pub fn random_id() -> String {
     fastrand::i32(1000..=9999).to_string()
 }
+
+
 
 pub trait MyNode {
     fn path(&self) -> Vec<&str>;
@@ -22,7 +24,9 @@ pub trait MyNode {
     fn y(&self) -> f32;
     fn x(&self) -> f32;
 
-    fn name(&self) -> String;
+    fn name(&self) -> String {
+        self.type_().name()
+    }
     fn id(&self) -> String;
 
     // fn set_pos();
@@ -34,7 +38,17 @@ pub trait MyNode {
 
     fn edit_menu_render(&self);
 
-    fn save(&self) -> Result<(), SavefileError>;
+    /// # Use This
+    /// ```
+    /// fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
+    ///     return save_file(
+    ///         path.join(self.name()).join(self.id()+".bin"),
+    ///         VERSION,
+    ///         self,
+    ///     );
+    /// }
+    /// ```
+    fn save(&self, path: PathBuf) -> Result<(), SavefileError>;
 
     fn input_id(&self, input: String) -> String {
         format!("node-{}-input-{input}", self.id())
@@ -79,17 +93,14 @@ impl MyNode for DebugNode {
         NodeType::Debug
     }
 
-    fn name(&self) -> String {
-        "debug".to_string()
-    }
 
     fn id(&self) -> String {
         self.id.clone()
     }
 
-    fn save(&self) -> Result<(), SavefileError> {
+    fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            format!("./saves/{}/{}.bin", self.type_().name(), self.id()),
+            path.join(self.name()).join(self.id()+".bin"),
             VERSION,
             self,
         );
@@ -110,13 +121,7 @@ impl MyNode for DebugNode {
         self.y = y;
     }
 
-    fn input_id(&self, input: String) -> String {
-        format!("node-{}-input-{input}", self.id())
-    }
 
-    fn output_id(&self, input: String) -> String {
-        format!("node-{}-input-{input}", self.id())
-    }
 
     fn run(&self, storage: &mut Storage, map: HashMap::<String, String>) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
@@ -125,8 +130,8 @@ impl MyNode for DebugNode {
             Some(a) => a,
             None => {return false},
         };
-        if let Some(frame) = storage.get_frame(get_output) {
-            storage.set_frame(output_id, frame);
+        if let Some(frame) = storage.get_texture(get_output) {
+            // storage.set_frame(output_id, frame);
         }else {
             return false
         }

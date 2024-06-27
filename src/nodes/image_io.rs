@@ -1,14 +1,17 @@
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use fastrand;
+use image::{DynamicImage, ImageBuffer, Rgba};
 use imgui::draw_list::Image;
 use imgui::TextureId;
 use imgui_glium_renderer::Texture;
 use savefile::prelude::*;
 use crate::nodes::node_enum::*;
 use crate::node::{random_id, MyNode, VERSION};
-use crate::project::Storage;
+use crate::storage;
+use storage::Storage;
 use glium::{
     backend::Facade,
     texture::{ClientFormat, RawImage2d},
@@ -28,10 +31,6 @@ pub struct OutputNode {
     x: f32,
     y: f32,
     id: String, 
-    #[savefile_ignore]
-    #[savefile_introspect_ignore ]
-    #[savefile_default_fn="default_image"]
-    frame: Vec<u8>,
 }
 
 impl Default for OutputNode {
@@ -40,7 +39,6 @@ impl Default for OutputNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
-            frame: default_image(),
         }
     }
 }
@@ -53,8 +51,12 @@ impl MyNode for OutputNode {
             Some(a) => a,
             None => {return false},
         };
-        if let Some(frame) = storage.get_frame(get_output) {
-            
+        if let Some(frame) = storage.get_texture(get_output) {
+            let img: RawImage2d<_> =  frame.read();
+            let img: ImageBuffer<Rgba<u8>, _> = ImageBuffer::from_raw(frame.width(), frame.height(), img.data.into_owned()).unwrap();
+            let img = DynamicImage::ImageRgba8(img).flipv();
+    
+            img.save("image.png").unwrap();
         }else {
             return false
         }
@@ -79,20 +81,21 @@ impl MyNode for OutputNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::Debug
+        NodeType::Output
     }
     
 
-    fn name(&self) -> String {
-        "Output".to_string()
-    }
 
     fn id(&self) -> String {
         self.id.clone()
     }
 
-    fn save(&self) -> Result<(), SavefileError> {
-        return save_file(format!("./saves/{}/{}.bin",self.type_().name(), self.id()), VERSION, self);
+    fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
+        return save_file(
+            path.join(self.name()).join(self.id()+".bin"),
+            VERSION,
+            self,
+        );
     }
     
     fn edit_menu_render(&self) {

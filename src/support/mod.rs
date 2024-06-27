@@ -15,19 +15,19 @@ mod clipboard;
 
 pub const FONT_SIZE: f32 = 13.0;
 
-#[allow(dead_code)] // annoyingly, RA yells that this is unusued
-pub fn simple_init<F: FnMut(&mut bool, &mut Ui) + 'static>(imgui: &mut Context, title: &str, run_ui: F) {
-    init_with_startup(title, |_, _, _| {}, run_ui, None,  imgui);
-}
-#[allow(dead_code)] // annoyingly, RA yells that this is unusued
-pub fn simple_init_fullscreen<F: FnMut(&mut bool, &mut Ui) + 'static>(title: &str, run_ui: F,  imgui: &mut Context) {
-    init_with_startup(title, |_, _, _| {}, run_ui, Some(Fullscreen::Borderless(None)),  imgui);
-}
+// #[allow(dead_code)] // annoyingly, RA yells that this is unusued
+// pub fn simple_init<F: FnMut(&mut bool, &mut Ui) + 'static>(imgui: &mut Context, title: &str, run_ui: F) {
+//     init_with_startup(title, |_, _, _| {}, run_ui, None,  imgui);
+// }
+// #[allow(dead_code)] // annoyingly, RA yells that this is unusued
+// pub fn simple_init_fullscreen<F: FnMut(&mut bool, &mut Ui) + 'static>(title: &str, run_ui: F,  imgui: &mut Context) {
+//     init_with_startup(title, |_, _, _| {}, run_ui, Some(Fullscreen::Borderless(None)),  imgui);
+// }
 
 pub fn init_with_startup<FInit, FUi>(title: &str, mut startup: FInit, mut run_ui: FUi, fullscreen: Option<Fullscreen>, imgui: &mut Context)
 where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
-    FUi: FnMut(&mut bool, &mut Ui) + 'static,
+    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>) + 'static,
 {
     // let mut imgui = create_context();
 
@@ -99,7 +99,7 @@ where
                 let ui = imgui.frame();
 
                 let mut run = true;
-                run_ui(&mut run, ui);
+                run_ui(&mut run, ui, &display);
                 if !run {
                     window_target.exit();
                 }
