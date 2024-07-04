@@ -354,16 +354,16 @@ impl Project {
                     }
                     ui.popup(format!("delete node? ({})", node.id()), || {
                         ui.text("are you sure you want to delete the node?");
-                        ui.disabled( node.type_() == NodeType::Output, || {
+                        // ui.disabled( node.type_() == NodeType::Output, || {
                             if ui.button("delete") {
                                 // self.nodes.remove(node.);
                                 delete_node = Some(i);
                                 ui.close_current_popup();
                             }
-                            if node.type_() == NodeType::Output && ui.is_item_hovered() {
-                                ui.tooltip_text("the output node cannot be deleted")
-                            }
-                    });
+                            // if node.type_() == NodeType::Output && ui.is_item_hovered() {
+                            //     ui.tooltip_text("the output node cannot be deleted")
+                            // }
+                    // });
                     if ui.button("cancel") {
                         ui.close_current_popup();
                     }

@@ -91,7 +91,8 @@ impl Storage {
         self.cached_textures.insert(cache, texture);
         return cache;
     }
-    
+
+
     /// this allows a cached texture to be refracted with a texture id string.
     /// this will be reset every frame.
     pub fn set_id_of_cached_texture(&mut self, cached_texture_hash: u64, id: String) {
@@ -184,7 +185,7 @@ impl Storage {
                     ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
                         .unwrap();
 
-                let not_texture = RawImage2d::from_raw_rgba(
+                let not_texture: RawImage2d<u8> = RawImage2d::from_raw_rgba(
                     image.as_bytes().to_vec(),
                     (image.width(), image.height()),
                 );

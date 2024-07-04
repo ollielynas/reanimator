@@ -55,7 +55,7 @@ pub trait MyNode {
     /// fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
     ///     return save_file(
     ///         path.join(self.name()).join(self.id()+".bin"),
-    ///         VERSION,
+    ///         NodeStruct::savefile_version(),
     ///         self,
     ///     );
     /// }

@@ -9,6 +9,9 @@ use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
 use imgui_winit_support::winit::window::{Fullscreen, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
+use platform_dirs::AppDirs;
+use std::env::current_exe;
+use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use std::time::Instant;
@@ -170,6 +173,38 @@ pub fn create_context() -> imgui::Context {
             }),
         },
         FontSource::TtfData {
+            data: include_bytes!("resources/Dokdo-Regular.ttf"),
+            size_pixels: FONT_SIZE,
+            config: Some(FontConfig {
+                // As imgui-glium-renderer isn't gamma-correct with
+                // it's font rendering, we apply an arbitrary
+                // multiplier to make the font a bit "heavier". With
+                // default imgui-glow-renderer this is unnecessary.
+                rasterizer_multiply: 1.5,
+                // Oversampling font helps improve text rendering at
+                // expense of larger font atlas texture.
+                oversample_h: 4,
+                oversample_v: 4,
+                ..FontConfig::default()
+            }),
+        },
+        FontSource::TtfData {
+            data: include_bytes!("resources/WorkSans-VariableFont_wght.ttf"),
+            size_pixels: FONT_SIZE,
+            config: Some(FontConfig {
+                // As imgui-glium-renderer isn't gamma-correct with
+                // it's font rendering, we apply an arbitrary
+                // multiplier to make the font a bit "heavier". With
+                // default imgui-glow-renderer this is unnecessary.
+                rasterizer_multiply: 1.5,
+                // Oversampling font helps improve text rendering at
+                // expense of larger font atlas texture.
+                oversample_h: 4,
+                oversample_v: 4,
+                ..FontConfig::default()
+            }),
+        },
+        FontSource::TtfData {
             data: include_bytes!("resources/mplus-1p-regular.ttf"),
             size_pixels: FONT_SIZE,
             config: Some(FontConfig {
@@ -183,7 +218,17 @@ pub fn create_context() -> imgui::Context {
             }),
         },
     ]);
-    imgui.set_ini_filename(None);
 
+    let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
+        Some(a) => {
+            fs::create_dir_all(a.config_dir.clone());
+            println!("{:#?}", a);
+            a.config_dir
+        }
+        None => current_exe().unwrap(),
+    };
+
+    imgui.set_ini_filename(Some(app_dirs.join("save.ini")));
+    
     imgui
 }

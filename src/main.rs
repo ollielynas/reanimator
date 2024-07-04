@@ -56,6 +56,16 @@ fn main() {
     
     Style::use_light_colors(ctx.style_mut());
 
+
+    ctx.style_mut().frame_rounding = 2.0;
+    ctx.style_mut().frame_border_size = 1.0;
+    ctx.style_mut().child_border_size = 1.0;
+    ctx.style_mut().popup_border_size = 1.0;
+    ctx.style_mut().window_border_size = 1.0;
+    ctx.style_mut().window_rounding = 3.0;
+
+
+
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer| {
         
@@ -69,7 +79,7 @@ fn main() {
         if let Some(ref mut project) = project {
             project.render(ui, &user_settings, renderer);
             return_to_home = project.return_to_home_menu;
-
+            ui.show_default_style_editor();
             if save_timer.elapsed().as_secs_f32() > 5.0 {
                 project.save();
                 save_timer = Instant::now();

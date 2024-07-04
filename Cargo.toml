@@ -29,3 +29,10 @@ winresource = "0.1.17"
 [profile.dev.package."*"]
 # Set the default for dependencies in Development mode.
 opt-level = 3
+
+
+[profile.release]
+codegen-units = 1
+lto = false
+strip = "debuginfo"
+panic = "abort"
