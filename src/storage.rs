@@ -1,12 +1,15 @@
+use core::hash;
 use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hasher};
 
 use glium::index::NoIndices;
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
-use glium::{implement_vertex, program, Program, Vertex};
+use glium::{implement_vertex, pixel_buffer, program, Program, Vertex};
 use image::{ImageBuffer, ImageFormat, Rgba};
-
+use imgui_glium_renderer::Renderer;
+use std::hash::Hash;
 use image::EncodableLayout;
 
 const VERTEX_SHADER:  &'static str = r#"
@@ -27,14 +30,16 @@ pub struct Storage {
     pub display: Display<WindowSurface>,
     unused_textures: HashMap<(u32, u32), Vec<Texture2d>>,
     shaders: HashMap<(String, String), Program>,
-    pub time: f32,
+    pub time: f64,
     pub indices: NoIndices,
     pub vertex_buffer: VertexBufferAny,
+    cached_textures: HashMap<u64, Texture2d>,
+    hasher: Box<dyn Hasher>,
+    redirect_id_to_cache: HashMap<String, u64>,
 }
 
 impl Storage {
     pub fn new(display: Display<WindowSurface>) -> Storage {
-
                     // let frame2 = storage.create_and_set_texture(frame.height(), frame.width(), output_id).unwrap();
                     #[derive(Copy, Clone)]
                     struct Vertex {
@@ -64,7 +69,37 @@ impl Storage {
             time: 0.0,
             indices,
             vertex_buffer:vertex_buffer.into(),
+            cached_textures: HashMap::new(),
+            hasher: Box::new(DefaultHasher::new()),
+            redirect_id_to_cache: HashMap::new(),
         }
+    }
+
+    fn calculate_hash<T: Hash>(&mut self, t: &T) -> u64 {
+        t.hash(&mut self.hasher);
+        self.hasher.finish()
+    }
+
+    /// returns the id of the cached texture (it's hash)
+    /// to use this cached texture it needs to have an id assigned to it.
+    /// this is done through the function: `set_id_of_cached_texture`
+    /// calls to the assigned id will be redirected to the cached texture.
+    /// the cache is not deleted each frame but the id redirect table is.
+    pub fn cache_texture(&mut self, texture: Texture2d) -> u64 {
+        let pixel_buffer = &texture.read_to_pixel_buffer().read().unwrap().to_vec();
+        let cache = self.calculate_hash(pixel_buffer);
+        self.cached_textures.insert(cache, texture);
+        return cache;
+    }
+    
+    /// this allows a cached texture to be refracted with a texture id string.
+    /// this will be reset every frame.
+    pub fn set_id_of_cached_texture(&mut self, cached_texture_hash: u64, id: String) {
+        self.redirect_id_to_cache.insert(id, cached_texture_hash);
+    }
+
+    pub fn cached_texture_exists(&self, hash: u64) -> bool {
+        self.cached_textures.contains_key(&hash)
     }
 
     pub fn set_texture(&mut self, k: String, v: Texture2d) {
@@ -72,7 +107,35 @@ impl Storage {
     }
 
     pub fn get_texture(&self, k: &String) -> Option<&Texture2d> {
-        self.textures.get(k)
+        if let Some(k) = self.redirect_id_to_cache.get(k) {
+            return self.cached_textures.get(k);
+        }else {
+            return self.textures.get(k);
+        }
+    }
+
+    pub fn reset(&mut self) {
+        let mut keys: Vec<String> = vec![];
+        for (string, _) in self.textures.iter() {
+            keys.push(string.clone())
+        }
+        // let keys = self.textures.keys().collect::<Vec<&String>>();
+        self.redirect_id_to_cache = HashMap::new();
+        for key in keys {
+            self.drop_texture(key.to_string());
+        }
+    }
+
+    pub fn drop_texture(&mut self, id: String) {
+        let texture = self.textures.remove(&id);
+
+        if let Some(texture) = texture {
+            if let Some(ref mut a) = self.unused_textures.get_mut(&(texture.height(), texture.width())) {
+                a.push(texture);
+            }else {
+                self.unused_textures.insert((texture.height(), texture.width()), vec![texture]);
+            }
+        }
     }
 
     /// shaders are cached
@@ -92,7 +155,10 @@ impl Storage {
 
     pub fn gen_shader(&mut self, vert: String, frag: String) -> Option<&Program> {
         if !self.shaders.contains_key(&(vert.clone(), frag.clone())) {
-            let program = glium::Program::from_source(&self.display, &(vert), &frag, None).unwrap();
+            let program = match glium::Program::from_source(&self.display, &(vert), &frag, None) {
+                Ok(a) => a,
+                Err(a) => {println!("shader_comp_error: \n {a:?}"); return None;}
+            };
 
             self.shaders.insert((vert.clone(), frag.clone()), program);
         }
@@ -128,4 +194,7 @@ impl Storage {
         }
         return self.get_texture(&k2);
     }
+
+
+
 }

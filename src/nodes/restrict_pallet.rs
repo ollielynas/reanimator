@@ -1,100 +1,59 @@
-use std::{any::Any, collections::HashMap, iter::Filter, path::{self, PathBuf}, process::Output};
 
-use fastrand;
-use glium::{uniform, BlitTarget, DrawParameters, Surface};
-use imgui::Ui;
+
+
+
+
+use std::{any::Any, collections::HashMap, ops::{RangeBounds, RangeInclusive}, path::PathBuf};
+
+use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
-use savefile::prelude::*;
+use node_enum::*;
+use savefile::{save_file, SavefileError};
 
-use crate::{
-    nodes::{image_io::OutputNode, node_enum::NodeType},
-    storage::Storage,
-};
-
-
-pub fn random_id() -> String {
-    fastrand::i32(1000..=9999).to_string()
-}
+use crate::{node::*, nodes::*, storage::Storage};
 
 
 
-pub trait MyNode {
 
-    fn savefile_version() -> u32 where Self: Sized;
-
-    fn as_any(&self) -> &dyn Any;
-
-    fn path(&self) -> Vec<&str>;
-
-    fn type_(&self) -> NodeType;
-
-    fn y(&self) -> f32;
-    fn x(&self) -> f32;
-
-    fn name(&self) -> String {
-        self.type_().name()
-    }
-    fn id(&self) -> String;
-
-    // fn set_pos();
-
-    fn inputs(&self) -> Vec<String>;
-    fn outputs(&self) -> Vec<String>;
-
-    fn set_xy(&mut self, x: f32, y: f32);
-
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer) {
-        ui.text("this node cannot be edited");
-    }
-    fn description(&mut self, ui: &Ui) {
-        ui.text("this node does not yet have a description");
-    }
-
-    /// # Use This
-    /// ```
-    /// fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
-    ///     return save_file(
-    ///         path.join(self.name()).join(self.id()+".bin"),
-    ///         VERSION,
-    ///         self,
-    ///     );
-    /// }
-    /// ```
-    fn save(&self, path: PathBuf) -> Result<(), SavefileError>;
-
-    fn input_id(&self, input: String) -> String {
-        format!("node-{}-input-{input}", self.id())
-    }
-    fn output_id(&self, output: String) -> String {
-        format!("node-{}-output-{output}", self.id())
-    }
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap<String, String>, renderer: &mut Renderer) -> bool;
-}
 
 #[derive(Savefile)]
-pub struct DebugNode {
+pub struct RestrictPalletNode {
     x: f32,
     y: f32,
     id: String,
+    red: f32,
+    green: f32,
+    blue: f32,
+    alpha: f32,
 }
 
-impl Default for DebugNode {
-    fn default() -> Self {
-        DebugNode {
+
+impl RestrictPalletNode {
+
+    pub fn new() -> RestrictPalletNode {
+        RestrictPalletNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
+            red: 1.0,
+            green: 1.0,
+            blue: 1.0,
+            alpha: 1.0,
+            
         }
     }
 }
 
-impl MyNode for DebugNode {
+
+impl MyNode for RestrictPalletNode {
+
     fn path(&self) -> Vec<&str> {
-        vec!["msc"]
+        vec!["generic single input shader"]
     }
 
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 where Self: Sized {
+        0
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -108,7 +67,7 @@ impl MyNode for DebugNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::Debug
+        NodeType::RestrictPalletRGBA
     }
 
 
@@ -116,10 +75,36 @@ impl MyNode for DebugNode {
         self.id.clone()
     }
 
+    fn edit_menu_render(&mut self, ui: &imgui::Ui , renderer: &mut Renderer) {
+        // ui.color_edit3_config(label, value)
+        let mut color = [self.red, self.green, self.blue, self.alpha];
+        ui.color_edit4_config("restrictions", &mut color)
+        .display_mode(imgui::ColorEditDisplayMode::Rgb)
+        .alpha_bar(true)
+        .hdr(true)
+        .input_mode(imgui::ColorEditInputMode::Rgb)
+        .options(true)
+        .format(imgui::ColorFormat::Float)
+        .picker(true)
+        .build()
+        ;
+
+        self.red = color[0];
+        self.green = color[1];
+        self.blue = color[2];
+        self.alpha = color[3];
+
+    }
+
+
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text("restrict the red green and blue data to cause color banding");
+    }
+
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            DebugNode::savefile_version(),
+            RestrictPalletNode::savefile_version(),
             self,
         );
     }
@@ -157,8 +142,18 @@ impl MyNode for DebugNode {
             out vec4 color;
 
             uniform sampler2D tex;
+            uniform float r;
+            uniform float g;
+            uniform float b;
+            uniform float a;
+
+
             void main() {
-            color = texture(tex, v_tex_coords);
+            float r2 = round(texture(tex, v_tex_coords).r * 255.0 * r * r)/(255.0*r*r);
+            float g2 = round(texture(tex, v_tex_coords).g * 255.0 * g * g)/(255.0*g*g);
+            float b2 = round(texture(tex, v_tex_coords).b * 255.0 * b * b)/(255.0*b*b);
+            float a2 = round(texture(tex, v_tex_coords).a * 255.0 * a * a)/(255.0*a*a);
+            color = vec4(r2,g2,b2,1.0);
             }
             "#;
 
@@ -180,6 +175,9 @@ impl MyNode for DebugNode {
 
             let uniforms = uniform! {
                 tex: texture,
+                r: self.red,
+                g: self.green,
+                b: self.blue,
 
             };
             let texture2 = storage.get_texture(&output_id).unwrap();

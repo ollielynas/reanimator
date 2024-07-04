@@ -1,6 +1,7 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{any::Any, collections::HashMap, fs, path::PathBuf};
 
 use glium::{implement_vertex, texture, uniform, DrawParameters, Frame, Surface};
+use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
 use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
@@ -48,12 +49,11 @@ impl MyNode for InvertTextureNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            0,
+            InvertTextureNode::savefile_version(),
             self,
         );
     }
 
-    fn edit_menu_render(&self) {}
 
     fn inputs(&self) -> Vec<String> {
         return vec!["In".to_string()];
@@ -68,9 +68,11 @@ impl MyNode for InvertTextureNode {
         self.y = y;
     }
 
+    fn savefile_version() -> u32 where Self: Sized {
+        0
+    }
 
-
-    fn run(&self, storage: &mut Storage, map: HashMap::<String, String>) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
@@ -134,4 +136,9 @@ impl MyNode for InvertTextureNode {
 
         return true;
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
 }

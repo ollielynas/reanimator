@@ -1,5 +1,6 @@
 use glium::glutin::surface::WindowSurface;
-use glium::{program, Display, Program, Surface};
+use glium::uniforms::SamplerBehavior;
+use glium::{program, Display, Program, Surface, Texture2d};
 use imgui::sys::{igSetNextWindowSize, ImGuiCond, ImGuiCond_Always, ImGuiCond_Once, ImVec2};
 use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
@@ -9,7 +10,9 @@ use imgui_winit_support::winit::event_loop::EventLoop;
 use imgui_winit_support::winit::window::{Fullscreen, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use std::path::Path;
+use std::rc::Rc;
 use std::time::Instant;
+
 
 mod clipboard;
 
@@ -27,7 +30,7 @@ pub const FONT_SIZE: f32 = 13.0;
 pub fn init_with_startup<FInit, FUi>(title: &str, mut startup: FInit, mut run_ui: FUi, fullscreen: Option<Fullscreen>, imgui: &mut Context)
 where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
-    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>) + 'static,
+    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer) + 'static,
 {
     // let mut imgui = create_context();
 
@@ -47,9 +50,14 @@ where
     // program!()
     
     let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
+    
+    let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
 
-        
-        
+
+    let texture_id: imgui::TextureId = renderer.textures().insert(Texture {
+        texture: Rc::new(display_texture),
+        sampler: SamplerBehavior::default(),
+    });
 
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
@@ -69,7 +77,7 @@ where
         } else {
             HiDpiMode::Default
         };
-        
+        // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
     }
 
@@ -99,7 +107,7 @@ where
                 let ui = imgui.frame();
 
                 let mut run = true;
-                run_ui(&mut run, ui, &display);
+                run_ui(&mut run, ui, &display, &mut renderer);
                 if !run {
                     window_target.exit();
                 }
@@ -110,6 +118,7 @@ where
                 
                 let draw_data = imgui.render();
                 
+
                 renderer
                     .render(&mut target, draw_data)
                     .expect("Rendering failed");

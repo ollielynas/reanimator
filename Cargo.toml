@@ -21,3 +21,11 @@ strum = "0.26.2"
 strum_macros = "0.26.4"
 rfd = "0.14.1"
 platform-dirs = "0.3.0"
+
+[build-dependencies]
+winresource = "0.1.17"
+
+
+[profile.dev.package."*"]
+# Set the default for dependencies in Development mode.
+opt-level = 3

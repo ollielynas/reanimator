@@ -16,6 +16,7 @@ pub struct UserSettings {
 impl Default for UserSettings {
     fn default() -> Self {
         let user_dirs = UserDirs::new();
+        
 
         let project_folder_path = match user_dirs {
             Some(a) => a.document_dir,
