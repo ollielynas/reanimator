@@ -1,4 +1,4 @@
-use std::{env::current_exe, fs, time::Instant};
+use std::{borrow::BorrowMut, env::current_exe, fs, time::Instant};
 
 use glium::Program;
 use imgui::{sys::{igSetNextWindowSize, ImVec2}, Style, TextureId};
@@ -18,8 +18,8 @@ pub mod nodes;
 pub mod support;
 pub mod storage;
 pub mod user_info;
+pub mod history_tracker;
 
-use std::sync::Mutex;
 
 // in theoiry this is just a temp solution, but im never going to 
 // static DISPLAY_TEXTURE_ID: Mutex<Option<TextureId>> = Mutex::new(None);
@@ -41,7 +41,6 @@ fn main() {
 
 
 
-    let user_dirs = UserDirs::new();
 
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
     user_settings.update_projects();
@@ -74,15 +73,21 @@ fn main() {
             return_to_home = false;
         }
 
+        // ctx.io_mut();
+        // ctx.new_frame()
         // renderer.textures().get_mut()
 
         if let Some(ref mut project) = project {
             project.render(ui, &user_settings, renderer);
             return_to_home = project.return_to_home_menu;
-            ui.show_default_style_editor();
-            if save_timer.elapsed().as_secs_f32() > 5.0 {
-                project.save();
+            // ui.show_default_style_editor();
+            if save_timer.elapsed().as_secs_f32() > 2.0 {
                 save_timer = Instant::now();
+                let r = project.update_history_and_save();
+                match r {
+                    Ok(_) => {},
+                    Err(e) => {println!("{e}")},
+                }
             }
 
         }else {

@@ -34,7 +34,7 @@ pub struct Storage {
     pub indices: NoIndices,
     pub vertex_buffer: VertexBufferAny,
     cached_textures: HashMap<u64, Texture2d>,
-    hasher: Box<dyn Hasher>,
+    pub hasher: Box<dyn Hasher>,
     redirect_id_to_cache: HashMap<String, u64>,
 }
 
@@ -75,7 +75,7 @@ impl Storage {
         }
     }
 
-    fn calculate_hash<T: Hash>(&mut self, t: &T) -> u64 {
+    pub fn calculate_hash<T: Hash>(&mut self, t: &T) -> u64 {
         t.hash(&mut self.hasher);
         self.hasher.finish()
     }

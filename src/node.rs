@@ -1,5 +1,5 @@
 use std::{any::Any, collections::HashMap, iter::Filter, path::{self, PathBuf}, process::Output};
-
+use std::hash::Hash;
 use fastrand;
 use glium::{uniform, BlitTarget, DrawParameters, Surface};
 use imgui::Ui;
@@ -15,7 +15,6 @@ use crate::{
 pub fn random_id() -> String {
     fastrand::i32(1000..=9999).to_string()
 }
-
 
 
 pub trait MyNode {
@@ -88,7 +87,6 @@ impl Default for DebugNode {
         }
     }
 }
-
 impl MyNode for DebugNode {
     fn path(&self) -> Vec<&str> {
         vec!["msc"]

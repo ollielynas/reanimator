@@ -54,13 +54,9 @@ where
     
     let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
     
-    let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
+    // let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
 
 
-    let texture_id: imgui::TextureId = renderer.textures().insert(Texture {
-        texture: Rc::new(display_texture),
-        sampler: SamplerBehavior::default(),
-    });
 
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
@@ -94,6 +90,8 @@ where
                 let now = Instant::now();
                 imgui.io_mut().update_delta_time(now - last_frame);
                 last_frame = now;
+                // imgui.io_mut().font_global_scale = 0.5;
+
             }
             Event::AboutToWait => {
                 platform
@@ -108,7 +106,6 @@ where
                 ..
             } => {
                 let ui = imgui.frame();
-
                 let mut run = true;
                 run_ui(&mut run, ui, &display, &mut renderer);
                 if !run {

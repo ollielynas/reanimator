@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 
-savefile = "0.17.4"
+savefile = {version = "0.17.4", features = ["bzip2"]}
 savefile-derive = "0.17.4"
 fastrand = "2.1.0"
 imgui = "0.12.0"
@@ -21,6 +21,11 @@ strum = "0.26.2"
 strum_macros = "0.26.4"
 rfd = "0.14.1"
 platform-dirs = "0.3.0"
+pac2 = "0.1.0"
+dtt = "0.0.6"
+file-hashing = "0.1.2"
+blake2 = "0.10.6"
+comprexor = "0.1.520"
 
 [build-dependencies]
 winresource = "0.1.17"

@@ -8,6 +8,7 @@ use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Stor
 
 
 #[derive(Savefile)]
+
 pub struct InvertTextureNode {
     x: f32,
     y: f32,

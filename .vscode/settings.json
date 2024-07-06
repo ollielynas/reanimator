@@ -4,6 +4,7 @@
         "Fullscreen",
         "glsl",
         "hasher",
+        "imgui",
         "opengl",
         "reanimator"
     ]
