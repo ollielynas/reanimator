@@ -113,7 +113,15 @@ where
                 }
 
                 let mut target = display.draw();
-                target.clear_color_srgb(1.0, 1.0, 1.0, 1.0);
+                let mut col = ui.style_color(imgui::StyleColor::WindowBg);
+
+                for c in col.iter_mut() {
+                    *c *= 4.0;
+                    *c += 1.0;
+                    *c /= 5.0;
+                }
+                
+                target.clear_color_srgb(col[0], col[1], col[2], 1.0);
                 platform.prepare_render(ui, &window);
                 
                 let draw_data = imgui.render();

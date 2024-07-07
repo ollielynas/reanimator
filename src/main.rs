@@ -48,30 +48,42 @@ fn main() {
     let mut return_to_home = false;
     let mut project: Option<Project> = None;
     
-    let mut ctx = create_context();
+    let mut ctx: imgui::Context = create_context();
     
     let mut save_timer  = Instant::now();
+
+    let mut settings_window_open = false;
     
     
-    Style::use_light_colors(ctx.style_mut());
-
-
-    ctx.style_mut().frame_rounding = 2.0;
-    ctx.style_mut().frame_border_size = 1.0;
-    ctx.style_mut().child_border_size = 1.0;
-    ctx.style_mut().popup_border_size = 1.0;
-    ctx.style_mut().window_border_size = 1.0;
-    ctx.style_mut().window_rounding = 3.0;
+    user_settings.load_theme(&mut ctx);
 
 
 
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer| {
+
+        
+
         
         if return_to_home {
             project = None;
             return_to_home = false;
         }
+
+        let size_array = ui.io().display_size;
+
+        // if let Some(a) = ui.window("background")
+        // .bring_to_front_on_focus(false)
+        // .no_inputs()
+        // .position([0.0,0.0], imgui::Condition::Always)
+        // .focused(false)
+        // .size(size_array, imgui::Condition::Always)
+        // .no_decoration()
+        // .no_nav()
+        // .begin() {
+            
+        //     a.end();
+        // }
 
         // ctx.io_mut();
         // ctx.new_frame()
@@ -83,10 +95,14 @@ fn main() {
             // ui.show_default_style_editor();
             if save_timer.elapsed().as_secs_f32() > 2.0 {
                 save_timer = Instant::now();
+                if user_settings.history {
                 let r = project.update_history_and_save();
                 match r {
                     Ok(_) => {},
                     Err(e) => {println!("{e}")},
+                }
+                }else {
+                    project.save();
                 }
             }
 
@@ -94,8 +110,25 @@ fn main() {
             // ReUi::load_and_apply(egui_ctx);
             
             project = Project::project_menu(ui, display, &mut user_settings);
-            
+            ui.window("settings button")
+        .draw_background(false)
+        .movable(false)
+        .no_decoration()
+        .position_pivot([1.0,0.0])
+        .size_constraints([ui.calc_text_size("settings xxxxxxxx")[0],-1.0], [9999.0,-1.0])
+        .position([size_array[0], 0.0], imgui::Condition::Always)
+        .build(|| {
+            if ui.button("settings") {
+                settings_window_open = true;
+            }
+        });
         }
+
+        if settings_window_open {
+            user_settings.settings_window(ui, &mut settings_window_open);
+        }
+
+
     }, None,  &mut ctx);
 
 }

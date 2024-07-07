@@ -105,19 +105,7 @@ impl Project {
                 // ui.set_window_font_scale(1.2);
                 ui.text("load project");
                 // ui.set_window_font_scale(1.0);
-                if ui.button("change project folder") {
-                    let new_folder = FileDialog::new()
-                        .set_directory(&user_settings.project_folder_path)
-                        .set_can_create_directories(true)
-                        .set_title("set project folder")
-                        .pick_folder();
-
-                    if new_folder.is_some() {
-                        user_settings.project_folder_path = new_folder.unwrap();
-                        user_settings.update_projects();
-                        user_settings.save();
-                    }
-                }
+                
 
                 ui.window("projects")
                     .always_vertical_scrollbar(true)
