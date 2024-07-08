@@ -35,7 +35,11 @@ fn default_image() -> Vec<u8> {
 
 #[derive(EnumIter, Savefile, PartialEq, Clone)]
 pub enum OutputType {
-    LiveDisplay { run: bool, fps: i32, last_frame: f64 },
+    LiveDisplay { run: bool, fps: i32, 
+        #[savefile_ignore]
+        #[savefile_versions="..0"]
+        #[savefile_default_val="0.0"]
+        last_frame: f64 },
     RenderImage,
     RenderGif {
         record: bool,
@@ -145,7 +149,7 @@ impl MyNode for OutputNode {
     }
 
     fn path(&self) -> Vec<&str> {
-        vec!["IO"]
+        vec![]
     }
 
     fn x(&self) -> f32 {
@@ -298,7 +302,7 @@ impl MyNode for OutputNode {
                             // println!("a");
                         }
                         gif_encoder.set_repeat(image::gif::Repeat::Infinite);
-                    
+                        
                         // println!("{:?}", buffer);
                     }
                     }else {
@@ -344,6 +348,6 @@ impl MyNode for OutputNode {
     }
 
     fn savefile_version() -> u32 {
-        0
+        1
     }
 }

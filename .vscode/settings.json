@@ -5,6 +5,7 @@
         "glsl",
         "hasher",
         "imgui",
+        "Mousewheel",
         "opengl",
         "reanimator"
     ]

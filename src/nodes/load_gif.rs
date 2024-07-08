@@ -2,42 +2,46 @@ use crate::{
     node::{random_id, MyNode},
     storage::Storage,
 };
-use glium::{texture::RawImage2d, Texture2d};
-use image::{self, ImageFormat};
+use glium::{index, texture::RawImage2d, Texture2d};
+use image::{self, gif::{GifDecoder, GifReader}, AnimationDecoder, DynamicImage, GenericImageView, ImageDecoder, ImageFormat, Rgba};
 use image::EncodableLayout;
 use imgui::text_filter;
 use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
-use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
+use std::{any::Any, collections::HashMap, fs, hash::Hash, io::Read, path::PathBuf};
 
 use super::node_enum::NodeType;
 
+const VERSION: u32 = 0;
 
 #[derive(Savefile)]
-pub struct LoadImage {
+pub struct LoadGifNode {
     x: f32,
     y: f32,
     id: String,
     path: Option<PathBuf>,
+    length: f32,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
-    texture_cache: Option<u64>,
+    texture_cache: Vec<u64>,
 }
 
-impl Default for LoadImage {
+impl Default for LoadGifNode {
     fn default() -> Self {
-        LoadImage {
+        LoadGifNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
-            texture_cache: None,
+            texture_cache: vec![],
             path: None,
+            length: 0.0,
+
         }
     }
 }
 
-impl MyNode for LoadImage {
+impl MyNode for LoadGifNode {
     fn savefile_version() -> u32
     where
         Self: Sized,
@@ -57,18 +61,7 @@ impl MyNode for LoadImage {
     }
 
     fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("this node allows you to load static images");
-        ui.text_wrapped("the following image types are supported:");
-        ui.bullet_text("Png ");
-        ui.bullet_text("Jpeg");
-        ui.bullet_text("WebP");
-        ui.bullet_text("Tiff");
-        ui.bullet_text("Tga ");
-        ui.bullet_text("Bmp ");
-        ui.bullet_text("Ico ");
-        ui.bullet_text("Hdr ");
-        ui.bullet_text("Pnm ");
-        ui.bullet_text("Farbfeld");
+        ui.text_wrapped("load gif files");
     }
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
@@ -76,30 +69,23 @@ impl MyNode for LoadImage {
             a.as_path().to_str().unwrap()
         }
         None => "no path selected"
-    }));
+        }
+
+
+    ));
 
     if ui.button("change path") {
-        self.texture_cache = None;
-        self.path = FileDialog::new().add_filter("", &[
-            "png",
-            "jpg",
-            "jepg",
-            "webp",
-            "tiff",
-            "tif",
-            "tga",
-            "bmp",
-            "ico",
-            "hdr",
-            "pbm", "pam", "ppm", "pgm",
-            "ff"
-            ]).pick_file();
+        self.texture_cache = vec![];
+        self.path = FileDialog::new().add_filter("", &["gif"]).pick_file();
     }
+
+    ui.text(format!("length: {:.5}", self.length));
+    ui.text(format!("fps: {:.1}", (self.texture_cache.len() as f32)/self.length));
 
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::LoadImageType
+        NodeType::LoadGif
     }
 
     fn id(&self) -> String {
@@ -109,7 +95,7 @@ impl MyNode for LoadImage {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id() + ".bin"),
-            LoadImage::savefile_version(),
+            VERSION,
             self,
         );
     }
@@ -119,7 +105,7 @@ impl MyNode for LoadImage {
     }
 
     fn outputs(&self) -> Vec<String> {
-        return vec!["Selected Image".to_string()];
+        return vec!["Gif Output".to_string()];
     }
 
     fn set_xy(&mut self, x: f32, y: f32) {
@@ -142,37 +128,57 @@ impl MyNode for LoadImage {
         // println!("{:?}", self.texture_cache);
 
         if let Some(path) = &self.path {
-            if self.texture_cache.is_none()
-                || !storage.cached_texture_exists(self.texture_cache.unwrap())
+            if self.texture_cache.len() == 0
             {
-                let bytes = match fs::read(path) {
+                self.length = 0.0;
+                let file = match fs::File::open(path) {
                     Ok(a) => a,
                     Err(e) => {
                         println!("{e}");
                         return false;
                     }
                 };
-                let image = match image::load_from_memory(&bytes) {
+
+                let gif = match GifDecoder::new(file) {
                     Ok(a) => a,
                     Err(e) => {
                         println!("{e}");
                         return false;
                     }
+                };
+
+                let mut image = DynamicImage::new_rgba8(gif.dimensions().0, gif.dimensions().1);
+
+                for a in gif.into_frames() {
+                    if let Ok(frame) = a {
+                        let (msu, msl) = frame.delay().numer_denom_ms();
+                        self.length += (msu as f32 / msl as f32) / 1000.0;
+                        
+                        
+                        // let image = frame.buffer();
+                        let b = frame.into_buffer();
+                        *image.as_mut_rgba8().unwrap() = b;
+
+
+                        let not_texture = RawImage2d::from_raw_rgba(
+                            image.flipv().as_bytes().to_vec(),
+                            (image.dimensions().0, image.dimensions().1),
+                        );
+                        
+                        let texture: Texture2d = Texture2d::new(&storage.display, not_texture).unwrap();
+                        self.texture_cache.push(storage.cache_texture(texture));
+                    }
                 }
-                .flipv()
-                .into_rgba8();
-                let not_texture = RawImage2d::from_raw_rgba(
-                    image.as_bytes().to_vec(),
-                    (image.width(), image.height()),
-                );
                 // let a: HashMap<Texture2d, String> = HashMap::new();
-                let texture: Texture2d = Texture2d::new(&storage.display, not_texture).unwrap();
-                self.texture_cache = Some(storage.cache_texture(texture));
             } else {
                 // return false;
             }
         }
-        storage.set_id_of_cached_texture(self.texture_cache.unwrap(), output_id);
+
+        if self.texture_cache.len() > 0 {
+            let index = (self.texture_cache.len() as f64 *(storage.time%self.length as f64)/(self.length as f64)).floor() as usize;
+            storage.set_id_of_cached_texture(self.texture_cache[index], output_id);
+        }
         // storage.set_texture(output_id,  texture);
 
         return true;

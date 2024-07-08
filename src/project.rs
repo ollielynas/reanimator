@@ -1,10 +1,7 @@
 use glium::{program, BlitTarget, Display, Program, Surface};
 use imgui::{
-    color, draw_list,
-    internal::RawCast,
-    sys::{igGetWindowSize, ImColor, ImVec2},
-    ImColor32, Image, Style, TreeNodeToken, Ui, WindowFlags,
-};
+    color, drag_drop::DragDropPayloadPod, draw_list, internal::RawCast, sys::{igGetWindowSize, ImColor, ImVec2}, BackendFlags, DragDropFlags, DragDropTarget, ImColor32, Image, Style, TreeNodeToken, Ui, WindowFlags
+};use imgui::drag_drop::PayloadIsWrongType;
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
 use std::{
@@ -21,7 +18,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{history_tracker::Snapshot, nodes::node_enum::*};
+use crate::{history_tracker::Snapshot, node, nodes::node_enum::*};
 use crate::{
     node::MyNode,
     nodes::{self, image_io::*},
@@ -34,7 +31,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
-}
+}   
 // #[savefile_derive]
 pub struct Project {
     pub storage: Storage,
@@ -148,6 +145,7 @@ impl Project {
                                 let p = save_dir
                                 .join(new_project_1.name());
 
+                                fs::create_dir_all(&p);
 
                                 for i in fs::read_dir(p).unwrap() {
                                     if let Ok(i) = i {
@@ -159,6 +157,13 @@ impl Project {
                                 }
                                 new_project = Some(new_project_1);
                             }
+
+                            // ui.same_line_with_spacing(ui.window_size()[0]-ui.calc_text_size("del")[0], 10.0);
+                            // ui.push_style_color(imgui::StyleColor::Button, [0.8,0.3,0.3,1.0]);
+                            // ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.7,0.3,0.3,1.0]);
+                            // ui.push_style_color(imgui::StyleColor::ButtonActive, [0.7,0.4,0.4,1.0]);
+                            // ui.button("del");
+
                         }
                     });
 
@@ -176,8 +181,17 @@ impl Project {
             NodeType::DefaultImageOut.new_node(),
         ];
 
-        nodes[0].set_xy(20.0, 150.0);
-        nodes[1].set_xy(20.0, 50.0);
+        let mut new_node_types = vec![];
+
+        for node_type in NodeType::iter() {
+            let node: Box<dyn MyNode> = node_type.new_node();
+            debug_assert_eq!(node_type, node.type_());
+            debug_assert_eq!(node_type.name(), node.name());
+            new_node_types.push(node);
+        }
+
+        nodes[0].set_xy(50.0, 150.0);
+        nodes[1].set_xy(220.0, 150.0);
 
         let mut new = Project {
             return_to_home_menu: false,
@@ -195,14 +209,14 @@ impl Project {
             metrics: false,
             path: path.clone(),
             node_edit: None,
-            new_node_types: NodeType::iter()
-                .map(|x| x.new_node())
-                .collect::<Vec<Box<dyn MyNode>>>(),
+            new_node_types,
             // node_render_target: render_target(1000, 1000),
             node_speeds: HashMap::new(),
             node_run_order: (0, vec![]),
             selected_node_to_add: NodeType::iter().len(),
         };
+
+        new.storage.project_name = new.name();
 
         new.new_node_types.sort_by(|a, b| {
             format!("{:?},{}", a.path(), a.name()).cmp(&format!("{:?},{}", b.path(), b.name()))
@@ -255,11 +269,13 @@ impl Project {
         return Ok(());
     }
 
+
+    /// unfinished / not implemented
     pub fn recenter_nodes(&mut self, ui: &Ui) {
         let size_array = ui.io().display_size;
-
+        
         for node in &self.nodes {
-
+            todo!();
         }
 
     }
@@ -279,7 +295,7 @@ impl Project {
             );
         
         
-            
+
         
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
@@ -296,6 +312,7 @@ impl Project {
             .build(|| {
                 let mut node_pos_map: HashMap<String, ImVec2> = HashMap::new();
                 // println!("{:?}", ui.mouse_drag_delta());
+
 
                 if ui.is_window_focused() {
                     self.selected = None;
@@ -578,9 +595,11 @@ impl Project {
         }
 
         let mut left_sidebar_width = 0.0;
+        let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
 
+        
         ui.window("sidebar")
-            .no_decoration()
+        .no_decoration()
             .position(
                 [0.0, ui.calc_text_size("x")[1] * 1.5],
                 imgui::Condition::Always,
@@ -589,34 +608,91 @@ impl Project {
             .resizable(true)
             // .always_auto_resize(true)
             .build(|| {
+                
+                let sidebar_things = vec![
+                    ui.push_style_var(imgui::StyleVar::FrameBorderSize(0.0)),
+                ];
+                let sidebar_col_things = vec![
+                    ui.push_style_color(imgui::StyleColor::Button, [1.0,1.0,1.0,0.0]),
+                    ui.push_style_color(imgui::StyleColor::BorderShadow, [0.0,0.0,1.0,1.0]),
+                    // ui.push_style_color(imgui::StyleColor::ButtonHovered, ui.style_color(S)),
+                ];
+                
+
+
                 // Style::use_light_colors(&mut self)
                 if ui.button("Add Node") {
                     ui.open_popup("Add Node");
                 }
-                self.new_node_menu(ui);
 
-                if ui.button("debug") {
-                    self.metrics = !self.metrics;
-                }
-
-                if ui.button("save") {
-                    println!("save button, {:?}", self.save());
-                }
-
-                if ui.button("return home") {
-                    self.return_to_home_menu = true;
-                }
 
                 if ui.button("timeline") {
                     self.display_history = !self.display_history;
                 }
+    //             ui.button("Hello, I am a drag Target!");
+                
+    // if let Some(target) = ui.drag_drop_target() {
+    //     // accepting an empty payload (which is really just raising an event)
+    //     if let Some(_payload_data) = target.accept_payload_empty("BUTTON_DRAG", DragDropFlags::empty()) {
+    //         println!("Nice job getting on the payload!");
+    //     }
+        
+    //     if let Some(_payload_data) = target.accept_payload::<usize, _>("BUTTON_DRAG", DragDropFlags::ACCEPT_BEFORE_DELIVERY) {
+    //         println!("Nice job getting on the payload!");
+    //     }
+
+   
+    //     // and we can accept multiple, different types of payloads with one drop target.
+    //     // this is a good pattern for handling different kinds of drag/drop situations with
+    //     // different kinds of data in them.
+    //     if let Some(Ok(payload_data)) = target.accept_payload::<usize, _>("BUTTON_ID", DragDropFlags::empty()) {
+    //         println!("Our payload's data was {}", payload_data.data);
+    //     }
+    // }
+
+    // ui.drag_drop_source_config("x")
+    // .condition(imgui::Condition::Always)
+    // .begin_payload(payload)
+
+
+    
+
+                ui.separator();
+                
+                if ui.button("debug") {
+                    self.metrics = !self.metrics;
+                }
+                if ui.button("debug mem") {
+                    self.storage.show_debug_window = !self.storage.show_debug_window;
+                }
+                
+                if ui.button("save") {
+                    println!("save button, {:?}", self.save());
+                }
+                
+                ui.separator();
+                
+                if ui.button("return home") {
+                    self.return_to_home_menu = true;
+                }
+                
 
                 if self.display_history {
                     self.history_window(ui);
                 }
 
                 left_sidebar_width = ui.window_size()[0];
+                for i in sidebar_col_things {
+                    i.end();
+                }
+                for i in sidebar_things {
+                    i.end();
+                }
+
+                self.new_node_menu(ui);
+
             });
+                    self.storage.debug_window(ui);
 
         ui.window("edit_node")
             .collapsible(true)
@@ -638,6 +714,7 @@ impl Project {
                     _ => ui.text("no node has been selected"),
                 }
             });
+        un_round.end();
 
         if self.metrics {
             ui.show_metrics_window(&mut self.metrics);

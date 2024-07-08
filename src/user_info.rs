@@ -2,7 +2,7 @@ use std::{
     arch::x86_64, env::current_exe, fs::{self, DirEntry}, path::PathBuf, time::SystemTime
 };
 
-use imgui::{Style, Ui};
+use imgui::{ConfigFlags, Style, Ui};
 use platform_dirs::{AppDirs, UserDirs};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
@@ -33,6 +33,7 @@ pub struct UserSettings {
     #[savefile_versions="1.."]
     pub ui_theme: UiTheme,
     global_font_scale: f32,
+    scroll_to_scale: bool,
 }
 
 impl Default for UserSettings {
@@ -55,6 +56,7 @@ impl Default for UserSettings {
             history: false,
             ui_theme: UiTheme::default(),
             global_font_scale: 1.2,
+            scroll_to_scale: false,
         };
 
         return new;
@@ -116,6 +118,10 @@ impl UserSettings {
 
         ctx.io_mut().font_global_scale = self.global_font_scale;
 
+        ctx.io_mut().font_allow_user_scaling = true;
+        
+        // ctx.load_ini_settings(data)
+        
 
         match self.ui_theme {
             UiTheme::GenericLightMode | UiTheme::GenericDarkMode => {
@@ -191,7 +197,7 @@ impl UserSettings {
                     // ui.push_style_var()
                     ui.spacing();
                     ui.spacing();
-                    ui.text("In order for these changes to have an effect the application must be re-launched");
+                    ui.text_wrapped("In order for some of these changes to have an effect the application must be re-launched");
                     ui.spacing();
                     // ui.style().scale_all_sizes(scale_factor)
                     if let Some((mut current_item, _)) = UiTheme::iter().enumerate().find(|(_,x)| x==&self.ui_theme) {
@@ -201,12 +207,34 @@ impl UserSettings {
                             self.ui_theme = UiTheme::iter().nth(current_item).unwrap();
                         }
                     }
-                    ui.input_float("global font scale", &mut self.global_font_scale).build();
+                    ui.input_float("global font scale", &mut self.global_font_scale)
+                    .no_horizontal_scroll(false)
+                    .build();
                     self.global_font_scale = self.global_font_scale.clamp(0.2, 5.0);
-                    ui.indent();
+                    ui.indent_by(20.0);
                     ui.set_window_font_scale(self.global_font_scale / ui.io().font_global_scale);
                     ui.text("Font Scale Preview");
                     ui.set_window_font_scale(1.0);
+                    ui.indent_by(-20.0);
+
+                    ui.checkbox("CTRL + Mousewheel font scale", &mut self.scroll_to_scale);
+                    if ui.is_item_hovered() {
+                        ui.tooltip_text("Use CTRL + Mousewheel to change the \n font size of an individual window");
+                    }
+
+                    let fonts = ui.fonts().fonts();
+                    if false {
+                    if let Some((mut current_font_index, _current_font_id)) = fonts.iter().enumerate().find(|(_,x)| **x==ui.current_font().id()) {
+                        let index_copy = current_font_index;
+                        ui.combo("Font", &mut current_font_index, &fonts, |f: &imgui::FontId| {
+                            format!("{f:?}").into()
+                        });
+                        if index_copy != current_font_index {
+                            
+                            ui.push_font(fonts[current_font_index]).end();
+                        }
+                    }}
+
                 }
                 tab_bar.end();
             }

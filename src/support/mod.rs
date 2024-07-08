@@ -234,6 +234,6 @@ pub fn create_context() -> imgui::Context {
     };
 
     imgui.set_ini_filename(Some(app_dirs.join("save.ini")));
-    
+    println!("{:?}", imgui.ini_filename());
     imgui
 }

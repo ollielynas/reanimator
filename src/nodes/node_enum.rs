@@ -2,15 +2,20 @@ use std::path::PathBuf;
 
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
+use combine_rgba::CombineRgbaNode;
+use debug::DebugNode;
 use default_image::DefaultImage;
+use frame_delay::DelayNode;
 use image_io::OutputNode;
+use load_gif::LoadGifNode;
 use load_image::LoadImage;
 use pick_random::RandomInputNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
+use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
 
-use crate::node::{DebugNode, MyNode};
+use crate::node::MyNode;
 
 use crate::nodes::*;
 
@@ -27,6 +32,10 @@ pub enum NodeType {
     LoadImageType,
     RestrictPalletRGBA,
     RandomInput,
+    LoadGif,
+    SplitRgba,
+    Delay,
+    CombineRgba,
 }
 
 impl NodeType  {
@@ -41,6 +50,10 @@ impl NodeType  {
             NodeType::LoadImageType => "Load Image",
             NodeType::RestrictPalletRGBA => "Restrict RGBA Pallet",
             NodeType::RandomInput => "Pick Random",
+            NodeType::LoadGif => "Load Gif",
+            NodeType::Delay => "Delay",
+            NodeType::SplitRgba => "Split RGBA Channels",
+            NodeType::CombineRgba => "Combine RGBA Channels",
         }.to_owned()
     }
 
@@ -48,6 +61,18 @@ impl NodeType  {
         
         match self {
             
+            NodeType::CombineRgba => {
+                let a: Result<CombineRgbaNode, SavefileError> = savefile::load_file(project_file, CombineRgbaNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            },
+            NodeType::SplitRgba => {
+                let a: Result<SplitRgbaNode, SavefileError> = savefile::load_file(project_file, SplitRgbaNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            },
+            NodeType::Delay => {
+                let a: Result<DelayNode, SavefileError> = savefile::load_file(project_file, DelayNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            },
             NodeType::Debug => {
                 let a: Result<DebugNode, SavefileError> = savefile::load_file(project_file, DebugNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
@@ -66,6 +91,10 @@ impl NodeType  {
             },
             NodeType::LoadImageType => {
                 let a: Result<LoadImage, SavefileError> = savefile::load_file(project_file, LoadImage::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            },
+            NodeType::LoadGif => {
+                let a: Result<LoadGifNode, SavefileError> = savefile::load_file(project_file, LoadGifNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             },
             NodeType::DefaultImageOut => {
@@ -93,7 +122,11 @@ impl NodeType  {
             NodeType::ChromaticAberration => Box::new(GenericShaderNode::new(NodeType::ChromaticAberration)),
             NodeType::LoadImageType => Box::new(LoadImage::default()),
             NodeType::RestrictPalletRGBA => Box::new(RestrictPalletNode::new()),
-            NodeType::RandomInput => Box::new(RandomInputNode::default())
+            NodeType::RandomInput => Box::new(RandomInputNode::default()),
+            NodeType::LoadGif => Box::new(LoadGifNode::default()),
+            NodeType::SplitRgba => Box::new(SplitRgbaNode::default()),
+            NodeType::Delay => Box::new(DelayNode::default()),
+            NodeType::CombineRgba => Box::new(CombineRgbaNode::default()),
             }
     }
 }

@@ -1,34 +1,39 @@
-use std::{any::Any, collections::HashMap, fs, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{implement_vertex, texture, uniform, DrawParameters, Frame, Surface};
+use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
+use crate::{node::{random_id, MyNode}, storage::Storage};
+
+use super::node_enum::NodeType;
 
 
 #[derive(Savefile)]
-
-pub struct InvertTextureNode {
+pub struct DebugNode {
     x: f32,
     y: f32,
     id: String,
 }
 
-impl Default for InvertTextureNode {
+impl Default for DebugNode {
     fn default() -> Self {
-        InvertTextureNode {
+        DebugNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
         }
     }
 }
-
-
-impl MyNode for InvertTextureNode {
+impl MyNode for DebugNode {
     fn path(&self) -> Vec<&str> {
-        vec!["basic shader"]
+        vec!["msc"]
+    }
+
+    fn savefile_version() -> u32 {0}
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn x(&self) -> f32 {
@@ -39,7 +44,7 @@ impl MyNode for InvertTextureNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::InvertTexture
+        NodeType::Debug
     }
 
 
@@ -50,7 +55,7 @@ impl MyNode for InvertTextureNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            InvertTextureNode::savefile_version(),
+            DebugNode::savefile_version(),
             self,
         );
     }
@@ -69,9 +74,7 @@ impl MyNode for InvertTextureNode {
         self.y = y;
     }
 
-    fn savefile_version() -> u32 where Self: Sized {
-        0
-    }
+
 
     fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
@@ -81,20 +84,19 @@ impl MyNode for InvertTextureNode {
             None => {return false},
         };
 
-        let fragment_shader_src = r#"
-        #version 140
+        let fragment_shader_src = 
+            r#"
 
-        in vec2 v_tex_coords;
-        out vec4 color;
+            #version 140
 
-        uniform sampler2D tex;
+            in vec2 v_tex_coords;
+            out vec4 color;
 
-        void main() {
-            color = vec4(1.0) - texture(tex, v_tex_coords);
-            color.a = texture(tex, v_tex_coords).a;
-        }
-    "#;
-
+            uniform sampler2D tex;
+            void main() {
+            color = texture(tex, v_tex_coords);
+            }
+            "#;
 
     let texture_size:(u32, u32) = match storage.get_texture(get_output) {
         Some(a) => {(a.height(), a.width())},
@@ -112,17 +114,9 @@ impl MyNode for InvertTextureNode {
 
     let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
 
-
-
-
-
-
-
-
-
-
             let uniforms = uniform! {
                 tex: texture,
+
             };
             let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
@@ -131,15 +125,10 @@ impl MyNode for InvertTextureNode {
                             }
                             ).unwrap();
 
-        
-
-        
-
         return true;
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text_wrapped("basic node, for debugging purposes")
     }
-
 }

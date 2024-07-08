@@ -48,7 +48,7 @@ impl RestrictPalletNode {
 impl MyNode for RestrictPalletNode {
 
     fn path(&self) -> Vec<&str> {
-        vec!["generic single input shader"]
+        vec!["basic shader"]
     }
 
     fn savefile_version() -> u32 where Self: Sized {

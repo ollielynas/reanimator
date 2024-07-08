@@ -2,7 +2,7 @@ use std::{any::Any, collections::HashMap, hash::Hash, path::PathBuf};
 use image::EncodableLayout;
 use imgui_glium_renderer::Renderer;
 use crate::{
-    node::{random_id, DebugNode, MyNode},
+    node::{random_id,MyNode},
     storage::Storage,
 };
 use glium::{texture::RawImage2d, Texture2d};
@@ -64,7 +64,7 @@ impl MyNode for DefaultImage {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            DebugNode::savefile_version(),
+            DefaultImage::savefile_version(),
             self,
         );
     }

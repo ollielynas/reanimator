@@ -8,6 +8,7 @@ use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
 use glium::{implement_vertex, pixel_buffer, program, Program, Vertex};
 use image::{ImageBuffer, ImageFormat, Rgba};
+use imgui::{TreeNodeFlags, Ui};
 use imgui_glium_renderer::Renderer;
 use std::hash::Hash;
 use image::EncodableLayout;
@@ -36,6 +37,8 @@ pub struct Storage {
     cached_textures: HashMap<u64, Texture2d>,
     pub hasher: Box<dyn Hasher>,
     redirect_id_to_cache: HashMap<String, u64>,
+    pub project_name: String,
+    pub show_debug_window: bool,
 }
 
 impl Storage {
@@ -72,6 +75,8 @@ impl Storage {
             cached_textures: HashMap::new(),
             hasher: Box::new(DefaultHasher::new()),
             redirect_id_to_cache: HashMap::new(),
+            project_name: String::new(),
+            show_debug_window: false,
         }
     }
 
@@ -132,11 +137,42 @@ impl Storage {
 
         if let Some(texture) = texture {
             if let Some(ref mut a) = self.unused_textures.get_mut(&(texture.height(), texture.width())) {
+                if a.len() < 20 {
                 a.push(texture);
+            }
             }else {
                 self.unused_textures.insert((texture.height(), texture.width()), vec![texture]);
             }
         }
+    }
+
+
+    pub fn debug_window(&mut self, ui: &Ui) {
+        if !self.show_debug_window {return}
+
+        let window = ui.window("debug window")
+        .opened(&mut self.show_debug_window)
+        .begin();
+
+    ui.text_wrapped(format!("Project name: {}", self.project_name));
+    ui.text_wrapped(format!("shaders: {}", self.shaders.len()));
+    ui.text_wrapped(format!("time: {}", self.time));
+    ui.text_wrapped(format!("textures: {}", self.textures.len()));
+
+    let mut total = 0;
+    for (k,v) in &self.unused_textures {
+        total += v.len();
+    }
+
+
+    if ui.collapsing_header(format!("unused textures: {}/{}", self.unused_textures.len(), total), TreeNodeFlags::BULLET) {
+        for (k,v) in &self.unused_textures {
+            ui.text_wrapped(format!("{:?}, {}", k, v.len()))
+        }
+    }
+    
+        ui.text_wrapped(format!("cached_textures: {}", self.cached_textures.len()));
+
     }
 
     /// shaders are cached

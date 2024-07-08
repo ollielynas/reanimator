@@ -5,3 +5,8 @@ pub mod basic_shader_nodes;
 pub mod restrict_pallet;
 pub mod load_image;
 pub mod pick_random;
+pub mod load_gif;
+pub mod split_rgba;
+pub mod debug;
+pub mod frame_delay;
+pub mod combine_rgba;

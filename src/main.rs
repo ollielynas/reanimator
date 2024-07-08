@@ -114,9 +114,9 @@ fn main() {
         .draw_background(false)
         .movable(false)
         .no_decoration()
-        .position_pivot([1.0,0.0])
+        .position_pivot([0.0,1.0])
         .size_constraints([ui.calc_text_size("settings xxxxxxxx")[0],-1.0], [9999.0,-1.0])
-        .position([size_array[0], 0.0], imgui::Condition::Always)
+        .position([10.0,size_array[1] + 5.0], imgui::Condition::Always)
         .build(|| {
             if ui.button("settings") {
                 settings_window_open = true;
