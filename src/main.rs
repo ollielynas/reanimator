@@ -1,3 +1,11 @@
+#![cfg_attr(
+    all(
+      target_os = "windows",
+      not(debug_assertions),
+    ),
+    windows_subsystem = "windows"
+  )]
+
 use std::{borrow::BorrowMut, env::current_exe, fs, time::Instant};
 
 use glium::Program;
@@ -19,6 +27,9 @@ pub mod support;
 pub mod storage;
 pub mod user_info;
 pub mod history_tracker;
+pub mod advanced_color_picker;
+
+
 
 
 // in theoiry this is just a temp solution, but im never going to 

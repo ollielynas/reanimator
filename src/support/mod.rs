@@ -224,6 +224,8 @@ pub fn create_context() -> imgui::Context {
         },
     ]);
 
+    
+
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {
             fs::create_dir_all(a.config_dir.clone());

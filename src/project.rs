@@ -18,7 +18,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{history_tracker::Snapshot, node, nodes::node_enum::*};
+use crate::{advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node, nodes::node_enum::*};
 use crate::{
     node::MyNode,
     nodes::{self, image_io::*},
@@ -55,6 +55,10 @@ pub struct Project {
     pub display_history: bool,
     pub snapshots: Vec<Snapshot>,
     pub selected_snapshot: i32,
+    recenter: bool,
+    advanced_color_picker: AdvancedColorPicker,
+    
+
 }
 
 impl Project {
@@ -191,9 +195,10 @@ impl Project {
         }
 
         nodes[0].set_xy(50.0, 150.0);
-        nodes[1].set_xy(220.0, 150.0);
+        nodes[1].set_xy(0.0, 0.0);
 
         let mut new = Project {
+            advanced_color_picker: AdvancedColorPicker::default(),
             return_to_home_menu: false,
             selected_snapshot: 0,
             storage: Storage::new(display),
@@ -214,6 +219,7 @@ impl Project {
             node_speeds: HashMap::new(),
             node_run_order: (0, vec![]),
             selected_node_to_add: NodeType::iter().len(),
+            recenter: true,
         };
 
         new.storage.project_name = new.name();
@@ -270,14 +276,25 @@ impl Project {
     }
 
 
-    /// unfinished / not implemented
     pub fn recenter_nodes(&mut self, ui: &Ui) {
         let size_array = ui.io().display_size;
+        let mut average_x = 0.0;
+        let mut average_y = 0.0;
         
         for node in &self.nodes {
-            todo!();
+            average_x += node.x();
+            average_y += node.y();
         }
 
+        average_x /= self.nodes.len() as f32;
+        average_y /= self.nodes.len() as f32;
+
+        let center = [size_array[0] * 0.5, size_array[1]*0.5];
+
+        for node in &mut self.nodes {
+            node.set_xy(node.x() - average_x + center[0], node.y() - average_y + center[1]);
+            println!("{} {}", node.x() - average_x + center[0], node.y() - average_y + center[1]);
+        }
     }
 
     pub fn render(&mut self, ui: &Ui, user_settings: &UserSettings, renderer: &mut Renderer) {
@@ -358,7 +375,7 @@ impl Project {
                         .always_auto_resize(true)
                         // .content_size([0.0,0.0])
                         .position([node.x() + move_delta[0], node.y() + move_delta[1]], 
-                            if out_of_bounds || moving {
+                            if out_of_bounds || moving || self.recenter {
                             imgui::Condition::Always} 
                             else {
                                 imgui::Condition::Once
@@ -517,6 +534,8 @@ impl Project {
                     self.nodes.remove(kill);
                 }
 
+                self.recenter = false;
+
                 let draw_list = ui.get_background_draw_list();
 
                 let mouse_pos = ui.io().mouse_pos;
@@ -621,41 +640,24 @@ impl Project {
 
 
                 // Style::use_light_colors(&mut self)
-                if ui.button("Add Node") {
+                if ui.button("add node") {
                     ui.open_popup("Add Node");
                 }
 
+                if ui.button("color picker") {
+                    self.advanced_color_picker.open = !self.advanced_color_picker.open;
+                };
 
+                if user_settings.history {
                 if ui.button("timeline") {
                     self.display_history = !self.display_history;
                 }
-    //             ui.button("Hello, I am a drag Target!");
-                
-    // if let Some(target) = ui.drag_drop_target() {
-    //     // accepting an empty payload (which is really just raising an event)
-    //     if let Some(_payload_data) = target.accept_payload_empty("BUTTON_DRAG", DragDropFlags::empty()) {
-    //         println!("Nice job getting on the payload!");
-    //     }
-        
-    //     if let Some(_payload_data) = target.accept_payload::<usize, _>("BUTTON_DRAG", DragDropFlags::ACCEPT_BEFORE_DELIVERY) {
-    //         println!("Nice job getting on the payload!");
-    //     }
+            }
 
-   
-    //     // and we can accept multiple, different types of payloads with one drop target.
-    //     // this is a good pattern for handling different kinds of drag/drop situations with
-    //     // different kinds of data in them.
-    //     if let Some(Ok(payload_data)) = target.accept_payload::<usize, _>("BUTTON_ID", DragDropFlags::empty()) {
-    //         println!("Our payload's data was {}", payload_data.data);
-    //     }
-    // }
-
-    // ui.drag_drop_source_config("x")
-    // .condition(imgui::Condition::Always)
-    // .begin_payload(payload)
-
-
-    
+            if ui.button("recenter") {
+                self.recenter_nodes(ui);
+                self.recenter = true;
+            }
 
                 ui.separator();
                 
@@ -692,7 +694,9 @@ impl Project {
                 self.new_node_menu(ui);
 
             });
-                    self.storage.debug_window(ui);
+            
+            self.storage.debug_window(ui);
+            self.advanced_color_picker.render(ui);
 
         ui.window("edit_node")
             .collapsible(true)
@@ -703,7 +707,7 @@ impl Project {
             )
             .size_constraints(
                 [size_array[0] - left_sidebar_width, 0.0],
-                [size_array[0] - left_sidebar_width, size_array[1] * 0.5],
+                [size_array[0] - left_sidebar_width, size_array[1]],
             )
             .build(|| {
                 // println!("{:?}", self.node_edit);

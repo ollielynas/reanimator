@@ -41,7 +41,7 @@ impl MyNode for DefaultImage {
     }
 
     fn path(&self) -> Vec<&str> {
-        vec!["IO", "Image"]
+        vec!["load"]
     }
 
     fn x(&self) -> f32 {

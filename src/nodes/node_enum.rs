@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
+use basic_shader_nodes::solid_color::ColorNode;
 use combine_rgba::CombineRgbaNode;
 use debug::DebugNode;
 use default_image::DefaultImage;
@@ -36,6 +37,7 @@ pub enum NodeType {
     SplitRgba,
     Delay,
     CombineRgba,
+    SolidColor,
 }
 
 impl NodeType  {
@@ -54,13 +56,17 @@ impl NodeType  {
             NodeType::Delay => "Delay",
             NodeType::SplitRgba => "Split RGBA Channels",
             NodeType::CombineRgba => "Combine RGBA Channels",
+            NodeType::SolidColor => "Solid Color",
         }.to_owned()
     }
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
         
         match self {
-            
+            NodeType::SolidColor => {
+                let a: Result<ColorNode, SavefileError> = savefile::load_file(project_file, CombineRgbaNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            }
             NodeType::CombineRgba => {
                 let a: Result<CombineRgbaNode, SavefileError> = savefile::load_file(project_file, CombineRgbaNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
@@ -114,6 +120,7 @@ impl NodeType  {
 
     pub fn new_node(self) -> Box<dyn MyNode>  where Self: Sized {
         match self {
+            NodeType::SolidColor => Box::new(ColorNode::default()),
             NodeType::Debug => Box::new(DebugNode::default()),
             NodeType::Output => Box::new(OutputNode::default()),
             NodeType::DefaultImageOut => Box::new(DefaultImage::default()),
