@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "A gif vfx tool"
@@ -46,4 +46,3 @@ opt-level = 3
 codegen-units = 1
 lto = false
 strip = "debuginfo"
-panic = "abort"

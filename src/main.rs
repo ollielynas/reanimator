@@ -40,6 +40,10 @@ pub mod advanced_color_picker;
 
 fn main() {
 
+    std::panic::set_hook(Box::new(|a| {
+        
+    }));
+
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {
             a.config_dir
@@ -50,7 +54,7 @@ fn main() {
     };
 
 
-
+    
 
 
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
