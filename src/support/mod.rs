@@ -12,7 +12,7 @@ use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
 use std::env::current_exe;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Instant;
 
@@ -33,9 +33,10 @@ pub const FONT_SIZE: f32 = 13.0;
 pub fn init_with_startup<FInit, FUi>(title: &str, mut startup: FInit, mut run_ui: FUi, fullscreen: Option<Fullscreen>, imgui: &mut Context)
 where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
-    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer) + 'static,
+    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>) + 'static,
 {
     // let mut imgui = create_context();
+
 
     let title = match Path::new(&title).file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
@@ -103,12 +104,43 @@ where
                 window.request_redraw();
             }
             Event::WindowEvent {
+                event: WindowEvent::DroppedFile(a),
+                ..
+            } => {
+                let ui = imgui.frame();
+                let mut run = true;
+                run_ui(&mut run, ui, &display, &mut renderer, Some(a));
+                if !run {
+                    window_target.exit();
+                }
+                
+                let mut target = display.draw();
+                let mut col = ui.style_color(imgui::StyleColor::WindowBg);
+
+                for c in col.iter_mut() {
+                    *c *= 4.0;
+                    *c += 1.0;
+                    *c /= 5.0;
+                }
+                
+                target.clear_color_srgb(col[0], col[1], col[2], 1.0);
+                platform.prepare_render(ui, &window);
+                
+                let draw_data = imgui.render();
+                
+
+                renderer
+                    .render(&mut target, draw_data)
+                    .expect("Rendering failed");
+                target.finish().expect("Failed to swap buffers");
+            }
+            Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
                 let ui = imgui.frame();
                 let mut run = true;
-                run_ui(&mut run, ui, &display, &mut renderer);
+                run_ui(&mut run, ui, &display, &mut renderer, None);
                 if !run {
                     window_target.exit();
                 }

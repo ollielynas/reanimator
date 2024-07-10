@@ -80,7 +80,9 @@ impl MyNode for SplitRgbaNode {
         self.x = x;
         self.y = y;
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn run(
         &mut self,
         storage: &mut Storage,
@@ -93,7 +95,7 @@ impl MyNode for SplitRgbaNode {
             Some(a) => a,
             None => return false,
         };
-
+        
         let fragment_shader_src = r#"
 
             #version 140

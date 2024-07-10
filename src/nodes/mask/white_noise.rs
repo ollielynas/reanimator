@@ -182,5 +182,7 @@ impl MyNode for WhiteNoiseNode {
             self.seed = fastrand::i32(i32::MIN..i32::MAX);
         }
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 }

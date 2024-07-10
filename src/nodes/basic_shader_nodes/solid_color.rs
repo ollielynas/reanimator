@@ -82,9 +82,11 @@ impl MyNode for ColorNode {
         self.x = x;
         self.y = y;
     }
+    
 
-
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
         
         let output_id = self.output_id(self.outputs()[0].clone());

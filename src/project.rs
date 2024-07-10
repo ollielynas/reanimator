@@ -1,11 +1,23 @@
 use glium::{program, BlitTarget, Display, Program, Surface};
+use imgui::drag_drop::PayloadIsWrongType;
 use imgui::{
-    color, drag_drop::DragDropPayloadPod, draw_list, internal::RawCast, sys::{igGetWindowSize, ImColor, ImVec2}, BackendFlags, DragDropFlags, DragDropTarget, ImColor32, Image, Style, TreeNodeToken, Ui, WindowFlags
-};use imgui::drag_drop::PayloadIsWrongType;
+    color,
+    drag_drop::DragDropPayloadPod,
+    draw_list,
+    internal::RawCast,
+    sys::{igGetWindowSize, ImColor, ImVec2},
+    BackendFlags, DragDropFlags, DragDropTarget, ImColor32, Image, Style, TreeNodeToken, Ui,
+    WindowFlags,
+};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
 use std::{
-    env::current_exe, f32::{consts::PI, NAN}, hash::{DefaultHasher, Hash, Hasher}, task::ready, time
+    env::current_exe,
+    f32::{consts::PI, NAN},
+    ffi::OsString,
+    hash::{DefaultHasher, Hash, Hasher},
+    task::ready,
+    time,
 };
 
 use glium::{backend::Facade, glutin::surface::WindowSurface, Texture2d};
@@ -18,7 +30,12 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-use crate::{advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node, nodes::node_enum::*};
+use crate::nodes::load_gif::LoadGifNode;
+use crate::nodes::load_image::LoadImage;
+use crate::{
+    advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
+    nodes::node_enum::*,
+};
 use crate::{
     node::MyNode,
     nodes::{self, image_io::*},
@@ -31,7 +48,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
-}   
+}
 // #[savefile_derive]
 pub struct Project {
     pub storage: Storage,
@@ -57,18 +74,14 @@ pub struct Project {
     pub selected_snapshot: i32,
     recenter: bool,
     advanced_color_picker: AdvancedColorPicker,
-    
-
 }
 
 impl Project {
-
     // pub fn calculate_hash(&self) -> u64 {
     //     // for node in self.nodes {
     //     //     // self.storage.calculate_hash(&node.);
     //     // }
     // }
-
 
     pub fn project_menu(
         ui: &mut Ui,
@@ -106,7 +119,6 @@ impl Project {
                 // ui.set_window_font_scale(1.2);
                 ui.text("load project");
                 // ui.set_window_font_scale(1.0);
-                
 
                 ui.window("projects")
                     .always_vertical_scrollbar(true)
@@ -145,16 +157,22 @@ impl Project {
                                     }
                                     None => current_exe().unwrap(),
                                 };
-                        
-                                let p = save_dir
-                                .join(new_project_1.name());
+
+                                let p = save_dir.join(new_project_1.name());
 
                                 fs::create_dir_all(&p);
 
                                 for i in fs::read_dir(p).unwrap() {
                                     if let Ok(i) = i {
-                                        if i.metadata().unwrap().created().unwrap().elapsed().unwrap().as_secs()
-                                        > (86400 * 7) {
+                                        if i.metadata()
+                                            .unwrap()
+                                            .created()
+                                            .unwrap()
+                                            .elapsed()
+                                            .unwrap()
+                                            .as_secs()
+                                            > (86400 * 7)
+                                        {
                                             fs::remove_file(i.path());
                                         }
                                     }
@@ -167,7 +185,6 @@ impl Project {
                             // ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.7,0.3,0.3,1.0]);
                             // ui.push_style_color(imgui::StyleColor::ButtonActive, [0.7,0.4,0.4,1.0]);
                             // ui.button("del");
-
                         }
                     });
 
@@ -175,7 +192,7 @@ impl Project {
             });
 
         // if new_project.is_some() {
-            
+
         // }
 
         return new_project;
@@ -279,12 +296,11 @@ impl Project {
         return Ok(());
     }
 
-
     pub fn recenter_nodes(&mut self, ui: &Ui) {
         let size_array = ui.io().display_size;
         let mut average_x = 0.0;
         let mut average_y = 0.0;
-        
+
         for node in &self.nodes {
             average_x += node.x();
             average_y += node.y();
@@ -293,11 +309,14 @@ impl Project {
         average_x /= self.nodes.len() as f32;
         average_y /= self.nodes.len() as f32;
 
-        let center = [size_array[0] * 0.5, size_array[1]*0.5];
+        let center = [size_array[0] * 0.5, size_array[1] * 0.5];
 
         for node in &mut self.nodes {
-            node.set_xy(node.x() - average_x + center[0], node.y() - average_y + center[1]);
-            println!("{} {}", node.x() - average_x + center[0], node.y() - average_y + center[1]);
+            node.set_xy(
+                node.x() - average_x + center[0],
+                node.y() - average_y + center[1],
+            );
+
         }
     }
 
@@ -314,10 +333,7 @@ impl Project {
                     .into_iter()
                     .collect::<Vec<(String, String)>>(),
             );
-        
-        
 
-        
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
         });
@@ -334,22 +350,23 @@ impl Project {
                 let mut node_pos_map: HashMap<String, ImVec2> = HashMap::new();
                 // println!("{:?}", ui.mouse_drag_delta());
 
-
                 if ui.is_window_focused() {
                     self.selected = None;
                 }
                 let mut delete_node: Option<usize> = None;
                 for (i, node) in self.nodes.iter_mut().enumerate() {
                     let mut del_window_not = true;
-                    
 
                     let mut moving = false;
                     let mut move_delta = ui.mouse_drag_delta();
 
-                    if ui.mouse_drag_delta() != [0.0,0.0] && ui.is_window_focused() && ui.is_mouse_dragging(imgui::MouseButton::Left) {
+                    if ui.mouse_drag_delta() != [0.0, 0.0]
+                        && ui.is_window_focused()
+                        && ui.is_mouse_dragging(imgui::MouseButton::Left)
+                    {
                         moving = true;
                     } else if !ui.is_window_focused() {
-                        move_delta = [0.0,0.0];
+                        move_delta = [0.0, 0.0];
                     }
 
                     let mut out_of_bounds = false;
@@ -365,7 +382,7 @@ impl Project {
                         // ui.set_window_font_scale(0.01);
                         // println!("tiny");
                         // ui.push_style_var(imgui::StyleVar::Alpha(0.0));
-                    }else {
+                    } else {
                         // ui.set_window_font_scale(1.0);
                     }
                     ui.window(format!("{}{}({})", node.name(), " ".repeat(40), node.id()))
@@ -378,23 +395,23 @@ impl Project {
                         .movable(true)
                         .always_auto_resize(true)
                         // .content_size([0.0,0.0])
-                        .position([node.x() + move_delta[0], node.y() + move_delta[1]], 
+                        .position(
+                            [node.x() + move_delta[0], node.y() + move_delta[1]],
                             if out_of_bounds || moving || self.recenter {
-                            imgui::Condition::Always} 
-                            else {
+                                imgui::Condition::Always
+                            } else {
                                 imgui::Condition::Once
-                            }
+                            },
                         )
                         .size_constraints(
                             ui.calc_text_size(node.name() + "xxxxx"),
                             [f32::MAX, -1.0],
                         )
                         .build(|| {
-
                             if out_of_bounds {
                                 ui.set_window_font_scale(0.8);
                                 // println!("tiny");
-                            }else {
+                            } else {
                                 ui.set_window_font_scale(1.0);
                             }
 
@@ -478,8 +495,7 @@ impl Project {
                                 if let Some(output_node) = a {
                                     time_list.append(&mut output_node.run_with_time.clone());
                                     if let Some(image_id) = output_node.texture_id {
-
-                                        let mut avail = [50.0,50.0];
+                                        let mut avail = [50.0, 50.0];
                                         let image_dimensions_bad = renderer
                                             .textures()
                                             .get(image_id)
@@ -500,7 +516,14 @@ impl Project {
                                         //         [pos[0] + image_dimensions[0] * scale, pos[1]],
                                         //     )
                                         //     .build();
-                                        if ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]) {
+                                        if ui.image_button(
+                                            "image",
+                                            image_id,
+                                            [
+                                                image_dimensions[0] * scale,
+                                                image_dimensions[1] * scale,
+                                            ],
+                                        ) {
                                             time_list.push(ui.time());
                                         }
                                     }
@@ -617,9 +640,8 @@ impl Project {
         let mut left_sidebar_width = 0.0;
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
 
-        
         ui.window("sidebar")
-        .no_decoration()
+            .no_decoration()
             .position(
                 [0.0, ui.calc_text_size("x")[1] * 1.5],
                 imgui::Condition::Always,
@@ -628,17 +650,12 @@ impl Project {
             .resizable(true)
             // .always_auto_resize(true)
             .build(|| {
-                
-                let sidebar_things = vec![
-                    ui.push_style_var(imgui::StyleVar::FrameBorderSize(0.0)),
-                ];
+                let sidebar_things = vec![ui.push_style_var(imgui::StyleVar::FrameBorderSize(0.0))];
                 let sidebar_col_things = vec![
-                    ui.push_style_color(imgui::StyleColor::Button, [1.0,1.0,1.0,0.0]),
-                    ui.push_style_color(imgui::StyleColor::BorderShadow, [0.0,0.0,1.0,1.0]),
+                    ui.push_style_color(imgui::StyleColor::Button, [1.0, 1.0, 1.0, 0.0]),
+                    ui.push_style_color(imgui::StyleColor::BorderShadow, [0.0, 0.0, 1.0, 1.0]),
                     // ui.push_style_color(imgui::StyleColor::ButtonHovered, ui.style_color(S)),
                 ];
-                
-
 
                 // Style::use_light_colors(&mut self)
                 if ui.button("add node") {
@@ -650,35 +667,34 @@ impl Project {
                 };
 
                 if user_settings.history {
-                if ui.button("timeline") {
-                    self.display_history = !self.display_history;
+                    if ui.button("timeline") {
+                        self.display_history = !self.display_history;
+                    }
                 }
-            }
 
-            if ui.button("recenter") {
-                self.recenter_nodes(ui);
-                self.recenter = true;
-            }
+                if ui.button("recenter") {
+                    self.recenter_nodes(ui);
+                    self.recenter = true;
+                }
 
                 ui.separator();
-                
+
                 if ui.button("debug") {
                     self.metrics = !self.metrics;
                 }
                 if ui.button("debug mem") {
                     self.storage.show_debug_window = !self.storage.show_debug_window;
                 }
-                
+
                 if ui.button("save") {
                     println!("save button, {:?}", self.save());
                 }
-                
+
                 ui.separator();
-                
+
                 if ui.button("return home") {
                     self.return_to_home_menu = true;
                 }
-                
 
                 if self.display_history {
                     self.history_window(ui);
@@ -693,11 +709,10 @@ impl Project {
                 }
 
                 self.new_node_menu(ui);
-
             });
-            
-            self.storage.debug_window(ui);
-            self.advanced_color_picker.render(ui);
+
+        self.storage.debug_window(ui);
+        self.advanced_color_picker.render(ui);
 
         ui.window("edit_node")
             .collapsible(true)
@@ -829,7 +844,7 @@ impl Project {
                     );
                     if worked {
                         self.node_speeds.insert(id.to_string(), now.elapsed());
-                    }else {
+                    } else {
                         self.node_speeds.remove(id);
                     }
                 }
@@ -908,5 +923,57 @@ impl Project {
 
             // self.new_node_types[n].;
         });
+    }
+
+    pub fn drop_file(&mut self, path: PathBuf, ui: &Ui) {
+        let binding = OsString::new();
+        let ext = path
+            .extension()
+            .unwrap_or(&binding)
+            .to_str()
+            .unwrap_or("");
+        
+        let [mut x, mut y] = ui.io().mouse_pos;
+        x = 100.0;
+        y = 100.0;
+        println!("{x} {y}");
+        println!("droped {:?}", path);
+        match ext {
+            "gif" => {
+                println!("gif");
+                let mut node = NodeType::LoadGif.new_node();
+                let a: Option<&mut LoadGifNode> = (*node).as_any_mut().downcast_mut::<LoadGifNode>();
+                if let Some(g_node) = a {
+                    g_node.path = Some(path)
+                }
+                node.set_xy(x, y);
+                self.nodes.push(node);
+            }
+            "png"|
+            "jpg"|
+            "jepg"|
+            "webp"|
+            "tiff"|
+            "tif"|
+            "tga"|
+            "bmp"|
+            "ico"|
+            "hdr"|
+            "pbm"|
+            "pam"|
+            "ppm"|
+            "pgm"|
+            "ff" => {
+                let mut node = NodeType::LoadImageType.new_node();
+                let a: Option<&mut LoadImage> = (*node).as_any_mut().downcast_mut::<LoadImage>();
+                if let Some(g_node) = a {
+                    g_node.path = Some(path)
+                }
+                node.set_xy(x, y);
+                self.nodes.push(node);
+            }
+
+            _ => {}
+        }
     }
 }

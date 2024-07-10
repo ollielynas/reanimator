@@ -9,7 +9,7 @@
 use std::{borrow::BorrowMut, env::current_exe, fs, time::Instant};
 
 use glium::Program;
-use imgui::{sys::{igSetNextWindowSize, ImVec2}, Style, TextureId};
+use imgui::{drag_drop, sys::{igSetNextWindowSize, ImVec2}, Style, TextureId};
 use imgui_winit_support::winit::window;
 use platform_dirs::{AppDirs, UserDirs};
 use savefile;
@@ -80,7 +80,7 @@ fn main() {
     
 
     init_with_startup("ReAnimator", |_, _, display| {
-    }, move |_, ui, display, renderer| {
+    }, move |_, ui, display, renderer, drop_file| {
 
         
 
@@ -110,6 +110,11 @@ fn main() {
         // renderer.textures().get_mut()
 
         if let Some(ref mut project) = project {
+
+            if let Some(path) = drop_file {
+                project.drop_file(path, ui);
+            } 
+            
             project.render(ui, &user_settings, renderer);
             return_to_home = project.return_to_home_menu;
             // ui.show_default_style_editor();

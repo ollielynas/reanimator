@@ -191,7 +191,9 @@ impl MyNode for DelayNode {
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text_wrapped("Delays the output by a given numebr of frames");
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
         ui.input_int("frame delay count", &mut self.frame_delay_count)
         .allow_tab_input(true)

@@ -19,7 +19,7 @@ pub struct LoadImage {
     x: f32,
     y: f32,
     id: String,
-    path: Option<PathBuf>,
+    pub path: Option<PathBuf>,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     texture_cache: Option<u64>,
@@ -91,7 +91,10 @@ impl MyNode for LoadImage {
             "bmp",
             "ico",
             "hdr",
-            "pbm", "pam", "ppm", "pgm",
+            "pbm", 
+            "pam", 
+            "ppm", 
+            "pgm",
             "ff"
             ]).pick_file();
     }
@@ -179,6 +182,9 @@ impl MyNode for LoadImage {
     }
 
     fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }

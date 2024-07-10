@@ -20,7 +20,7 @@ pub struct LoadGifNode {
     x: f32,
     y: f32,
     id: String,
-    path: Option<PathBuf>,
+    pub path: Option<PathBuf>,
     length: f32,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
@@ -185,6 +185,9 @@ impl MyNode for LoadGifNode {
     }
 
     fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }

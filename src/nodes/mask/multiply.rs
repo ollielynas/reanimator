@@ -62,7 +62,10 @@ impl MyNode for MultiplyNode {
         );
     }
 
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+    
     fn inputs(&self) -> Vec<String> {
         return vec![
             "Input 1".to_owned(),

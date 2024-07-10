@@ -18,6 +18,8 @@ pub trait MyNode {
     fn savefile_version() -> u32 where Self: Sized;
 
     fn as_any(&self) -> &dyn Any;
+    
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 
     fn path(&self) -> Vec<&str>;
 

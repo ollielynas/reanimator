@@ -43,7 +43,9 @@ impl MyNode for DefaultImage {
     fn path(&self) -> Vec<&str> {
         vec!["Load"]
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn x(&self) -> f32 {
         self.x
     }

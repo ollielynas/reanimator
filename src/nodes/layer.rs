@@ -180,7 +180,7 @@ impl MyNode for LayerNode {
                 float p2 = base_color.a;
                 vec3 c1 = layer_color.xyz;
                 vec3 c2 = base_color.xyz;
-                
+
                 return vec4((p1*c1+p2*c2-p1*p2*c2)/(p1+p2-p1*p2),p1+p2-p1*p2);
 
             }
@@ -255,7 +255,7 @@ impl MyNode for LayerNode {
                     return false;
                 }
             };
-            println!("{:?} {:?} {:?}", [layer[0], layer[1]],[layer[2], layer[3]],[texture.dimensions().0 as f32, texture.dimensions().1 as f32]);
+            // println!("{:?} {:?} {:?}", [layer[0], layer[1]],[layer[2], layer[3]],[texture.dimensions().0 as f32, texture.dimensions().1 as f32]);
             let uniforms = uniform! {
                 base_texture: texture2,
                 base_size: [self.base_texture_size.0 as f32, self.base_texture_size.1 as f32],
@@ -340,5 +340,8 @@ impl MyNode for LayerNode {
 
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text_wrapped("Allows textures to be layered on top of each other");
+    }
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }

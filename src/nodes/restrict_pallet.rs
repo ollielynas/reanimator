@@ -69,7 +69,9 @@ impl MyNode for RestrictPalletNode {
     fn type_(&self) -> NodeType {
         NodeType::RestrictPalletRGBA
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
 
     fn id(&self) -> String {
         self.id.clone()
