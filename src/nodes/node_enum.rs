@@ -8,8 +8,11 @@ use debug::DebugNode;
 use default_image::DefaultImage;
 use frame_delay::DelayNode;
 use image_io::OutputNode;
+use layer::LayerNode;
 use load_gif::LoadGifNode;
 use load_image::LoadImage;
+use mask::multiply::MultiplyNode;
+use mask::white_noise::WhiteNoiseNode;
 use pick_random::RandomInputNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
@@ -38,11 +41,15 @@ pub enum NodeType {
     Delay,
     CombineRgba,
     SolidColor,
+    Multiply,
+    WhiteNoise,
+    Layer,
 }
 
 impl NodeType  {
     pub fn name(&self) -> String {
         match self {
+            NodeType::Layer => "Layer",
             NodeType::Debug => "Debug",
             NodeType::Output => "Output",
             NodeType::DefaultImageOut => "Default Image",
@@ -57,12 +64,33 @@ impl NodeType  {
             NodeType::SplitRgba => "Split RGBA Channels",
             NodeType::CombineRgba => "Combine RGBA Channels",
             NodeType::SolidColor => "Solid Color",
+            NodeType::Multiply => "Multiply",
+            NodeType::WhiteNoise => "White Noise",
         }.to_owned()
     }
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
         
         match self {
+
+            NodeType::Layer => {
+                let a: Result<LayerNode, SavefileError> = savefile::load_file(project_file, LayerNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+
+            }
+
+            NodeType::WhiteNoise => {
+                let a: Result<WhiteNoiseNode, SavefileError> = savefile::load_file(project_file, WhiteNoiseNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::Multiply => {
+                let a: Result<MultiplyNode, SavefileError> = savefile::load_file(project_file, MultiplyNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            }
             NodeType::SolidColor => {
                 let a: Result<ColorNode, SavefileError> = savefile::load_file(project_file, CombineRgbaNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
@@ -134,6 +162,9 @@ impl NodeType  {
             NodeType::SplitRgba => Box::new(SplitRgbaNode::default()),
             NodeType::Delay => Box::new(DelayNode::default()),
             NodeType::CombineRgba => Box::new(CombineRgbaNode::default()),
+            NodeType::Multiply => Box::new(MultiplyNode::default()),
+            NodeType::WhiteNoise => Box::new(WhiteNoiseNode::default()),
+            NodeType::Layer => Box::new(LayerNode::default()),
             }
     }
 }

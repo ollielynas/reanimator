@@ -106,7 +106,7 @@ impl MyNode for OutputNode {
             None => return false,
         };
 
-        
+
 
         if self.texture_id.is_none() {
             self.texture_id = Some(renderer.textures().insert(Texture { texture: Rc::new(
@@ -128,12 +128,13 @@ impl MyNode for OutputNode {
                     &Rect { left: 0, bottom: 0, width: frame.width(), height: frame.height() }, 
                     &texture.texture.as_surface(), 
                     
-                    &BlitTarget { left: 0, bottom: 0, width: texture.texture.width() as i32, height: texture.texture.height() as i32}, 
+                    &BlitTarget { left: 0, bottom: texture.texture.height(), width: texture.texture.width() as i32, height: -(texture.texture.height() as i32)}, 
                     MagnifySamplerFilter::Linear
                         );
             }
         }
         } else {
+            println!("no input");
             return false;
         }
         return true;
@@ -313,7 +314,7 @@ impl MyNode for OutputNode {
                         let img: ImageBuffer<Rgba<u8>, _> =
                             ImageBuffer::from_raw(texture.width(), texture.height(), img.data.into_owned())
                                 .unwrap();
-                        let img = DynamicImage::ImageRgba8(img).flipv();
+                        let img = DynamicImage::ImageRgba8(img);
 
                         let data = img.to_bytes();
                         frames.push(data);
@@ -327,14 +328,20 @@ impl MyNode for OutputNode {
         }
         ui.next_column();
         if let Some(image_id) = self.texture_id {
-            let pos = ui.cursor_screen_pos();
-            let avail = ui.content_region_avail();
             let image_dimensions_bad = renderer.textures().get(image_id).unwrap().texture.dimensions();
+            ui.text(format!("image size: {image_dimensions_bad:?}"));
+            let pos = ui.cursor_pos();
+            let avail = ui.content_region_avail();
             let image_dimensions = [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
 
-            let scale = (avail[0]/image_dimensions[0]).min(avail[1]/image_dimensions[1]);
-            ui.get_foreground_draw_list().add_image(image_id, 
-                [pos[0], pos[1]+image_dimensions[1] * scale], [pos[0]+image_dimensions[0] * scale, pos[1]]).build();
+            let scale = (avail[0]/image_dimensions[0]).min(avail[1]/image_dimensions[1])*0.8;
+            ui.invisible_button("custom_button", [image_dimensions[0]*scale, image_dimensions[1]*scale]);
+            let draw_list = ui.get_window_draw_list();
+    draw_list
+        .add_image(image_id, ui.item_rect_min(), ui.item_rect_max())
+        .build();
+            // ui.get_window_draw_list().add_image(image_id, 
+            //     [pos[0], pos[1]], [pos[0]+180.0, pos[1] + 180.0]).build();
             // ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]);
         }
     }

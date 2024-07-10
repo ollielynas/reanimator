@@ -6,8 +6,8 @@ use glium::index::NoIndices;
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
-use glium::{implement_vertex, pixel_buffer, program, Program, Vertex};
-use image::{ImageBuffer, ImageFormat, Rgba};
+use glium::{implement_vertex, pixel_buffer, program, Program, Surface, Vertex};
+use image::{DynamicImage, GenericImage, ImageBuffer, ImageFormat, Rgba};
 use imgui::{TreeNodeFlags, Ui};
 use imgui_glium_renderer::Renderer;
 use std::hash::Hash;
@@ -39,10 +39,25 @@ pub struct Storage {
     redirect_id_to_cache: HashMap<String, u64>,
     pub project_name: String,
     pub show_debug_window: bool,
+    pub error_texture: Texture2d,
 }
 
 impl Storage {
     pub fn new(display: Display<WindowSurface>) -> Storage {
+
+        let error_image = 
+        image::load_from_memory(include_bytes!("img/th.jpg")).unwrap_or_else(|x| {
+            DynamicImage::new_rgb8(20, 20)
+        })
+        .flipv()
+        .into_rgba8();
+                let not_texture = RawImage2d::from_raw_rgba(
+                    error_image.as_bytes().to_vec(),
+                    (error_image.width(), error_image.height()),
+                );
+                // let a: HashMap<Texture2d, String> = HashMap::new();
+                let error_texture: Texture2d = Texture2d::new(&display, not_texture).unwrap();
+
                     // let frame2 = storage.create_and_set_texture(frame.height(), frame.width(), output_id).unwrap();
                     #[derive(Copy, Clone)]
                     struct Vertex {
@@ -77,6 +92,7 @@ impl Storage {
             redirect_id_to_cache: HashMap::new(),
             project_name: String::new(),
             show_debug_window: false,
+            error_texture,
         }
     }
 
@@ -157,7 +173,13 @@ impl Storage {
     ui.text_wrapped(format!("Project name: {}", self.project_name));
     ui.text_wrapped(format!("shaders: {}", self.shaders.len()));
     ui.text_wrapped(format!("time: {}", self.time));
-    ui.text_wrapped(format!("textures: {}", self.textures.len()));
+
+    if ui.collapsing_header(format!("textures: {}", self.textures.len()), TreeNodeFlags::empty()) {
+        for (k,v) in &self.textures {
+            ui.text_wrapped(format!("{:?}, {:?}", k, v.dimensions()));
+
+        }
+    }
 
     let mut total = 0;
     for (k,v) in &self.unused_textures {
@@ -165,7 +187,7 @@ impl Storage {
     }
 
 
-    if ui.collapsing_header(format!("unused textures: {}/{}", self.unused_textures.len(), total), TreeNodeFlags::BULLET) {
+    if ui.collapsing_header(format!("unused textures: {}/{}", self.unused_textures.len(), total), TreeNodeFlags::empty()) {
         for (k,v) in &self.unused_textures {
             ui.text_wrapped(format!("{:?}, {}", k, v.len()))
         }
@@ -208,12 +230,12 @@ impl Storage {
         height: u32,
         width: u32,
         k: String,
-    ) -> Option<&Texture2d> {
-        let k2 = k.clone();
+    ) {
 
         match self.unused_textures.get_mut(&(width, height)) {
             Some(a) if a.len() > 0 => {
                 let texture = a.pop().unwrap();
+                texture.as_surface().clear_color(148.0/255.0,0.0,211.0/255.0, 1.0);
                 self.set_texture(k, texture);
             }
             _ => {
@@ -229,7 +251,7 @@ impl Storage {
                 self.set_texture(k, texture);
             }
         }
-        return self.get_texture(&k2);
+        
     }
 
 

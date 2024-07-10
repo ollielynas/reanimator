@@ -174,6 +174,10 @@ impl Project {
                 ui.dummy(ui.content_region_avail());
             });
 
+        // if new_project.is_some() {
+            
+        // }
+
         return new_project;
     }
 
@@ -367,8 +371,8 @@ impl Project {
                     ui.window(format!("{}{}({})", node.name(), " ".repeat(40), node.id()))
                         .resizable(false)
                         .focus_on_appearing(true)
-                        .always_auto_resize(true)
                         .opened(&mut del_window_not)
+                        .scroll_bar(false)
                         .bg_alpha(0.9)
                         .collapsible(false)
                         .movable(true)
@@ -474,13 +478,8 @@ impl Project {
                                 if let Some(output_node) = a {
                                     time_list.append(&mut output_node.run_with_time.clone());
                                     if let Some(image_id) = output_node.texture_id {
-                                        let pos = ui.cursor_screen_pos();
-                                        if ui.button_with_size("render", [50.0, 50.0]) {
-                                            time_list.push(ui.time());
-                                        }
-                                        let mut avail = ui.content_region_avail();
-                                        avail[1] += 55.0;
-                                        avail[0] += 55.0;
+
+                                        let mut avail = [50.0,50.0];
                                         let image_dimensions_bad = renderer
                                             .textures()
                                             .get(image_id)
@@ -494,14 +493,16 @@ impl Project {
 
                                         let scale = (avail[0] / image_dimensions[0])
                                             .min(avail[1] / image_dimensions[1]);
-                                        ui.get_foreground_draw_list()
-                                            .add_image(
-                                                image_id,
-                                                [pos[0], pos[1] + image_dimensions[1] * scale],
-                                                [pos[0] + image_dimensions[0] * scale, pos[1]],
-                                            )
-                                            .build();
-                                        // ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]);
+                                        // ui.get_foreground_draw_list()
+                                        //     .add_image(
+                                        //         image_id,
+                                        //         [pos[0], pos[1] + image_dimensions[1] * scale],
+                                        //         [pos[0] + image_dimensions[0] * scale, pos[1]],
+                                        //     )
+                                        //     .build();
+                                        if ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]) {
+                                            time_list.push(ui.time());
+                                        }
                                     }
                                 }
                             }
@@ -828,6 +829,8 @@ impl Project {
                     );
                     if worked {
                         self.node_speeds.insert(id.to_string(), now.elapsed());
+                    }else {
+                        self.node_speeds.remove(id);
                     }
                 }
             }

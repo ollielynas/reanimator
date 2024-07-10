@@ -60,6 +60,7 @@ fn main() {
     let mut project: Option<Project> = None;
     
     let mut ctx: imgui::Context = create_context();
+
     
     let mut save_timer  = Instant::now();
 
@@ -68,7 +69,7 @@ fn main() {
     
     user_settings.load_theme(&mut ctx);
 
-
+    
 
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer| {

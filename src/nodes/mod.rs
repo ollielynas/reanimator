@@ -10,3 +10,5 @@ pub mod split_rgba;
 pub mod debug;
 pub mod frame_delay;
 pub mod combine_rgba;
+pub mod mask;
+pub mod layer;

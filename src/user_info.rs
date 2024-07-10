@@ -34,6 +34,9 @@ pub struct UserSettings {
     pub ui_theme: UiTheme,
     global_font_scale: f32,
     scroll_to_scale: bool,
+    #[savefile_versions="2.."]
+    #[savefile_default_val="false"]
+    fullscreen: bool,
 }
 
 impl Default for UserSettings {
@@ -57,6 +60,7 @@ impl Default for UserSettings {
             ui_theme: UiTheme::default(),
             global_font_scale: 1.2,
             scroll_to_scale: false,
+            fullscreen: false,
         };
 
         return new;
@@ -134,6 +138,8 @@ impl UserSettings {
             }
         }
 
+        
+
 
         match self.ui_theme {
             UiTheme::GenericLightMode => {
@@ -192,6 +198,13 @@ impl UserSettings {
                     if ui.is_item_hovered() {
                         ui.tooltip_text("Saves periodic snapshots of your project when changes are made.\n These snapshots can then be reloaded at any point");
                     }
+
+                    ui.disabled(true, || {
+                    ui.checkbox("fullscreen", &mut self.fullscreen);
+                    });
+                    if ui.is_item_hovered() {
+                        ui.tooltip_text("not yet implemented");
+                    }
                 }
                 if let Some(_ui_settings) = ui.tab_item("ui") {
                     // ui.push_style_var()
@@ -207,6 +220,7 @@ impl UserSettings {
                             self.ui_theme = UiTheme::iter().nth(current_item).unwrap();
                         }
                     }
+                    
                     ui.input_float("global font scale", &mut self.global_font_scale)
                     .no_horizontal_scroll(false)
                     .build();

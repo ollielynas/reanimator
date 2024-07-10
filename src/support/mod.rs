@@ -78,6 +78,7 @@ where
         };
         // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
+        
     }
 
     let mut last_frame = Instant::now();
@@ -111,7 +112,7 @@ where
                 if !run {
                     window_target.exit();
                 }
-
+                
                 let mut target = display.draw();
                 let mut col = ui.style_color(imgui::StyleColor::WindowBg);
 
