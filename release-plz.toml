@@ -1,3 +1,0 @@
-[[package]]
-name = "reanimator"
-publish = false # disable `cargo publish` for `package_a`
