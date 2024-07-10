@@ -16,6 +16,7 @@ use savefile;
 use project::Project;
 use support::{create_context, init_with_startup};
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
+use win_msgbox::{raw::w, Okay};
 #[macro_use]
 extern crate savefile_derive;
 
@@ -40,9 +41,12 @@ pub mod advanced_color_picker;
 
 fn main() {
 
+    #[cfg(all(target_os="windows", not(debug_assertions)))]{
     std::panic::set_hook(Box::new(|a| {
-        
+        win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
+    }
+    // panic!("test");
 
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {

@@ -6,6 +6,7 @@
         "hasher",
         "imgui",
         "Mousewheel",
+        "msgbox",
         "opengl",
         "reanimator"
     ]
