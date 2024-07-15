@@ -1,16 +1,10 @@
 use glium::{program, BlitTarget, Display, Program, Surface};
 use imgui::drag_drop::PayloadIsWrongType;
-use imgui::{
-    color,
-    drag_drop::DragDropPayloadPod,
-    draw_list,
-    internal::RawCast,
-    sys::{igGetWindowSize, ImColor, ImVec2},
-    BackendFlags, DragDropFlags, DragDropTarget, ImColor32, Image, Style, TreeNodeToken, Ui,
-    WindowFlags,
-};
+use imgui::Style;
+use imgui::{sys::ImVec2, ImColor32, TreeNodeToken, Ui};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
+use std::collections::HashSet;
 use std::{
     env::current_exe,
     f32::{consts::PI, NAN},
@@ -30,6 +24,7 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
+use crate::node::random_id;
 use crate::nodes::load_gif::LoadGifNode;
 use crate::nodes::load_image::LoadImage;
 use crate::{
@@ -74,6 +69,7 @@ pub struct Project {
     pub selected_snapshot: i32,
     recenter: bool,
     advanced_color_picker: AdvancedColorPicker,
+    pop_out_edit_window: HashMap<String, bool>,
 }
 
 impl Project {
@@ -82,121 +78,6 @@ impl Project {
     //     //     // self.storage.calculate_hash(&node.);
     //     // }
     // }
-
-    pub fn project_menu(
-        ui: &mut Ui,
-        display: &Display<WindowSurface>,
-        user_settings: &mut UserSettings,
-    ) -> Option<Project> {
-        let mut new_project = None;
-        let size_array = ui.io().display_size;
-
-        let height = size_array[1] * 0.8;
-        let pos = [size_array[0] * 0.5, size_array[1] * 0.5];
-        // let size = ui.siz
-        ui.window("project selector")
-            .collapsible(false)
-            .movable(false)
-            .position_pivot([0.5, 0.5])
-            .bring_to_front_on_focus(false)
-            .always_auto_resize(true)
-            .size([height * 1.5, height], imgui::Condition::Always)
-            .position(pos, imgui::Condition::Always)
-            .build(|| {
-                ui.columns(2, "col 1324", true);
-                ui.input_text("##", &mut user_settings.new_project_name)
-                    .auto_select_all(true)
-                    .build();
-                if ui.button("create new project") {
-                    new_project = Some(Project::new(
-                        user_settings
-                            .project_folder_path
-                            .join(user_settings.new_project_name.clone()),
-                        display.clone(),
-                    ));
-                }
-                ui.next_column();
-                // ui.set_window_font_scale(1.2);
-                ui.text("load project");
-                // ui.set_window_font_scale(1.0);
-
-                ui.window("projects")
-                    .always_vertical_scrollbar(true)
-                    .position_pivot([0.0, 1.0])
-                    // .focused(true)
-                    .movable(false)
-                    .resizable(false)
-                    .collapsible(false)
-                    // .draw_background(false)
-                    .title_bar(false)
-                    .position(
-                        [
-                            ui.cursor_screen_pos()[0] + 10.0,
-                            size_array[1] - height * 0.15,
-                        ],
-                        imgui::Condition::Always,
-                    )
-                    .size(
-                        [
-                            ui.content_region_avail()[0] - 10.0,
-                            ui.content_region_avail()[1] - 10.0,
-                        ],
-                        imgui::Condition::Always,
-                    )
-                    .build(|| {
-                        for project in &user_settings.projects {
-                            if ui.button(project.file_name().unwrap().to_str().unwrap()) {
-                                let new_project_1 =
-                                    Project::new(project.to_path_buf(), display.clone());
-                                let _ = new_project_1.save();
-
-                                let mut save_dir = match AppDirs::new(Some("Reanimator"), false) {
-                                    Some(a) => {
-                                        fs::create_dir_all(a.cache_dir.clone());
-                                        a.cache_dir
-                                    }
-                                    None => current_exe().unwrap(),
-                                };
-
-                                let p = save_dir.join(new_project_1.name());
-
-                                fs::create_dir_all(&p);
-
-                                for i in fs::read_dir(p).unwrap() {
-                                    if let Ok(i) = i {
-                                        if i.metadata()
-                                            .unwrap()
-                                            .created()
-                                            .unwrap()
-                                            .elapsed()
-                                            .unwrap()
-                                            .as_secs()
-                                            > (86400 * 7)
-                                        {
-                                            fs::remove_file(i.path());
-                                        }
-                                    }
-                                }
-                                new_project = Some(new_project_1);
-                            }
-
-                            // ui.same_line_with_spacing(ui.window_size()[0]-ui.calc_text_size("del")[0], 10.0);
-                            // ui.push_style_color(imgui::StyleColor::Button, [0.8,0.3,0.3,1.0]);
-                            // ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.7,0.3,0.3,1.0]);
-                            // ui.push_style_color(imgui::StyleColor::ButtonActive, [0.7,0.4,0.4,1.0]);
-                            // ui.button("del");
-                        }
-                    });
-
-                ui.dummy(ui.content_region_avail());
-            });
-
-        // if new_project.is_some() {
-
-        // }
-
-        return new_project;
-    }
 
     pub fn new(path: PathBuf, display: Display<WindowSurface>) -> Project {
         // println!("{:?}", fs::create_dir_all(path.join("nodes")));
@@ -241,6 +122,7 @@ impl Project {
             node_run_order: (0, vec![]),
             selected_node_to_add: NodeType::iter().len(),
             recenter: true,
+            pop_out_edit_window: HashMap::new(),
         };
 
         new.storage.project_name = new.name();
@@ -309,14 +191,13 @@ impl Project {
         average_x /= self.nodes.len() as f32;
         average_y /= self.nodes.len() as f32;
 
-        let center = [size_array[0] * 0.5, size_array[1] * 0.5];
+        let center = [size_array[0] * 0.5, size_array[1] * 0.3];
 
         for node in &mut self.nodes {
             node.set_xy(
                 node.x() - average_x + center[0],
                 node.y() - average_y + center[1],
             );
-
         }
     }
 
@@ -334,21 +215,41 @@ impl Project {
                     .collect::<Vec<(String, String)>>(),
             );
 
+
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
         });
+
+        let menu_bar_size = ui.item_rect_size();
+
+        let mut duplicate_node = None;
+
+        let mut new_node_popup = false;
+
+        // unsafe { ui.style().scale_all_sizes(0.5) };
+        // let mut style = ui.style().
+        // ui.show_style_editor();
+        // ui.show_default_style_editor();
         // renderer.render(target, draw_data)
         ui.window("nodes")
             .no_decoration()
             .bg_alpha(0.0)
             .always_auto_resize(true)
-            .content_size([window_size.x + 20.0, window_size.y + 20.0])
+            .content_size([window_size.x, window_size.y])
             .movable(false)
-            .position([10.0, 10.0], imgui::Condition::Appearing)
+            .position([0.0, 0.0], imgui::Condition::Appearing)
             .bring_to_front_on_focus(false)
             .build(|| {
                 let mut node_pos_map: HashMap<String, ImVec2> = HashMap::new();
                 // println!("{:?}", ui.mouse_drag_delta());
+
+                if let Some(popup_menu) = ui.begin_popup_context_window() {
+                    if ui.menu_item("new node") {
+                        new_node_popup = true;
+                    }
+                }
+
+                // self.new_node_menu(ui);
 
                 if ui.is_window_focused() {
                     self.selected = None;
@@ -385,6 +286,8 @@ impl Project {
                     } else {
                         // ui.set_window_font_scale(1.0);
                     }
+                    let mut node_window_size = [0.0, 0.0];
+                    let mut node_window_pos = [0.0, 0.0];
                     ui.window(format!("{}{}({})", node.name(), " ".repeat(40), node.id()))
                         .resizable(false)
                         .focus_on_appearing(true)
@@ -516,20 +419,78 @@ impl Project {
                                         //         [pos[0] + image_dimensions[0] * scale, pos[1]],
                                         //     )
                                         //     .build();
-                                        if ui.image_button(
-                                            "image",
-                                            image_id,
-                                            [
-                                                image_dimensions[0] * scale,
-                                                image_dimensions[1] * scale,
-                                            ],
-                                        ) {
-                                            time_list.push(ui.time());
-                                        }
+                                        if scale !=0.0 && image_dimensions[0] != 0.0 && image_dimensions[1] != 0.0 {
+                                            if ui.image_button(
+                                                "image",
+                                                image_id,
+                                                [
+                                                    image_dimensions[0] * scale,
+                                                    image_dimensions[1] * scale,
+                                                    ],
+                                                ) {
+                                                    time_list.push(ui.time());
+                                                }
+                                            }
                                     }
                                 }
                             }
-                        });
+
+                            if let Some(popup) = ui.begin_popup_context_window() {
+                                if ui.menu_item("duplicate") {
+                                    let a = fs::create_dir_all(self.path.join("temp").join(node.name()));
+                                    if let Err(e) = a {
+                                        println!("{e:?}")
+                                    }
+                                    node.save(self.path.join("temp"));
+                                    let node_clone = node.type_().load_node(self.path.join("temp").join(node.name()).join(node.id()+".bin"));
+                                    if let Some(n) = node_clone {
+                                        duplicate_node = Some(n);
+                                    }fs::remove_dir_all(self.path.join("temp"));
+                                }
+                                if ui.menu_item("pop editor window") {
+                                    self.pop_out_edit_window.insert(node.id(), true);
+                                }
+                            }
+
+                            node_window_size = ui.window_size();
+                            node_window_pos = ui.window_pos();
+                        }); // end of node window
+
+                        let mut focus_pop_out_window = false;
+                        if let Some(open) = self.pop_out_edit_window.get_mut(&node.id()) {
+                            if *open {
+                            ui.window(format!("edit {} ({})", node.name(), node.id()))
+                            .position(ui.io().mouse_pos, imgui::Condition::Appearing)
+                            .opened(open)
+                            .build(|| {
+                                node.edit_menu_render(ui, renderer);
+                                if ui.is_window_focused() || ui.is_any_item_hovered() {
+                                    focus_pop_out_window = true;
+                                }
+                            });
+                            }
+                            
+                        }
+    
+
+                    if Some(i) == self.node_edit || focus_pop_out_window {
+                        // let w_pos = ui.window_pos();
+                        ui.get_background_draw_list()
+                            .add_rect(
+                                [node_window_pos[0], node_window_pos[1]],
+                                [
+                                    node_window_pos[0] + node_window_size[0],
+                                    node_window_pos[1] + node_window_size[1],
+                                ],
+                                if focus_pop_out_window {ImColor32::from_rgb(80, 200, 80)} else {ImColor32::from_rgb(200, 80, 80)},
+                            )
+                            .rounding(2.5)
+                            .thickness(3.0)
+                            // .filled(true)
+                            .build();
+
+                        // println!("x");
+                    }
 
                     if !del_window_not {
                         ui.open_popup(format!("delete node? ({})", node.id()));
@@ -550,6 +511,16 @@ impl Project {
                             ui.close_current_popup();
                         }
                     });
+
+
+                    
+                } // end of node loop
+
+                if let Some(mut d) = duplicate_node {
+                    d.set_xy(d.x() + 10.0, d.y() + 10.0);
+                    d.set_id(random_id());
+                    println!("{}", d.id());
+                    self.nodes.push(d);
                 }
 
                 // println!("{:?}", self.node_edit);
@@ -642,10 +613,7 @@ impl Project {
 
         ui.window("sidebar")
             .no_decoration()
-            .position(
-                [0.0, ui.calc_text_size("x")[1] * 1.5],
-                imgui::Condition::Always,
-            )
+            .position([0.0, menu_bar_size[1] - 1.0], imgui::Condition::Always)
             .size_constraints([0.0, window_size.y], [window_size.x * 0.4, window_size.y])
             .resizable(true)
             // .always_auto_resize(true)
@@ -658,7 +626,7 @@ impl Project {
                 ];
 
                 // Style::use_light_colors(&mut self)
-                if ui.button("add node") {
+                if ui.button("add node") || new_node_popup {
                     ui.open_popup("Add Node");
                 }
 
@@ -675,6 +643,17 @@ impl Project {
                 if ui.button("recenter") {
                     self.recenter_nodes(ui);
                     self.recenter = true;
+                }
+
+
+                if ui.button("copy file to local res") {
+                    fs::create_dir_all(self.path.join("res"));
+                    if let Some(paths) =
+                    FileDialog::new().pick_files() {
+                        for path in paths {
+                            let _ = fs::copy(path.clone(), self.path.join("res").join((&path).file_name().unwrap_or(&OsString::new()).to_str().unwrap()));
+                        }
+                    }
                 }
 
                 ui.separator();
@@ -714,11 +693,14 @@ impl Project {
         self.storage.debug_window(ui);
         self.advanced_color_picker.render(ui);
 
+
+
+
         ui.window("edit_node")
             .collapsible(true)
             .position_pivot([0.0, 1.0])
             .position(
-                [left_sidebar_width, size_array[1]],
+                [left_sidebar_width - 1.0, size_array[1]],
                 imgui::Condition::Always,
             )
             .size_constraints(
@@ -751,7 +733,7 @@ impl Project {
         // ui.show_user_guide();
     }
 
-    fn run_nodes(&mut self, renderer: &mut Renderer) {
+    pub fn run_nodes(&mut self, renderer: &mut Renderer) {
         self.storage.reset();
         self.node_speeds.clear();
 
@@ -821,7 +803,10 @@ impl Project {
 
             let mut outputs: Vec<String> = vec![];
             for (_, n) in self.nodes.iter().enumerate() {
-                if n.type_() == NodeType::Output {
+                if matches!(n.type_(), 
+                NodeType::Output
+                //| NodeType::Output
+            ) {
                     outputs.push(n.id());
                 }
             }
@@ -927,12 +912,8 @@ impl Project {
 
     pub fn drop_file(&mut self, path: PathBuf, ui: &Ui) {
         let binding = OsString::new();
-        let ext = path
-            .extension()
-            .unwrap_or(&binding)
-            .to_str()
-            .unwrap_or("");
-        
+        let ext = path.extension().unwrap_or(&binding).to_str().unwrap_or("");
+
         let [mut x, mut y] = ui.io().mouse_pos;
         x = 100.0;
         y = 100.0;
@@ -942,28 +923,16 @@ impl Project {
             "gif" => {
                 println!("gif");
                 let mut node = NodeType::LoadGif.new_node();
-                let a: Option<&mut LoadGifNode> = (*node).as_any_mut().downcast_mut::<LoadGifNode>();
+                let a: Option<&mut LoadGifNode> =
+                    (*node).as_any_mut().downcast_mut::<LoadGifNode>();
                 if let Some(g_node) = a {
                     g_node.path = Some(path)
                 }
                 node.set_xy(x, y);
                 self.nodes.push(node);
             }
-            "png"|
-            "jpg"|
-            "jepg"|
-            "webp"|
-            "tiff"|
-            "tif"|
-            "tga"|
-            "bmp"|
-            "ico"|
-            "hdr"|
-            "pbm"|
-            "pam"|
-            "ppm"|
-            "pgm"|
-            "ff" => {
+            "png" | "jpg" | "jepg" | "webp" | "tiff" | "tif" | "tga" | "bmp" | "ico" | "hdr"
+            | "pbm" | "pam" | "ppm" | "pgm" | "ff" => {
                 let mut node = NodeType::LoadImageType.new_node();
                 let a: Option<&mut LoadImage> = (*node).as_any_mut().downcast_mut::<LoadImage>();
                 if let Some(g_node) = a {

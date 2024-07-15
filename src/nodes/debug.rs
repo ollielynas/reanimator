@@ -27,8 +27,14 @@ impl Default for DebugNode {
 }
 impl MyNode for DebugNode {
     fn path(&self) -> Vec<&str> {
-        vec!["msc"]
+        vec!["Image","msc"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 {0}
 

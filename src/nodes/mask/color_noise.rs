@@ -9,7 +9,7 @@ use crate::{node::{random_id, MyNode}, nodes::{node_enum::NodeType}, storage::St
 
 
 #[derive(Savefile)]
-pub struct WhiteNoiseNode {
+pub struct ColorNoiseNode {
     x: f32,
     y: f32,
     id: String,
@@ -22,7 +22,7 @@ pub struct WhiteNoiseNode {
 
 impl Default for WhiteNoiseNode {
     fn default() -> Self {
-        WhiteNoiseNode {
+        ColorNoiseNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
@@ -32,7 +32,7 @@ impl Default for WhiteNoiseNode {
         }
     }
 }
-impl MyNode for WhiteNoiseNode {
+impl MyNode for ColorNoiseNode {
     fn path(&self) -> Vec<&str> {
         vec!["Image","Mask"]
     }
@@ -51,7 +51,7 @@ impl MyNode for WhiteNoiseNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::WhiteNoise
+        NodeType::ColorNoise
     }
 
 
@@ -62,7 +62,7 @@ impl MyNode for WhiteNoiseNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            WhiteNoiseNode::savefile_version(),
+            ColorNoiseNode::savefile_version(),
             self,
         );
     }
@@ -75,12 +75,6 @@ impl MyNode for WhiteNoiseNode {
             return vec![];
         }
     }
-
-    
-    fn set_id(&mut self, id: String) {
-        self.id = id;
-    }
-
 
     fn outputs(&self) -> Vec<String> {
         return vec!["Out".to_string()];
@@ -108,7 +102,6 @@ impl MyNode for WhiteNoiseNode {
             
             uniform sampler2D tex;
             uniform float time;
-            uniform float seed;
             
             float random (vec2 st) {
             return fract(sin(dot(st.xy,
@@ -126,9 +119,11 @@ impl MyNode for WhiteNoiseNode {
             void main() {
 
             /* float rnd = gold_noise( v_tex_coords, time ); */
-            float rnd = random( v_tex_coords * (time + seed) * seed);
+            float rnd_r = random( v_tex_coords * time );
+            float rnd_g = random( v_tex_coords * time );
+            float rnd_b = random( v_tex_coords * time );
 
-            color = vec4(rnd);
+            color = vec4(rnd_r, rnd_g);
             }
             "#;
 
@@ -160,7 +155,6 @@ impl MyNode for WhiteNoiseNode {
             let uniforms = uniform! {
                 tex: texture,
                 time: storage.time as f32,
-                seed: (( self.seed % 100) as f32),
             };
 
             

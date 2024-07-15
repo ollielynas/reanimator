@@ -45,8 +45,12 @@ impl MyNode for LoadImage {
         0
     }
 
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
     fn path(&self) -> Vec<&str> {
-        vec!["Load"]
+        vec!["IO","Load"]
     }
 
     fn x(&self) -> f32 {

@@ -1,4 +1,4 @@
-use core::hash;
+use core::{hash, panic};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hasher};
 
@@ -194,6 +194,10 @@ impl Storage {
     }
     
         ui.text_wrapped(format!("cached_textures: {}", self.cached_textures.len()));
+
+        if ui.button("crash (panic)") {
+            panic!("debug crash {}", line!());
+        }
 
     }
 

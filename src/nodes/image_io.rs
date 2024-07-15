@@ -40,6 +40,7 @@ pub enum OutputType {
         #[savefile_versions="..0"]
         #[savefile_default_val="0.0"]
         last_frame: f64 },
+    
     RenderImage,
     RenderGif {
         record: bool,
@@ -47,7 +48,6 @@ pub enum OutputType {
         fps: f32,
         start_time: f32,
         length: f32,
-
     },
 }
 
@@ -144,13 +144,19 @@ impl MyNode for OutputNode {
         self
     }
 
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
+
     fn set_xy(&mut self, x: f32, y: f32) {
         self.x = x;
         self.y = y;
     }
 
     fn path(&self) -> Vec<&str> {
-        vec![]
+        vec!["IO"]
     }
 
     fn x(&self) -> f32 {
@@ -335,15 +341,19 @@ impl MyNode for OutputNode {
             let image_dimensions = [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
 
             let scale = (avail[0]/image_dimensions[0]).min(avail[1]/image_dimensions[1])*0.8;
+            if scale !=0.0 && image_dimensions[0] != 0.0 && image_dimensions[1] != 0.0 {
+
             ui.invisible_button("custom_button", [image_dimensions[0]*scale, image_dimensions[1]*scale]);
             let draw_list = ui.get_window_draw_list();
-    draw_list
-        .add_image(image_id, ui.item_rect_min(), ui.item_rect_max())
-        .build();
-            // ui.get_window_draw_list().add_image(image_id, 
-            //     [pos[0], pos[1]], [pos[0]+180.0, pos[1] + 180.0]).build();
-            // ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]);
-        }
+            
+            draw_list
+            .add_image(image_id, ui.item_rect_min(), ui.item_rect_max())
+            .build();
+        // ui.get_window_draw_list().add_image(image_id, 
+        //     [pos[0], pos[1]], [pos[0]+180.0, pos[1] + 180.0]).build();
+        // ui.image_button("image", image_id, [image_dimensions[0] * scale, image_dimensions[1] * scale]);
+    }
+}
     }
 
     fn inputs(&self) -> Vec<String> {

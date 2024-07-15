@@ -33,8 +33,14 @@ impl Default for RandomInputNode {
 
 impl MyNode for RandomInputNode {
     fn path(&self) -> Vec<&str> {
-        vec!["msc"]
+        vec!["Image", "msc"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 {0}
 

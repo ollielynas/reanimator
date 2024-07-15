@@ -50,8 +50,14 @@ impl MyNode for LoadGifNode {
     }
 
     fn path(&self) -> Vec<&str> {
-        vec!["Load"]
+        vec!["IO","Load"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn x(&self) -> f32 {
         self.x
@@ -77,6 +83,7 @@ impl MyNode for LoadGifNode {
     if ui.button("change path") {
         self.texture_cache = vec![];
         self.path = FileDialog::new().add_filter("", &["gif"]).pick_file();
+        
     }
 
     ui.text(format!("length: {:.5}", self.length));

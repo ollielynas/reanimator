@@ -44,6 +44,7 @@ where
     };
     let event_loop = EventLoop::new().expect("Failed to create EventLoop");
     // Program::
+
     let builder = WindowBuilder::new()
         .with_title(title)
         .with_fullscreen(fullscreen)
@@ -195,7 +196,7 @@ pub fn create_context() -> imgui::Context {
     // value (as the scaling is handled by winit)
     imgui.fonts().add_font(&[
         FontSource::TtfData {
-            data: include_bytes!("resources/Roboto-Regular.ttf"),
+            data: include_bytes!("resources/WorkSans-VariableFont_wght.ttf"),
             size_pixels: FONT_SIZE,
             config: Some(FontConfig {
                 // As imgui-glium-renderer isn't gamma-correct with
@@ -210,6 +211,22 @@ pub fn create_context() -> imgui::Context {
                 ..FontConfig::default()
             }),
         },
+        // FontSource::TtfData {
+        //     data: include_bytes!("resources/Roboto-Regular.ttf"),
+        //     size_pixels: FONT_SIZE,
+        //     config: Some(FontConfig {
+        //         // As imgui-glium-renderer isn't gamma-correct with
+        //         // it's font rendering, we apply an arbitrary
+        //         // multiplier to make the font a bit "heavier". With
+        //         // default imgui-glow-renderer this is unnecessary.
+        //         rasterizer_multiply: 1.5,
+        //         // Oversampling font helps improve text rendering at
+        //         // expense of larger font atlas texture.
+        //         oversample_h: 4,
+        //         oversample_v: 4,
+        //         ..FontConfig::default()
+        //     }),
+        // },
         FontSource::TtfData {
             data: include_bytes!("resources/Dokdo-Regular.ttf"),
             size_pixels: FONT_SIZE,
@@ -226,38 +243,41 @@ pub fn create_context() -> imgui::Context {
                 ..FontConfig::default()
             }),
         },
-        FontSource::TtfData {
-            data: include_bytes!("resources/WorkSans-VariableFont_wght.ttf"),
-            size_pixels: FONT_SIZE,
-            config: Some(FontConfig {
-                // As imgui-glium-renderer isn't gamma-correct with
-                // it's font rendering, we apply an arbitrary
-                // multiplier to make the font a bit "heavier". With
-                // default imgui-glow-renderer this is unnecessary.
-                rasterizer_multiply: 1.5,
-                // Oversampling font helps improve text rendering at
-                // expense of larger font atlas texture.
-                oversample_h: 4,
-                oversample_v: 4,
-                ..FontConfig::default()
-            }),
-        },
-        FontSource::TtfData {
-            data: include_bytes!("resources/mplus-1p-regular.ttf"),
-            size_pixels: FONT_SIZE,
-            config: Some(FontConfig {
-                // Oversampling font helps improve text rendering at
-                // expense of larger font atlas texture.
-                oversample_h: 4,
-                oversample_v: 4,
-                // Range of glyphs to rasterize
-                glyph_ranges: FontGlyphRanges::japanese(),
-                ..FontConfig::default()
-            }),
-        },
+        // FontSource::TtfData {
+        //     data: include_bytes!("resources/WorkSans-VariableFont_wght.ttf"),
+        //     size_pixels: FONT_SIZE,
+        //     config: Some(FontConfig {
+        //         // As imgui-glium-renderer isn't gamma-correct with
+        //         // it's font rendering, we apply an arbitrary
+        //         // multiplier to make the font a bit "heavier". With
+        //         // default imgui-glow-renderer this is unnecessary.
+        //         rasterizer_multiply: 1.5,
+        //         // Oversampling font helps improve text rendering at
+        //         // expense of larger font atlas texture.
+        //         oversample_h: 4,
+        //         oversample_v: 4,
+        //         ..FontConfig::default()
+        //     }),
+        // },
+        // FontSource::TtfData {
+        //     data: include_bytes!("resources/mplus-1p-regular.ttf"),
+        //     size_pixels: FONT_SIZE,
+        //     config: Some(FontConfig {
+        //         // Oversampling font helps improve text rendering at
+        //         // expense of larger font atlas texture.
+        //         oversample_h: 4,
+        //         oversample_v: 4,
+        //         // Range of glyphs to rasterize
+        //         glyph_ranges: FontGlyphRanges::japanese(),
+        //         ..FontConfig::default()
+        //     }),
+        // },
     ]);
 
+    imgui.fonts().build_rgba32_texture();
+    imgui.fonts().build_alpha8_texture();
     
+    println!("{:?}",imgui.fonts().fonts());
 
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {

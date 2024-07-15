@@ -1,12 +1,19 @@
 [package]
 name = "reanimator"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "A gif vfx tool"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 repository = "https://github.com/ollielynas/reanimator"
 license = "MIT OR Apache-2.0"
+
+[package.metadata.wix]
+upgrade-guid = "3A2AC449-A76D-4C28-B687-6DD30B908380"
+path-guid = "D299BE8C-F7C5-4ECF-9E0A-58077FFD095C"
+license = "License.txt"
+
+eula = false
 
 [dependencies]
 
@@ -60,9 +67,10 @@ cargo-dist-version = "0.18.0"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
-installers = []
+installers = ["shell", "powershell", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
 # Publish jobs to run in CI
-# pr-run-mode = "plan"
 pr-run-mode = "upload"
+# Whether to install an updater program
+install-updater = false

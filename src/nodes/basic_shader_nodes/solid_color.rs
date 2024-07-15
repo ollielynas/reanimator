@@ -32,8 +32,14 @@ impl Default for ColorNode {
 }
 impl MyNode for ColorNode {
     fn path(&self) -> Vec<&str> {
-        vec!["msc"]
+        vec!["IO"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 {0}
 

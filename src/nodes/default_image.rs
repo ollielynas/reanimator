@@ -40,8 +40,14 @@ impl MyNode for DefaultImage {
         0
     }
 
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
+
     fn path(&self) -> Vec<&str> {
-        vec!["Load"]
+        vec!["IO","Load"]
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self

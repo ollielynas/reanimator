@@ -29,8 +29,14 @@ impl Default for MultiplyNode {
 }
 impl MyNode for MultiplyNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Combine"]
+        vec!["Image","Combine"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 {2}
 

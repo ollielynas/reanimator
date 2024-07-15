@@ -1,16 +1,26 @@
 use std::{
-    arch::x86_64, env::current_exe, fs::{self, DirEntry}, path::PathBuf, time::SystemTime
+    env::current_exe, fs::{self, DirEntry}, path::PathBuf, sync::{Mutex, MutexGuard}, thread::Thread, time::SystemTime
 };
 
-use imgui::{ConfigFlags, Style, Ui};
+use imgui::{Style, Ui};
+use imgui_glium_renderer::Renderer;
 use platform_dirs::{AppDirs, UserDirs};
 use rfd::FileDialog;
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, EnumString};
 
-pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 1;
+use glium::Display;
 
-#[derive(Savefile, EnumIter, EnumString, PartialEq, Eq, Debug)]
+
+use glium::glutin::surface::WindowSurface;
+use std::thread;
+
+use crate::{project::Project, support::create_context};
+
+
+pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 2;
+
+#[derive(Savefile, EnumIter, EnumString, PartialEq, Eq, Debug, Clone)]
 pub enum UiTheme {
     GenericLightMode,
     GenericDarkMode,
@@ -22,7 +32,7 @@ impl Default for UiTheme {
     }
 }
 
-#[derive(Savefile)]
+#[derive(Savefile, Clone)]
 pub struct UserSettings {
     pub new_project_name: String,
     pub project_folder_path: PathBuf,
@@ -36,7 +46,10 @@ pub struct UserSettings {
     scroll_to_scale: bool,
     #[savefile_versions="2.."]
     #[savefile_default_val="false"]
-    fullscreen: bool,
+    pub fullscreen: bool,
+    #[savefile_ignore]
+    #[savefile_introspect_ignore]
+    loading: bool,
 }
 
 impl Default for UserSettings {
@@ -61,6 +74,7 @@ impl Default for UserSettings {
             global_font_scale: 1.2,
             scroll_to_scale: false,
             fullscreen: false,
+            loading: false,
         };
 
         return new;
@@ -186,7 +200,6 @@ impl UserSettings {
                             .set_can_create_directories(true)
                             .set_title("set project folder")
                             .pick_folder();
-    
                         if new_folder.is_some() {
                             self.project_folder_path = new_folder.unwrap();
                             self.update_projects();
@@ -199,12 +212,7 @@ impl UserSettings {
                         ui.tooltip_text("Saves periodic snapshots of your project when changes are made.\n These snapshots can then be reloaded at any point");
                     }
 
-                    ui.disabled(true, || {
-                    ui.checkbox("fullscreen", &mut self.fullscreen);
-                    });
-                    if ui.is_item_hovered() {
-                        ui.tooltip_text("not yet implemented");
-                    }
+
                 }
                 if let Some(_ui_settings) = ui.tab_item("ui") {
                     // ui.push_style_var()
@@ -249,10 +257,152 @@ impl UserSettings {
                         }
                     }}
 
+                    ui.checkbox("fullscreen", &mut self.fullscreen);
+                    if ui.is_item_hovered() {
+                        ui.tooltip_text("This option is a bit buggy at the moment and so is not recommended");
+                    }
+
                 }
                 tab_bar.end();
             }
 
         });
     }
+}
+
+
+
+impl Project {
+    
+    pub fn project_menu(
+        ui: &mut Ui,
+        display: &Display<WindowSurface>,
+        user_settings: &mut UserSettings,
+        renderer: &mut Renderer,
+    ) -> Option<Project> {
+        let mut new_project = None;
+        let size_array = ui.io().display_size;
+
+        let height = size_array[1] * 0.8;
+        let pos = [size_array[0] * 0.5, size_array[1] * 0.5];
+
+
+
+
+
+        // let size = ui.siz
+        ui.window("project selector")
+            .collapsible(false)
+            .movable(false)
+            .position_pivot([0.5, 0.5])
+            .bring_to_front_on_focus(false)
+            .always_auto_resize(true)
+            .size([height * 1.5, height], imgui::Condition::Always)
+            .position(pos, imgui::Condition::Always)
+            .build(|| {
+                ui.columns(2, "col 1324", true);
+                ui.input_text("##", &mut user_settings.new_project_name)
+                    .auto_select_all(true)
+                    .build();
+                if ui.button("create new project") {
+                    new_project = Some(Project::new(
+                        user_settings
+                            .project_folder_path
+                            .join(user_settings.new_project_name.clone()),
+                        display.clone(),
+                    ));
+                }
+                ui.next_column();
+                // ui.set_window_font_scale(1.2);
+                ui.text("load project");
+                // ui.set_window_font_scale(1.0);
+
+                ui.window("projects")
+                    .always_vertical_scrollbar(true)
+                    .position_pivot([0.0, 1.0])
+                    // .focused(true)
+                    .movable(false)
+                    .resizable(false)
+                    .collapsible(false)
+                    // .draw_background(false)
+                    .title_bar(false)
+                    .position(
+                        [
+                            ui.cursor_screen_pos()[0] + 10.0,
+                            size_array[1] - height * 0.15,
+                        ],
+                        imgui::Condition::Always,
+                    )
+                    .size(
+                        [
+                            ui.content_region_avail()[0] - 10.0,
+                            ui.content_region_avail()[1] - 10.0,
+                            ],
+                            imgui::Condition::Always,
+                        )
+                        .build(|| {
+                            for project in &user_settings.projects {
+                                if ui.button(project.file_name().unwrap().to_str().unwrap()) {
+                                    let mut new_project_1 =
+                                    Project::new(project.to_path_buf(), display.clone());
+                                let _ = new_project_1.save();
+                                
+                                let mut save_dir = match AppDirs::new(Some("Reanimator"), false) {
+                                    Some(a) => {
+                                        fs::create_dir_all(a.cache_dir.clone());
+                                        a.cache_dir
+                                    }
+                                    None => current_exe().unwrap(),
+                                };
+
+                                let p = save_dir.join(new_project_1.name());
+                                
+                                fs::create_dir_all(&p);
+
+                                for i in fs::read_dir(p).unwrap() {
+                                    if let Ok(i) = i {
+                                        if i.metadata()
+                                            .unwrap()
+                                            .created()
+                                            .unwrap()
+                                            .elapsed()
+                                            .unwrap()
+                                            .as_secs()
+                                            > (86400 * 7)
+                                        {
+                                            fs::remove_file(i.path());
+                                        }
+                                    }
+                                }
+                                
+                                new_project_1.recenter_nodes(ui);
+                                
+                                new_project = Some(new_project_1);
+                            }
+
+                            // ui.same_line_with_spacing(ui.window_size()[0]-ui.calc_text_size("del")[0], 10.0);
+                            // ui.push_style_color(imgui::StyleColor::Button, [0.8,0.3,0.3,1.0]);
+                            // ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.7,0.3,0.3,1.0]);
+                            // ui.push_style_color(imgui::StyleColor::ButtonActive, [0.7,0.4,0.4,1.0]);
+                            // ui.button("del");
+                        }
+                    });
+
+                ui.dummy(ui.content_region_avail());
+            });
+
+        // if new_project.is_some() {
+
+        // }
+
+        return new_project;
+    }
+
+
+
+    pub fn load_objects(&mut self, mut renderer: Mutex<&mut Renderer>) {
+        // let mut r = ;
+        self.run_nodes(renderer.get_mut().unwrap());
+    }
+
 }

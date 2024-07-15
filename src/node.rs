@@ -66,6 +66,8 @@ pub trait MyNode {
         format!("node-{}-output-{output}", self.id())
     }
 
+    fn set_id(&mut self, id: String);
+
     fn run(&mut self, storage: &mut Storage, map: HashMap<String, String>, renderer: &mut Renderer) -> bool;
 }
 

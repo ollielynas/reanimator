@@ -28,13 +28,13 @@ impl Default for LayerNode {
             y: 0.0,
             id: random_id(),
             layers: vec![],
-            base_texture_size: (0, 0),
+            base_texture_size: (1, 1),
         }
     }
 }
 impl MyNode for LayerNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Combine"]
+        vec!["Image","Combine"]
     }
 
     fn savefile_version() -> u32 {
@@ -282,8 +282,15 @@ impl MyNode for LayerNode {
         return true;
     }
 
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
+
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
         ui.columns(2, "", true);
+        let mut remove = None;
         ui.text(format!("base size: {:?}", self.base_texture_size));
         let mut focus = 999_usize;
         let mut hover = 999_usize;
@@ -302,6 +309,17 @@ impl MyNode for LayerNode {
             if ui.is_item_hovered() {
                 hover = i;
             }
+            if ui.button("remove layer") {
+                println!("{remove:?}");
+                remove = Some(i);
+            };
+            ui.spacing();
+            ui.spacing();
+        }
+
+        if let Some(remove2) = remove {
+            println!("{}", remove2);
+            self.layers.remove(remove2);
         }
 
         if ui.button("add layer") {
@@ -332,10 +350,31 @@ impl MyNode for LayerNode {
                     pos[0] + image_dimensions[0] * scale,
                     pos[1] + image_dimensions[1] * scale,
                 ],
-                ImColor32::from_rgba(80, 80, 80, 235),
+                ImColor32::from_rgba(230, 230, 230, 255),
             )
             .filled(true)
             .build();
+        
+        for (i, layer) in self.layers.iter().enumerate() {
+            draw_list
+            .add_rect(
+                [pos[0]+( layer[0])*scale,pos[1]+(image_dimensions[1] -layer[1])*scale],
+                [
+                    pos[0] + ( layer[0] + layer[2]) * scale,
+                    pos[1] + (image_dimensions[1] - layer[1] - layer[3]) * scale,
+                ],
+                if focus == i {
+                    ImColor32::from_rgba(20, 20, 180, 235)
+                }
+                else if hover == i {
+                    ImColor32::from_rgba(20, 180, 20, 235)
+                }else {
+                    ImColor32::from_rgba(180, 20, 20, 235)
+                }
+            )
+            .thickness(3.0)
+            .build();
+        }
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

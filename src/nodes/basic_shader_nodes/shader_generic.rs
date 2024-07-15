@@ -59,8 +59,15 @@ impl GenericShaderNode {
 impl MyNode for GenericShaderNode {
 
     fn path(&self) -> Vec<&str> {
-        vec!["basic shader"]
+        vec!["Image","basic shader"]
     }
+
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 where Self: Sized {
         0

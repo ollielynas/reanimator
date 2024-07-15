@@ -29,8 +29,14 @@ impl Default for SplitRgbaNode {
 }
 impl MyNode for SplitRgbaNode {
     fn path(&self) -> Vec<&str> {
-        vec!["RGBA"]
+        vec!["Image","RGBA"]
     }
+
+    
+    fn set_id(&mut self, id: String) {
+        self.id = id;
+    }
+
 
     fn savefile_version() -> u32 {
         0
