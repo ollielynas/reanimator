@@ -86,6 +86,15 @@ void main()
     }
     
     vec4 color2=col/weight_total;
+
+    float u1 = (color1.r+color1.g+color1.b)/3.0;
+    float u2 = (color2.r+color2.g+color2.b)/3.0;
+
+    if (((1.0-weight)* u1 - u2 * weight) < 0.0) {
+        vec4 color5 = color1;
+        color1 = color2;
+        color2 = color5;
+    }
     
     // vec4 color3=((1.0-weight)*color1-color2*weight);
     vec4 color3=((1.0-weight)*color1-color2*weight);

@@ -53,8 +53,8 @@ pub struct Render3DNode {
     #[savefile_introspect_ignore]
     texture_cache: Option<u64>,
 
-    #[savefile_ignore]
-    #[savefile_introspect_ignore]
+    #[savefile_versions="1.."]
+    // #[savefile_default_val=""]
     render_data: Vec<u8>,
 }
 #[derive(Savefile, EnumIter, PartialEq, Eq, Clone, Copy)]
@@ -245,7 +245,7 @@ impl MyNode for Render3DNode {
     where
         Self: Sized,
     {
-        0
+        1
     }
 
     fn set_id(&mut self, id: String) {
