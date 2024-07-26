@@ -6,7 +6,7 @@
     windows_subsystem = "windows"
   )]
 
-use std::{borrow::BorrowMut, env::current_exe, fs, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
+use std::{borrow::BorrowMut, env::current_exe, fs, process::exit, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
 
 
 use imgui_winit_support::winit::{monitor::VideoMode, window::{self, Fullscreen}};
@@ -40,16 +40,31 @@ pub mod widgets;
 
 fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     println!("updating");
+    
+    let relase_builds = self_update::backends::github::ReleaseList::configure()
+    .repo_owner("ollielynas")
+    .repo_name("reanimator").build();
+
+
     let status = self_update::backends::github::Update::configure()
     .repo_owner("ollielynas")
     .repo_name("reanimator")
+        // .identifier(".zip")
         .bin_name("reanimator")
+        // .bin_path_in_archive()
+        .no_confirm(false)
         .show_download_progress(true)
         .current_version(cargo_crate_version!())
-        
         .build()?
         .update()?;
     
+    if status.updated() {
+        #[cfg(all(target_os="windows", not(debug_assertions)))]{
+            win_msgbox::show::<Okay>(&format!("Update to version: {}\nThe application may need to be re-launched", status.version()));
+            
+        }
+        exit(0);
+    }
     // self_update
     println!("Update status: `{}`!", status.version());
     
@@ -65,8 +80,10 @@ fn main() {
     }));
 
         let a = update();
+
         if let Err(a2) = a {
-            // win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
+            win_msgbox::show::<Okay>(&format!("Error Updating \n {a2} \n You many need to run the program as admin to install the new update"));
+
             // panic!("{:?}", a2);
         }
     }

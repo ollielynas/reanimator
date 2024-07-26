@@ -286,6 +286,8 @@ impl Project {
         self.recenter_nodes(ui);
 
             self.run_nodes(renderer);
+            self.run_nodes(renderer);
+
         }
         3 => {
             self.save();
@@ -833,13 +835,14 @@ impl Project {
         }
 
         ui.window("frame time")
+        .size_constraints([window_size.x * 0.5, -1.0], [window_size.x * 0.5, -1.0])
         .no_decoration()
         .draw_background(false)
         .no_inputs()
         .position(edit_window_pos, imgui::Condition::Always)
         .position_pivot([0.0,1.0])
         .build(|| {
-            ui.text(format!("frame time: {:?}", self.total_frame_time));
+            ui.text(format!("frame time: {:.4}ms", self.total_frame_time*1000.0 ));
             
         });
 

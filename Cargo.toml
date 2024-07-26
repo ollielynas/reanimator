@@ -1,6 +1,7 @@
 [package]
 name = "reanimator"
-version = "0.1.5"
+version = "0.1.6" 
+# version = "0.1.6" REMEMBER TO CHANGE BACK
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "A gif vfx tool"
@@ -69,7 +70,7 @@ cargo-dist-version = "0.18.0"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
-installers = ["shell", "powershell", "msi"]
+installers = ["msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
 # Publish jobs to run in CI

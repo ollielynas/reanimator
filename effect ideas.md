@@ -3,7 +3,7 @@
 - [ ]  Hue shift
 - [ ]  rgba channel splitter
 - [ ]  crop
-- [ ]  differance of gause
+- [X]  differance of gause
 - [ ]  node TYP behavior
 - [ ]  animated movement
 - [ ]  vhs effect
@@ -18,7 +18,6 @@
 - [X]  image input
 - [X]  random frame picker
 - [ ]  gif output
-
 
 # General TODO
 
