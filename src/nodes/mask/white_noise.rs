@@ -16,7 +16,7 @@ pub struct WhiteNoiseNode {
     input: bool,
     size: (u32,u32),
     #[savefile_versions="1.."]
-    #[savefile_default_val="0"]
+    #[savefile_default_val="1"]
     seed: i32,
 }
 
@@ -28,7 +28,7 @@ impl Default for WhiteNoiseNode {
             id: random_id(),
             input: false,
             size: (1,1),
-            seed: 0,
+            seed: 1,
         }
     }
 }
@@ -116,12 +116,6 @@ impl MyNode for WhiteNoiseNode {
                 43758.5453123);
             }
 
-            float PHI = 1.61803398874989484820459;  // Φ = Golden Ratio   
-
-            float gold_noise(vec2 xy, float seed){
-                return fract(tan(distance(xy*PHI, xy)*seed)*xy.x);
-            }
-
 
             void main() {
 
@@ -154,9 +148,9 @@ impl MyNode for WhiteNoiseNode {
         Some(a) => a,
         None => {return false;},
     };
-
+    
     let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
-
+    
             let uniforms = uniform! {
                 tex: texture,
                 time: storage.time as f32,

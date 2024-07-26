@@ -6,7 +6,7 @@
     windows_subsystem = "windows"
   )]
 
-use std::{borrow::BorrowMut, env::current_exe, fs, time::Instant};
+use std::{borrow::BorrowMut, env::current_exe, fs, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
 
 
 use imgui_winit_support::winit::{monitor::VideoMode, window::{self, Fullscreen}};
@@ -29,6 +29,7 @@ pub mod storage;
 pub mod user_info;
 pub mod history_tracker;
 pub mod advanced_color_picker;
+pub mod widgets;
 
 
 
@@ -42,9 +43,10 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     let status = self_update::backends::github::Update::configure()
     .repo_owner("ollielynas")
     .repo_name("reanimator")
-        .bin_name("github")
+        .bin_name("reanimator")
         .show_download_progress(true)
         .current_version(cargo_crate_version!())
+        
         .build()?
         .update()?;
     
@@ -64,7 +66,7 @@ fn main() {
 
         let a = update();
         if let Err(a2) = a {
-            win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
+            // win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
             // panic!("{:?}", a2);
         }
     }
@@ -118,22 +120,7 @@ fn main() {
 
         let size_array = ui.io().display_size;
 
-        // if let Some(a) = ui.window("background")
-        // .bring_to_front_on_focus(false)
-        // .no_inputs()
-        // .position([0.0,0.0], imgui::Condition::Always)
-        // .focused(false)
-        // .size(size_array, imgui::Condition::Always)
-        // .no_decoration()
-        // .no_nav()
-        // .begin() {
-            
-        //     a.end();
-        // }
 
-        // ctx.io_mut();
-        // ctx.new_frame()
-        // renderer.textures().get_mut()
 
         if let Some(ref mut project) = project {
 
@@ -158,7 +145,6 @@ fn main() {
             }
 
         }else {
-            // ReUi::load_and_apply(egui_ctx);
             
             project = Project::project_menu(ui, display, &mut user_settings, renderer);
             ui.window("settings button")
@@ -187,11 +173,13 @@ fn main() {
         });
         }
 
+
+
         if settings_window_open {
             user_settings.settings_window(ui, &mut settings_window_open);
         }
     
-    
+        sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) -  ui.io().delta_time).max(0.0)));
 
     }, if fullscreen {Some(Fullscreen::Borderless(None))} else {None},  &mut ctx);
 

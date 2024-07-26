@@ -112,47 +112,6 @@ impl MyNode for LayerNode {
             inputs.push(get_output);
         }
 
-        // let layer_string = (0..self.layers.len())
-        //     .map(|x|
-        //         format!(
-        //             "uniform sampler2D layer_{x};uniform vec2 layer_{x}_pos;uniform vec2 layer_{x}_size;uniform vec2 layer_{x}_target_size;"
-        //         )
-        //     )
-        //     .collect::<String>();
-        // let code = (0..self.layers.len())
-        //     .map(|x| format!("color = add_layer(layer_{x}_pos, layer_{x}_size,layer_{x}_target_size,  color, layer_{x});"))
-        //     .collect::<String>();
-
-        // let fragment_shader_src =
-        //     r#"
-
-        //     #version 140
-
-        //     in vec2 v_tex_coords;
-        //     out vec4 color;
-            
-        //     uniform sampler2D base_texture;
-            
-        //     LAYERS
-
-        //     vec4 add_layer(vec2 target_pos, vec2 size, vec2 target_size, vec4 base_color, sampler2D tex_layer) {
-        //         if (v_tex_coords.x < target_pos.x || v_tex_coords.y < target_pos.y || v_tex_coords.x > target_pos.x + target_size.x || v_tex_coords.y > target_pos.y + target_size.y) {
-        //             return base_color;
-        //         }
-
-        //         vec4 layer_color = texture(tex_layer, ((v_tex_coords - target_pos) * size / target_size));
-
-        //         return layer_color;
-        //     }
-
-        //     void main() {
-        //         color = texture(base_texture, v_tex_coords);
-        //         CODE
-        //     }
-        //     "#
-        //         .replace("LAYERS", &layer_string)
-        //         .replace("CODE", &code);
-    
         let fragment_shader_src2 =
             r#"
 

@@ -3,6 +3,7 @@
         "flipv",
         "Fullscreen",
         "glsl",
+        "greyscale",
         "hasher",
         "imgui",
         "Mousewheel",

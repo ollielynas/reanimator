@@ -18,7 +18,7 @@ use std::thread;
 use crate::{project::Project, support::create_context};
 
 
-pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 2;
+pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 3;
 
 #[derive(Savefile, EnumIter, EnumString, PartialEq, Eq, Debug, Clone)]
 pub enum UiTheme {
@@ -47,6 +47,9 @@ pub struct UserSettings {
     #[savefile_versions="2.."]
     #[savefile_default_val="false"]
     pub fullscreen: bool,
+    #[savefile_versions="3.."]
+    #[savefile_default_val="120"]
+    pub max_fps: i32,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     loading: bool,
@@ -75,6 +78,7 @@ impl Default for UserSettings {
             scroll_to_scale: false,
             fullscreen: false,
             loading: false,
+            max_fps: 120,
         };
 
         return new;
@@ -152,7 +156,6 @@ impl UserSettings {
             }
         }
 
-        
 
 
         match self.ui_theme {
@@ -212,6 +215,12 @@ impl UserSettings {
                         ui.tooltip_text("Saves periodic snapshots of your project when changes are made.\n These snapshots can then be reloaded at any point");
                     }
 
+
+                    ui.input_int("target fps", &mut self.max_fps).build();
+                    self.max_fps = self.max_fps.max(10);
+                    if ui.is_item_hovered() {
+                        ui.tooltip_text("The programme kinda struggles to hit this atm often going 20 fps or so over the target");
+                    }
 
                 }
                 if let Some(_ui_settings) = ui.tab_item("ui") {
@@ -345,7 +354,7 @@ impl Project {
                                 if ui.button(project.file_name().unwrap().to_str().unwrap()) {
                                     let mut new_project_1 =
                                     Project::new(project.to_path_buf(), display.clone());
-                                let _ = new_project_1.save();
+                                // let _ = new_project_1.save();
                                 
                                 let mut save_dir = match AppDirs::new(Some("Reanimator"), false) {
                                     Some(a) => {

@@ -1,8 +1,9 @@
+use glium::backend::Facade;
 use glium::glutin::surface::WindowSurface;
 use glium::uniforms::SamplerBehavior;
 use glium::{program, Display, Program, Surface, Texture2d};
 use imgui::sys::{igSetNextWindowSize, ImGuiCond, ImGuiCond_Always, ImGuiCond_Once, ImVec2};
-use imgui::{Context, FontConfig, FontGlyphRanges, FontSource, Ui};
+use imgui::{BackendFlags, Context, FontConfig, FontGlyphRanges, FontSource, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
@@ -10,6 +11,7 @@ use imgui_winit_support::winit::event_loop::EventLoop;
 use imgui_winit_support::winit::window::{Fullscreen, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
+use self_update::backends;
 use std::env::current_exe;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -38,6 +40,8 @@ where
     // let mut imgui = create_context();
 
 
+    
+
     let title = match Path::new(&title).file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
         None => title,
@@ -59,7 +63,6 @@ where
     // let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
 
 
-
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
     } else {
@@ -69,6 +72,7 @@ where
 
     let mut platform = WinitPlatform::init(imgui);
     {
+        
         let dpi_mode = if let Ok(factor) = std::env::var("IMGUI_EXAMPLE_FORCE_DPI_FACTOR") {
             // Allow forcing of HiDPI factor for debugging purposes
             match factor.parse::<f64>() {
@@ -94,7 +98,6 @@ where
                 imgui.io_mut().update_delta_time(now - last_frame);
                 last_frame = now;
                 // imgui.io_mut().font_global_scale = 0.5;
-
             }
             Event::AboutToWait => {
                 platform

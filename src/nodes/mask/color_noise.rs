@@ -16,11 +16,11 @@ pub struct ColorNoiseNode {
     input: bool,
     size: (u32,u32),
     #[savefile_versions="1.."]
-    #[savefile_default_val="0"]
+    #[savefile_default_val="1"]
     seed: i32,
 }
 
-impl Default for WhiteNoiseNode {
+impl Default for ColorNoiseNode {
     fn default() -> Self {
         ColorNoiseNode {
             x: 0.0,
@@ -28,13 +28,17 @@ impl Default for WhiteNoiseNode {
             id: random_id(),
             input: false,
             size: (1,1),
-            seed: 0,
+            seed: 1,
         }
     }
 }
 impl MyNode for ColorNoiseNode {
     fn path(&self) -> Vec<&str> {
         vec!["Image","Mask"]
+    }
+
+    fn set_id(&mut self, id: String) {
+        self.id = id;
     }
 
     fn savefile_version() -> u32 {1}
@@ -102,6 +106,7 @@ impl MyNode for ColorNoiseNode {
             
             uniform sampler2D tex;
             uniform float time;
+            uniform float seed; 
             
             float random (vec2 st) {
             return fract(sin(dot(st.xy,
@@ -109,21 +114,15 @@ impl MyNode for ColorNoiseNode {
                 43758.5453123);
             }
 
-            float PHI = 1.61803398874989484820459;  // Φ = Golden Ratio   
-
-            float gold_noise(vec2 xy, float seed){
-                return fract(tan(distance(xy*PHI, xy)*seed)*xy.x);
-            }
 
 
             void main() {
 
-            /* float rnd = gold_noise( v_tex_coords, time ); */
-            float rnd_r = random( v_tex_coords * time );
-            float rnd_g = random( v_tex_coords * time );
-            float rnd_b = random( v_tex_coords * time );
+            float rnd_r = random( v_tex_coords * (time + seed) * seed);
+            float rnd_g = random( v_tex_coords * ((time+seed) * seed ) );
+            float rnd_b = random( v_tex_coords * (time * seed*2.3 ) );
 
-            color = vec4(rnd_r, rnd_g);
+            color = vec4(rnd_r, rnd_g, rnd_b, 1.0);
             }
             "#;
 
@@ -155,6 +154,8 @@ impl MyNode for ColorNoiseNode {
             let uniforms = uniform! {
                 tex: texture,
                 time: storage.time as f32,
+                seed: (10.0/( self.seed % 100) as f32),
+
             };
 
             

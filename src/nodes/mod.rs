@@ -12,3 +12,4 @@ pub mod frame_delay;
 pub mod combine_rgba;
 pub mod mask;
 pub mod layer;
+pub mod render_3d;

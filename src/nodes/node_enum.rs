@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use basic_shader_nodes::difference_of_gaussians::DifferenceofGaussiansNode;
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
@@ -11,9 +12,12 @@ use image_io::OutputNode;
 use layer::LayerNode;
 use load_gif::LoadGifNode;
 use load_image::LoadImage;
+use mask::color_noise::ColorNoiseNode;
+use mask::generic_mask::GenericMaskNode;
 use mask::multiply::MultiplyNode;
 use mask::white_noise::WhiteNoiseNode;
 use pick_random::RandomInputNode;
+use render_3d::Render3DNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
 use split_rgba::SplitRgbaNode;
@@ -44,11 +48,17 @@ pub enum NodeType {
     Multiply,
     WhiteNoise,
     Layer,
+    ColorNoise,
+    Blur,
+    Render3D,
+    BrightnessMask,
+    DifferenceOfGaussians,
 }
 
 impl NodeType  {
     pub fn name(&self) -> String {
         match self {
+            NodeType::Render3D => "3D Render (Ray Traced)",
             NodeType::Layer => "Layer",
             NodeType::Debug => "Debug",
             NodeType::Output => "Output",
@@ -66,20 +76,41 @@ impl NodeType  {
             NodeType::SolidColor => "Solid Color",
             NodeType::Multiply => "Multiply",
             NodeType::WhiteNoise => "White Noise",
+            NodeType::ColorNoise => "Color Noise",
+            NodeType::Blur => "Blur",
+            NodeType::BrightnessMask => "Mask Brightness",
+            NodeType::DifferenceOfGaussians => "Difference of Gaussians",
         }.to_owned()
     }
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
         
         match self {
-
+            NodeType::Render3D => {
+                let a: Result<Render3DNode, SavefileError> = savefile::load_file(project_file, Render3DNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::DifferenceOfGaussians => {
+                let a: Result<DifferenceofGaussiansNode, SavefileError> = savefile::load_file(project_file, DifferenceofGaussiansNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
             NodeType::Layer => {
                 let a: Result<LayerNode, SavefileError> = savefile::load_file(project_file, LayerNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
                     None}}
-
             }
+            NodeType::ColorNoise => {
+                let a: Result<ColorNoiseNode, SavefileError> = savefile::load_file(project_file, ColorNoiseNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+
 
             NodeType::WhiteNoise => {
                 let a: Result<WhiteNoiseNode, SavefileError> = savefile::load_file(project_file, WhiteNoiseNode::savefile_version());
@@ -139,7 +170,11 @@ impl NodeType  {
                 let a: Result<InvertTextureNode, SavefileError> = savefile::load_file(project_file, InvertTextureNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             },
-            NodeType::ChromaticAberration | NodeType::VHS => {
+            NodeType::ChromaticAberration | NodeType::VHS | NodeType::Blur => {
+                let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            }
+            NodeType::BrightnessMask => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             }
@@ -153,8 +188,15 @@ impl NodeType  {
             NodeType::Output => Box::new(OutputNode::default()),
             NodeType::DefaultImageOut => Box::new(DefaultImage::default()),
             NodeType::InvertTexture => Box::new(InvertTextureNode::default()),
-            NodeType::VHS => Box::new(GenericShaderNode::new(NodeType::VHS)),
-            NodeType::ChromaticAberration => Box::new(GenericShaderNode::new(NodeType::ChromaticAberration)),
+            NodeType::VHS
+            | NodeType::ChromaticAberration
+            | NodeType::Blur
+             => 
+            {Box::new(GenericShaderNode::new(self))},
+            NodeType::BrightnessMask => 
+            {
+                Box::new(GenericMaskNode::new(self))
+            },
             NodeType::LoadImageType => Box::new(LoadImage::default()),
             NodeType::RestrictPalletRGBA => Box::new(RestrictPalletNode::new()),
             NodeType::RandomInput => Box::new(RandomInputNode::default()),
@@ -165,6 +207,9 @@ impl NodeType  {
             NodeType::Multiply => Box::new(MultiplyNode::default()),
             NodeType::WhiteNoise => Box::new(WhiteNoiseNode::default()),
             NodeType::Layer => Box::new(LayerNode::default()),
+            NodeType::ColorNoise => Box::new(ColorNoiseNode::default()),
+            NodeType::Render3D => Box::new(Render3DNode::default()),
+            NodeType::DifferenceOfGaussians => Box::new(DifferenceofGaussiansNode::default()),
             }
     }
 }

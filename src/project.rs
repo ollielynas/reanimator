@@ -5,6 +5,7 @@ use imgui::{sys::ImVec2, ImColor32, TreeNodeToken, Ui};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
 use std::collections::HashSet;
+use std::thread::sleep;
 use std::{
     env::current_exe,
     f32::{consts::PI, NAN},
@@ -44,8 +45,12 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
+
+const MAX_LOADING: i32 = 3;
+
 // #[savefile_derive]
 pub struct Project {
+    
     pub storage: Storage,
     pub nodes: Vec<Box<dyn MyNode>>,
     pub selected: Option<usize>,
@@ -70,6 +75,10 @@ pub struct Project {
     recenter: bool,
     advanced_color_picker: AdvancedColorPicker,
     pop_out_edit_window: HashMap<String, bool>,
+    total_frame_time: f32,
+    loading: i32,
+    render_ticker: bool,
+    render_ticker_timer: Instant,
 }
 
 impl Project {
@@ -82,29 +91,14 @@ impl Project {
     pub fn new(path: PathBuf, display: Display<WindowSurface>) -> Project {
         // println!("{:?}", fs::create_dir_all(path.join("nodes")));
 
-        let mut nodes: Vec<Box<dyn MyNode>> = vec![
-            NodeType::Output.new_node(),
-            NodeType::DefaultImageOut.new_node(),
-        ];
 
-        let mut new_node_types = vec![];
 
-        for node_type in NodeType::iter() {
-            let node: Box<dyn MyNode> = node_type.new_node();
-            debug_assert_eq!(node_type, node.type_());
-            debug_assert_eq!(node_type.name(), node.name());
-            new_node_types.push(node);
-        }
-
-        nodes[0].set_xy(50.0, 150.0);
-        nodes[1].set_xy(0.0, 0.0);
-
-        let mut new = Project {
+        let new = Project {
             advanced_color_picker: AdvancedColorPicker::default(),
             return_to_home_menu: false,
             selected_snapshot: 0,
             storage: Storage::new(display),
-            nodes,
+            nodes: vec![],
             snapshots: vec![],
             selected: None,
             graph_offset: (0.0, 0.0),
@@ -116,40 +110,22 @@ impl Project {
             metrics: false,
             path: path.clone(),
             node_edit: None,
-            new_node_types,
+            new_node_types: vec![],
             // node_render_target: render_target(1000, 1000),
             node_speeds: HashMap::new(),
             node_run_order: (0, vec![]),
             selected_node_to_add: NodeType::iter().len(),
             recenter: true,
             pop_out_edit_window: HashMap::new(),
+            total_frame_time: 0.0,
+            loading: 0,
+            render_ticker: false,
+            render_ticker_timer: Instant::now(),
         };
 
-        new.storage.project_name = new.name();
+        
 
-        new.new_node_types.sort_by(|a, b| {
-            format!("{:?},{}", a.path(), a.name()).cmp(&format!("{:?},{}", b.path(), b.name()))
-        });
-
-        if let Ok(connections) =
-            savefile::load_file::<HashMap<String, String>, PathBuf>(path.join("connections.bin"), 0)
-        {
-            new.connections = connections;
-
-            new.nodes = vec![];
-
-            for node_type in NodeType::iter() {
-                if let Ok(node_paths) = fs::read_dir(path.join("nodes").join(node_type.name())) {
-                    for node in node_paths {
-                        if let Ok(node) = node {
-                            if let Some(new_node) = node_type.load_node(node.path()) {
-                                new.nodes.push(new_node);
-                            };
-                        }
-                    }
-                }
-            }
-        }
+        
 
         return new;
     }
@@ -161,9 +137,15 @@ impl Project {
         }
     }
 
+
+    /// wont save if the project is not loaded yet
     pub fn save(&self) -> Result<(), SavefileError> {
         // println!("{:?}", self.path);
         // println!("{:?}", self.path.join("connections.bin"));
+
+        if self.loading <= MAX_LOADING {
+            return Ok(());
+        }
 
         fs::create_dir_all(self.path.clone())?;
 
@@ -202,9 +184,126 @@ impl Project {
     }
 
     pub fn render(&mut self, ui: &Ui, user_settings: &UserSettings, renderer: &mut Renderer) {
-        // Context::set_pixels_per_point(&self, pixels_per_point)
+        
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
+
+
+        if self.loading <= MAX_LOADING + 1 {
+        ui.window("loading")
+        .draw_background(false)
+        .no_decoration()
+        .position([size_array[0]/2.0,size_array[1]/2.0], imgui::Condition::Always)
+        .position_pivot([0.5,0.5])
+        .build(|| {
+        ui.set_window_font_scale(2.0);
+        ui.text(format!("{}%", ((self.loading as f32 / MAX_LOADING as f32) * 100.0 - fastrand::f32()*(100.0/MAX_LOADING as f32)).clamp(0.0, 100.0).round())); 
+        ui.set_window_font_scale(1.0);
+        println!("loading step: {}", self.loading);
+
+        if self.loading != 0 {
+            sleep( Duration::from_secs_f32(0.25));
+        }
+
+        match self.loading {
+            0 => {
+                ui.text("loading node types into memory and checking assertions");
+            }
+            1 => {
+                ui.text("Attempting to load project from memory");
+            }
+            2 => {
+                ui.text("Compiling textures and caching values");
+            }
+            3 => {
+                ui.text("Saving");
+            }
+            _ => {}
+        }
+
+        match self.loading - 1 {
+        -1 => {
+            // do nothing
+        }
+        0 => {
+
+            let mut nodes: Vec<Box<dyn MyNode>> = vec![
+                NodeType::Output.new_node(),
+                NodeType::DefaultImageOut.new_node(),
+            ];
+    
+            let mut new_node_types: Vec<Box<dyn MyNode>> = vec![];
+    
+            for node_type in NodeType::iter() {
+                let node: Box<dyn MyNode> = node_type.new_node();
+                debug_assert_eq!(node_type, node.type_());
+                debug_assert_eq!(node_type.name(), node.name());
+                new_node_types.push(node);
+            }
+    
+            nodes[0].set_xy(50.0, 150.0);
+            nodes[1].set_xy(0.0, 0.0);
+
+
+            self.nodes = nodes;
+            self.new_node_types = new_node_types;
+
+
+            self.storage.project_name = self.name();
+
+        self.new_node_types.sort_by(|a, b| {
+            format!("{:?},{}", a.path(), a.name()).cmp(&format!("{:?},{}", b.path(), b.name()))
+        });
+
+
+        }
+        1 => {
+            if let Ok(connections) =
+            savefile::load_file::<HashMap<String, String>, PathBuf>(self.path.join("connections.bin"), 0)
+        {
+            self.connections = connections;
+
+            self.nodes = vec![];
+
+            for node_type in NodeType::iter() {
+                if let Ok(node_paths) = fs::read_dir(self.path.join("nodes").join(node_type.name())) {
+                    for node in node_paths {
+                        if let Ok(node) = node {
+                            if let Some(new_node) = node_type.load_node(node.path()) {
+                                self.nodes.push(new_node);
+                                println!("loaded node");
+                            };
+                        }
+                    }
+                }
+            }
+        } else {
+            println!("project not found");
+        }
+        }
+        2 => {
+            
+        self.recenter_nodes(ui);
+
+            self.run_nodes(renderer);
+        }
+        3 => {
+            self.save();
+        }
+        a => {
+            
+            unreachable!("There is no loading step: {a}")
+        }
+        }
+        self.loading += 1;
+        });
+        return;
+        }
+
+
+
+
+        // Context::set_pixels_per_point(&self, pixels_per_point)
         // self.node_edit = None;
         let mut time_list: Vec<f64> = vec![];
         // hash
@@ -215,6 +314,7 @@ impl Project {
                     .collect::<Vec<(String, String)>>(),
             );
 
+        
 
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
@@ -242,6 +342,7 @@ impl Project {
             .build(|| {
                 let mut node_pos_map: HashMap<String, ImVec2> = HashMap::new();
                 // println!("{:?}", ui.mouse_drag_delta());
+
 
                 if let Some(popup_menu) = ui.begin_popup_context_window() {
                     if ui.menu_item("new node") {
@@ -488,6 +589,7 @@ impl Project {
                             .thickness(3.0)
                             // .filled(true)
                             .build();
+                        
 
                         // println!("x");
                     }
@@ -602,11 +704,17 @@ impl Project {
                     }
                 }
             });
+        
 
-        for t in time_list {
+            
+            for t in time_list {
+            let before_run_nodes = Instant::now();
             self.storage.time = t;
             self.run_nodes(renderer);
+            self.total_frame_time = before_run_nodes.elapsed().as_secs_f32();
+            
         }
+
 
         let mut left_sidebar_width = 0.0;
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
@@ -672,6 +780,7 @@ impl Project {
                 ui.separator();
 
                 if ui.button("return home") {
+                    self.save();
                     self.return_to_home_menu = true;
                 }
 
@@ -693,7 +802,7 @@ impl Project {
         self.storage.debug_window(ui);
         self.advanced_color_picker.render(ui);
 
-
+        let mut edit_window_pos: [f32;2] = [0.0;2];
 
 
         ui.window("edit_node")
@@ -715,12 +824,24 @@ impl Project {
                     }
                     _ => ui.text("no node has been selected"),
                 }
+                edit_window_pos = ui.window_pos();
             });
         un_round.end();
 
         if self.metrics {
             ui.show_metrics_window(&mut self.metrics);
         }
+
+        ui.window("frame time")
+        .no_decoration()
+        .draw_background(false)
+        .no_inputs()
+        .position(edit_window_pos, imgui::Condition::Always)
+        .position_pivot([0.0,1.0])
+        .build(|| {
+            ui.text(format!("frame time: {:?}", self.total_frame_time));
+            
+        });
 
         // for i in self.nodes {
 
@@ -901,6 +1022,9 @@ impl Project {
             // ui.text(format!("{:#?}", group_open));
 
             if self.new_node_types.len() > self.selected_node_to_add {
+                ui.set_window_font_scale(1.3);
+                ui.text(self.new_node_types[self.selected_node_to_add].name());
+                ui.set_window_font_scale(1.0);
                 self.new_node_types[self.selected_node_to_add].description(ui);
             } else {
                 ui.text("no node has been selected");
