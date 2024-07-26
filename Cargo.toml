@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.6" 
+version = "0.1.7" 
 # version = "0.1.6" REMEMBER TO CHANGE BACK
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]

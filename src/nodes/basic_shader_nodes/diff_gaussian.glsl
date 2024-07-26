@@ -35,15 +35,15 @@ void main()
     vec2 p;
     vec4 col=vec4(0.,0.,0.,0.);
     
-    for(float x2=-45.;x2<45.;x2++){
+    for(float x2=-25.;x2<25.;x2++){
         dx=1./xs;
         p.x=(pos.x)+(x*dx);
-        x=(x2/45.)*r;
+        x=(x2/25.)*r;
         xx=x*x;
-        for(float y2=-45.;y2<45.;y2++){
+        for(float y2=-25.;y2<25.;y2++){
             dy=1./ys;
             p.y=(pos.y)+(y*dy);
-            y=(y2/45.)*r;
+            y=(y2/25.)*r;
             yy=y*y;
             if(xx+yy<=rr)
             {
@@ -66,15 +66,15 @@ void main()
     
     col=vec4(0.,0.,0.,0.);
     
-    for(float x2=-45.;x2<45.;x2++){
+    for(float x2=-25.;x2<25.;x2++){
         dx=1./xs;
         p.x=(pos.x)+(x*dx);
-        x=(x2/45.)*r;
+        x=(x2/25.)*r;
         xx=x*x;
-        for(float y2=-45.;y2<45.;y2++){
+        for(float y2=-25.;y2<25.;y2++){
             dy=1./ys;
             p.y=(pos.y)+(y*dy);
-            y=(y2/45.)*r;
+            y=(y2/25.)*r;
             yy=y*y;
             if(xx+yy<=rr)
             {
