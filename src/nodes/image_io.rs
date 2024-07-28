@@ -134,7 +134,6 @@ impl MyNode for OutputNode {
             }
         }
         } else {
-            println!("no input");
             return false;
         }
         return true;

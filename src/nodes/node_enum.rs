@@ -22,6 +22,7 @@ use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
 use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
+use webcam::WebcamNode;
 
 use crate::node::MyNode;
 
@@ -53,6 +54,7 @@ pub enum NodeType {
     Render3D,
     BrightnessMask,
     DifferenceOfGaussians,
+    Webcam,
 }
 
 impl NodeType  {
@@ -80,6 +82,7 @@ impl NodeType  {
             NodeType::Blur => "Blur",
             NodeType::BrightnessMask => "Mask Brightness",
             NodeType::DifferenceOfGaussians => "Difference of Gaussians",
+            NodeType::Webcam => "Webcam Input",
         }.to_owned()
     }
 
@@ -88,6 +91,12 @@ impl NodeType  {
         match self {
             NodeType::Render3D => {
                 let a: Result<Render3DNode, SavefileError> = savefile::load_file(project_file, Render3DNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::Webcam => {
+                let a: Result<WebcamNode, SavefileError> = savefile::load_file(project_file, WebcamNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
                     None}}
@@ -175,7 +184,7 @@ impl NodeType  {
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             }
             NodeType::BrightnessMask => {
-                let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
+                let a: Result<GenericMaskNode, SavefileError> = savefile::load_file(project_file, GenericMaskNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             }
         }
@@ -210,6 +219,18 @@ impl NodeType  {
             NodeType::ColorNoise => Box::new(ColorNoiseNode::default()),
             NodeType::Render3D => Box::new(Render3DNode::default()),
             NodeType::DifferenceOfGaussians => Box::new(DifferenceofGaussiansNode::default()),
+            NodeType::Webcam => Box::new(WebcamNode::default()),
             }
     }
+
+
+    pub fn disabled(&self) -> bool {
+        matches!(
+            self,
+            NodeType::VHS 
+            | NodeType::Debug
+            | NodeType::Webcam
+        )
+    }
+
 }

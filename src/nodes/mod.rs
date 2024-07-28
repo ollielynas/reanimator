@@ -13,3 +13,5 @@ pub mod combine_rgba;
 pub mod mask;
 pub mod layer;
 pub mod render_3d;
+pub mod v_cam_out;
+pub mod webcam;

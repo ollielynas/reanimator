@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.7" 
+version = "0.1.8" 
 # version = "0.1.6" REMEMBER TO CHANGE BACK
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
@@ -43,6 +43,7 @@ textdistance = "1.0.2"
 win-msgbox = "0.2.0"
 lumo = "0.3.2"
 open = "5.3.0"
+escapi = "4.0.0"
 
 [build-dependencies]
 winresource = "0.1.17"

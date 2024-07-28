@@ -220,7 +220,7 @@ impl Storage {
         if !self.shaders.contains_key(&(vert.clone(), frag.clone())) {
             let program = match glium::Program::from_source(&self.display, &(vert), &frag, None) {
                 Ok(a) => a,
-                Err(a) => {println!("shader_comp_error: \n {a:?}"); return None;}
+                Err(a) => {println!("shader_comp_error:--------------- \n\n\n {a:#?}\n\n\n --------------"); return None;}
             };
 
             self.shaders.insert((vert.clone(), frag.clone()), program);

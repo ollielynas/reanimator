@@ -1,6 +1,6 @@
 use glium::{program, BlitTarget, Display, Program, Surface};
 use imgui::drag_drop::PayloadIsWrongType;
-use imgui::Style;
+use imgui::{Style, WindowHoveredFlags};
 use imgui::{sys::ImVec2, ImColor32, TreeNodeToken, Ui};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
@@ -50,11 +50,10 @@ const MAX_LOADING: i32 = 3;
 
 // #[savefile_derive]
 pub struct Project {
-    
     pub storage: Storage,
     pub nodes: Vec<Box<dyn MyNode>>,
     pub selected: Option<usize>,
-    graph_offset: (f32, f32),
+    graph_offset: [f32; 2],
     scale: f32,
     selected_input: Option<String>,
     selected_output: Option<String>,
@@ -91,8 +90,6 @@ impl Project {
     pub fn new(path: PathBuf, display: Display<WindowSurface>) -> Project {
         // println!("{:?}", fs::create_dir_all(path.join("nodes")));
 
-
-
         let new = Project {
             advanced_color_picker: AdvancedColorPicker::default(),
             return_to_home_menu: false,
@@ -101,7 +98,7 @@ impl Project {
             nodes: vec![],
             snapshots: vec![],
             selected: None,
-            graph_offset: (0.0, 0.0),
+            graph_offset: [0.0, 0.0],
             scale: 1.0,
             selected_input: None,
             selected_output: None,
@@ -122,11 +119,6 @@ impl Project {
             render_ticker: false,
             render_ticker_timer: Instant::now(),
         };
-
-        
-
-        
-
         return new;
     }
 
@@ -136,7 +128,6 @@ impl Project {
             None => format!("Name Error: {:?}", self.path),
         }
     }
-
 
     /// wont save if the project is not loaded yet
     pub fn save(&self) -> Result<(), SavefileError> {
@@ -162,6 +153,7 @@ impl Project {
 
     pub fn recenter_nodes(&mut self, ui: &Ui) {
         let size_array = ui.io().display_size;
+
         let mut average_x = 0.0;
         let mut average_y = 0.0;
 
@@ -173,7 +165,13 @@ impl Project {
         average_x /= self.nodes.len() as f32;
         average_y /= self.nodes.len() as f32;
 
-        let center = [size_array[0] * 0.5, size_array[1] * 0.3];
+        // let center = [size_array[0] * 0.5, size_array[1] * 0.3];
+
+        let center = screen_to_graph_pos(
+            [size_array[0] * 0.5, size_array[1] * 0.3],
+            self.graph_offset,
+            self.scale,
+        );
 
         for node in &mut self.nodes {
             node.set_xy(
@@ -184,126 +182,133 @@ impl Project {
     }
 
     pub fn render(&mut self, ui: &Ui, user_settings: &UserSettings, renderer: &mut Renderer) {
-        
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
 
-
         if self.loading <= MAX_LOADING + 1 {
-        ui.window("loading")
-        .draw_background(false)
-        .no_decoration()
-        .position([size_array[0]/2.0,size_array[1]/2.0], imgui::Condition::Always)
-        .position_pivot([0.5,0.5])
-        .build(|| {
-        ui.set_window_font_scale(2.0);
-        ui.text(format!("{}%", ((self.loading as f32 / MAX_LOADING as f32) * 100.0 - fastrand::f32()*(100.0/MAX_LOADING as f32)).clamp(0.0, 100.0).round())); 
-        ui.set_window_font_scale(1.0);
-        println!("loading step: {}", self.loading);
+            ui.window("loading")
+                .draw_background(false)
+                .no_decoration()
+                .position(
+                    [size_array[0] / 2.0, size_array[1] / 2.0],
+                    imgui::Condition::Always,
+                )
+                .position_pivot([0.5, 0.5])
+                .build(|| {
+                    ui.set_window_font_scale(2.0);
+                    ui.text(format!(
+                        "{}%",
+                        ((self.loading as f32 / MAX_LOADING as f32) * 100.0
+                            - fastrand::f32() * (100.0 / MAX_LOADING as f32))
+                            .clamp(0.0, 100.0)
+                            .round()
+                    ));
+                    ui.set_window_font_scale(1.0);
+                    println!("loading step: {}", self.loading);
 
-        if self.loading != 0 {
-            sleep( Duration::from_secs_f32(0.25));
-        }
+                    if self.loading != 0 {
+                        sleep(Duration::from_secs_f32(0.25));
+                    }
 
-        match self.loading {
-            0 => {
-                ui.text("loading node types into memory and checking assertions");
-            }
-            1 => {
-                ui.text("Attempting to load project from memory");
-            }
-            2 => {
-                ui.text("Compiling textures and caching values");
-            }
-            3 => {
-                ui.text("Saving");
-            }
-            _ => {}
-        }
+                    match self.loading {
+                        0 => {
+                            ui.text("loading node types into memory and checking assertions");
+                        }
+                        1 => {
+                            ui.text("Attempting to load project from memory");
+                        }
+                        2 => {
+                            ui.text("Compiling textures and caching values");
+                        }
+                        3 => {
+                            ui.text("Saving");
+                        }
+                        _ => {}
+                    }
 
-        match self.loading - 1 {
-        -1 => {
-            // do nothing
-        }
-        0 => {
+                    match self.loading - 1 {
+                        -1 => {
+                            // do nothing
+                        }
+                        0 => {
+                            let mut nodes: Vec<Box<dyn MyNode>> = vec![
+                                NodeType::Output.new_node(),
+                                NodeType::DefaultImageOut.new_node(),
+                            ];
 
-            let mut nodes: Vec<Box<dyn MyNode>> = vec![
-                NodeType::Output.new_node(),
-                NodeType::DefaultImageOut.new_node(),
-            ];
-    
-            let mut new_node_types: Vec<Box<dyn MyNode>> = vec![];
-    
-            for node_type in NodeType::iter() {
-                let node: Box<dyn MyNode> = node_type.new_node();
-                debug_assert_eq!(node_type, node.type_());
-                debug_assert_eq!(node_type.name(), node.name());
-                new_node_types.push(node);
-            }
-    
-            nodes[0].set_xy(50.0, 150.0);
-            nodes[1].set_xy(0.0, 0.0);
+                            let mut new_node_types: Vec<Box<dyn MyNode>> = vec![];
 
+                            for node_type in NodeType::iter() {
+                                let node: Box<dyn MyNode> = node_type.new_node();
+                                debug_assert_eq!(node_type, node.type_());
+                                debug_assert_eq!(node_type.name(), node.name());
+                                new_node_types.push(node);
+                            }
 
-            self.nodes = nodes;
-            self.new_node_types = new_node_types;
+                            nodes[0].set_xy(50.0, 150.0);
+                            nodes[1].set_xy(0.0, 0.0);
 
+                            self.nodes = nodes;
+                            self.new_node_types = new_node_types;
 
-            self.storage.project_name = self.name();
+                            self.storage.project_name = self.name();
 
-        self.new_node_types.sort_by(|a, b| {
-            format!("{:?},{}", a.path(), a.name()).cmp(&format!("{:?},{}", b.path(), b.name()))
-        });
+                            self.new_node_types.sort_by(|a, b| {
+                                format!("{:?},{}", a.path(), a.name()).cmp(&format!(
+                                    "{:?},{}",
+                                    b.path(),
+                                    b.name()
+                                ))
+                            });
+                        }
+                        1 => {
+                            if let Ok(connections) =
+                                savefile::load_file::<HashMap<String, String>, PathBuf>(
+                                    self.path.join("connections.bin"),
+                                    0,
+                                )
+                            {
+                                self.connections = connections;
 
+                                self.nodes = vec![];
 
-        }
-        1 => {
-            if let Ok(connections) =
-            savefile::load_file::<HashMap<String, String>, PathBuf>(self.path.join("connections.bin"), 0)
-        {
-            self.connections = connections;
+                                for node_type in NodeType::iter() {
+                                    if let Ok(node_paths) =
+                                        fs::read_dir(self.path.join("nodes").join(node_type.name()))
+                                    {
+                                        for node in node_paths {
+                                            if let Ok(node) = node {
+                                                if let Some(new_node) =
+                                                    node_type.load_node(node.path())
+                                                {
+                                                    self.nodes.push(new_node);
+                                                    println!("loaded node");
+                                                };
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                println!("project not found");
+                            }
+                        }
+                        2 => {
+                            self.recenter_nodes(ui);
 
-            self.nodes = vec![];
-
-            for node_type in NodeType::iter() {
-                if let Ok(node_paths) = fs::read_dir(self.path.join("nodes").join(node_type.name())) {
-                    for node in node_paths {
-                        if let Ok(node) = node {
-                            if let Some(new_node) = node_type.load_node(node.path()) {
-                                self.nodes.push(new_node);
-                                println!("loaded node");
-                            };
+                            self.run_nodes(renderer);
+                            self.run_nodes(renderer);
+                        }
+                        3 => {
+                            self.save();
+                        }
+                        a => {
+                            unreachable!("There is no loading step: {a}")
                         }
                     }
-                }
-            }
-        } else {
-            println!("project not found");
+                    self.loading += 1;
+                });
+            return;
         }
-        }
-        2 => {
-            
-        self.recenter_nodes(ui);
-
-            self.run_nodes(renderer);
-            self.run_nodes(renderer);
-
-        }
-        3 => {
-            self.save();
-        }
-        a => {
-            
-            unreachable!("There is no loading step: {a}")
-        }
-        }
-        self.loading += 1;
-        });
-        return;
-        }
-
-
-
 
         // Context::set_pixels_per_point(&self, pixels_per_point)
         // self.node_edit = None;
@@ -315,8 +320,6 @@ impl Project {
                     .into_iter()
                     .collect::<Vec<(String, String)>>(),
             );
-
-        
 
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
@@ -333,20 +336,11 @@ impl Project {
         // ui.show_style_editor();
         // ui.show_default_style_editor();
         // renderer.render(target, draw_data)
-        ui.window("nodes")
-            .no_decoration()
-            .bg_alpha(0.0)
-            .always_auto_resize(true)
-            .content_size([window_size.x, window_size.y])
-            .movable(false)
-            .position([0.0, 0.0], imgui::Condition::Appearing)
-            .bring_to_front_on_focus(false)
-            .build(|| {
+
                 let mut node_pos_map: HashMap<String, ImVec2> = HashMap::new();
                 // println!("{:?}", ui.mouse_drag_delta());
 
-
-                if let Some(popup_menu) = ui.begin_popup_context_window() {
+                if let Some(_popup_menu) = ui.begin_popup_context_window() {
                     if ui.menu_item("new node") {
                         new_node_popup = true;
                     }
@@ -357,15 +351,58 @@ impl Project {
                 if ui.is_window_focused() {
                     self.selected = None;
                 }
+
+
+
+
+                let wheel_delta = ui.io().mouse_wheel;
+                let mut scale_changed = wheel_delta.abs() > 0.0;
+                let mouse_pos = ui.io().mouse_pos;
+                if scale_changed {
+                    // println!("{}", wheel_delta);
+                    let new_scale = (self.scale * (1.1_f32.powf(wheel_delta))).clamp(0.05, 2.0);
+                    let scale_delta = new_scale/self.scale;
+                    let mouse_pos_graph = screen_to_graph_pos(mouse_pos, self.graph_offset, self.scale);
+                    for i in [1, 0] {
+                        self.graph_offset[i] = ((scale_delta -1.0)*mouse_pos_graph[i]+self.graph_offset[i])/scale_delta;
+                    }
+
+                    self.scale = new_scale;
+                    // for i in [1,0] {
+                    //     self.graph_offset[0];
+                    // }
+                    scale_changed = true;
+                }
+
                 let mut delete_node: Option<usize> = None;
-                for (i, node) in self.nodes.iter_mut().enumerate() {
-                    let mut del_window_not = true;
 
-                    let mut moving = false;
-                    let mut move_delta = ui.mouse_drag_delta();
+                let node_window_vars = [
+                    ui.push_style_var(imgui::StyleVar::ItemSpacing([
+                        3.0 * self.scale,
+                        3.0 * self.scale,
+                    ])),
+                    ui.push_style_var(imgui::StyleVar::WindowPadding([
+                        10.0 * self.scale,
+                        10.0 * self.scale,
+                    ])),
+                    ui.push_style_var(imgui::StyleVar::FramePadding([
+                        5.0 * self.scale,
+                        5.0 * self.scale,
+                    ])),
+                ];
 
-                    if ui.mouse_drag_delta() != [0.0, 0.0]
-                        && ui.is_window_focused()
+                let mut moving = false;
+                let mut any_window_hovered = false;
+
+
+
+                let mut move_delta = ui.io().mouse_delta;
+                move_delta[0] /= self.scale * -1.0;
+                move_delta[1] /= self.scale * -1.0;
+
+                if ui.mouse_drag_delta() != [0.0, 0.0]
+                        // && 
+                        && ui.is_mouse_down(imgui::MouseButton::Left)
                         && ui.is_mouse_dragging(imgui::MouseButton::Left)
                     {
                         moving = true;
@@ -373,12 +410,21 @@ impl Project {
                         move_delta = [0.0, 0.0];
                     }
 
+
+                for (i, node) in self.nodes.iter_mut().enumerate() {
+
+
+                    let mut del_window_not = true;
+
+                    let node_screen_pos =
+                        graph_to_screen_pos([node.x(), node.y()], self.graph_offset, self.scale);
+
                     let mut out_of_bounds = false;
 
-                    if node.x() + move_delta[0] > size_array[0] - 20.0
-                        || node.x() + move_delta[0] < 20.0
-                        || node.y() + move_delta[1] > size_array[1] - 20.0
-                        || node.y() + move_delta[1] < 20.0
+                    if node_screen_pos[0] + move_delta[0] > size_array[0] - 20.0
+                        || node_screen_pos[0] + move_delta[0] < 20.0
+                        || node_screen_pos[1] + move_delta[1] > size_array[1] - 20.0
+                        || node_screen_pos[1] + move_delta[1] < 20.0
                     {
                         out_of_bounds = true;
                     }
@@ -391,6 +437,9 @@ impl Project {
                     }
                     let mut node_window_size = [0.0, 0.0];
                     let mut node_window_pos = [0.0, 0.0];
+
+
+
                     ui.window(format!("{}{}({})", node.name(), " ".repeat(40), node.id()))
                         .resizable(false)
                         .focus_on_appearing(true)
@@ -400,32 +449,40 @@ impl Project {
                         .collapsible(false)
                         .movable(true)
                         .always_auto_resize(true)
-                        // .content_size([0.0,0.0])
                         .position(
-                            [node.x() + move_delta[0], node.y() + move_delta[1]],
-                            if out_of_bounds || moving || self.recenter {
+                            [node_screen_pos[0], node_screen_pos[1]],
                                 imgui::Condition::Always
-                            } else {
-                                imgui::Condition::Once
-                            },
+                            ,
                         )
                         .size_constraints(
-                            ui.calc_text_size(node.name() + "xxxxx"),
+                            [
+                                ui.calc_text_size(node.name() + "xxxxx")[0] * self.scale,
+                                ui.calc_text_size(node.name() + "xxxxx")[1] * self.scale,
+                            ],
                             [f32::MAX, -1.0],
                         )
                         .build(|| {
-                            if out_of_bounds {
-                                ui.set_window_font_scale(0.8);
-                                // println!("tiny");
-                            } else {
-                                ui.set_window_font_scale(1.0);
+                            let _ = ui.begin_disabled(out_of_bounds);
+                            node_window_pos = ui.window_pos();
+                            // println!("{:?}", move_delta);
+                            let mut move_this_node = false;
+                            if ui.is_window_hovered() && moving {
+                                moving = false;
+                                move_this_node = true;
                             }
+
+
+                            if ui.is_window_hovered() && ui.is_window_focused() && moving {
+                                moving = false;
+                            }
+
+                            ui.set_window_font_scale(self.scale);
 
                             if ui.is_window_focused() {
                                 self.node_edit = Some(i);
                             }
 
-                            ui.cursor_screen_pos();
+                            // ui.cursor_screen_pos();
 
                             let window_size = ui.window_size();
 
@@ -491,9 +548,18 @@ impl Project {
                                 node_pos_map
                                     .insert(node.output_id(output.clone()), average_pos.into());
                             }
-                            let window_pos = ui.window_pos();
-                            if !moving {
-                                node.set_xy(window_pos[0], window_pos[1]);
+                            let mut window_pos = ui.window_pos();
+                            if move_this_node {
+                                window_pos[0] -= move_delta[0];
+                                window_pos[1] -= move_delta[1];
+                            }
+                            let window_pos_relative_to_graph =
+                                screen_to_graph_pos(window_pos, self.graph_offset, self.scale);
+                            if !moving && ui.is_window_focused() {
+                                node.set_xy(
+                                    window_pos_relative_to_graph[0],
+                                    window_pos_relative_to_graph[1],
+                                );
                             }
                             if node.type_() == NodeType::Output {
                                 let a: Option<&OutputNode> =
@@ -501,7 +567,7 @@ impl Project {
                                 if let Some(output_node) = a {
                                     time_list.append(&mut output_node.run_with_time.clone());
                                     if let Some(image_id) = output_node.texture_id {
-                                        let mut avail = [50.0, 50.0];
+                                        let avail = [50.0 * self.scale, 50.0 * self.scale];
                                         let image_dimensions_bad = renderer
                                             .textures()
                                             .get(image_id)
@@ -522,33 +588,44 @@ impl Project {
                                         //         [pos[0] + image_dimensions[0] * scale, pos[1]],
                                         //     )
                                         //     .build();
-                                        if scale !=0.0 && image_dimensions[0] != 0.0 && image_dimensions[1] != 0.0 {
+                                        if scale != 0.0
+                                            && image_dimensions[0] != 0.0
+                                            && image_dimensions[1] != 0.0
+                                        {
                                             if ui.image_button(
                                                 "image",
                                                 image_id,
                                                 [
                                                     image_dimensions[0] * scale,
                                                     image_dimensions[1] * scale,
-                                                    ],
-                                                ) {
-                                                    time_list.push(ui.time());
-                                                }
+                                                ],
+                                            ) {
+                                                time_list.push(ui.time());
                                             }
+                                        }
                                     }
                                 }
                             }
 
                             if let Some(popup) = ui.begin_popup_context_window() {
                                 if ui.menu_item("duplicate") {
-                                    let a = fs::create_dir_all(self.path.join("temp").join(node.name()));
+                                    let a = fs::create_dir_all(
+                                        self.path.join("temp").join(node.name()),
+                                    );
                                     if let Err(e) = a {
                                         println!("{e:?}")
                                     }
                                     node.save(self.path.join("temp"));
-                                    let node_clone = node.type_().load_node(self.path.join("temp").join(node.name()).join(node.id()+".bin"));
+                                    let node_clone = node.type_().load_node(
+                                        self.path
+                                            .join("temp")
+                                            .join(node.name())
+                                            .join(node.id() + ".bin"),
+                                    );
                                     if let Some(n) = node_clone {
                                         duplicate_node = Some(n);
-                                    }fs::remove_dir_all(self.path.join("temp"));
+                                    }
+                                    fs::remove_dir_all(self.path.join("temp"));
                                 }
                                 if ui.menu_item("pop editor window") {
                                     self.pop_out_edit_window.insert(node.id(), true);
@@ -556,25 +633,26 @@ impl Project {
                             }
 
                             node_window_size = ui.window_size();
-                            node_window_pos = ui.window_pos();
                         }); // end of node window
 
-                        let mut focus_pop_out_window = false;
-                        if let Some(open) = self.pop_out_edit_window.get_mut(&node.id()) {
-                            if *open {
+
+                    let mut focus_pop_out_window = false;
+                    if let Some(open) = self.pop_out_edit_window.get_mut(&node.id()) {
+                        if *open {
                             ui.window(format!("edit {} ({})", node.name(), node.id()))
-                            .position(ui.io().mouse_pos, imgui::Condition::Appearing)
-                            .opened(open)
-                            .build(|| {
-                                node.edit_menu_render(ui, renderer);
-                                if ui.is_window_focused() || ui.is_any_item_hovered() {
-                                    focus_pop_out_window = true;
-                                }
-                            });
-                            }
-                            
+                                .position(ui.io().mouse_pos, imgui::Condition::Appearing)
+                                .opened(open)
+                                .build(|| {
+                                    if ui.is_window_hovered() && ui.is_mouse_down(imgui::MouseButton::Left) {
+                                        moving = false;
+                                    }
+                                    node.edit_menu_render(ui, renderer);
+                                    if ui.is_window_focused() || ui.is_any_item_hovered() {
+                                        focus_pop_out_window = true;
+                                    }
+                                });
                         }
-    
+                    }
 
                     if Some(i) == self.node_edit || focus_pop_out_window {
                         // let w_pos = ui.window_pos();
@@ -585,13 +663,16 @@ impl Project {
                                     node_window_pos[0] + node_window_size[0],
                                     node_window_pos[1] + node_window_size[1],
                                 ],
-                                if focus_pop_out_window {ImColor32::from_rgb(80, 200, 80)} else {ImColor32::from_rgb(200, 80, 80)},
+                                if focus_pop_out_window {
+                                    ImColor32::from_rgb(80, 200, 80)
+                                } else {
+                                    ImColor32::from_rgb(200, 80, 80)
+                                },
                             )
                             .rounding(2.5)
                             .thickness(3.0)
                             // .filled(true)
                             .build();
-                        
 
                         // println!("x");
                     }
@@ -617,8 +698,12 @@ impl Project {
                     });
 
 
-                    
+
                 } // end of node loop
+
+                for var in node_window_vars {
+                    var.end();
+                }
 
                 if let Some(mut d) = duplicate_node {
                     d.set_xy(d.x() + 10.0, d.y() + 10.0);
@@ -705,18 +790,14 @@ impl Project {
                         }
                     }
                 }
-            });
-        
+            // });
 
-            
-            for t in time_list {
+        for t in time_list {
             let before_run_nodes = Instant::now();
             self.storage.time = t;
             self.run_nodes(renderer);
             self.total_frame_time = before_run_nodes.elapsed().as_secs_f32();
-            
         }
-
 
         let mut left_sidebar_width = 0.0;
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
@@ -734,6 +815,10 @@ impl Project {
                     ui.push_style_color(imgui::StyleColor::BorderShadow, [0.0, 0.0, 1.0, 1.0]),
                     // ui.push_style_color(imgui::StyleColor::ButtonHovered, ui.style_color(S)),
                 ];
+
+                if ui.is_window_hovered() && ui.is_mouse_down(imgui::MouseButton::Left) {
+                    moving = false;
+                }
 
                 // Style::use_light_colors(&mut self)
                 if ui.button("add node") || new_node_popup {
@@ -755,13 +840,20 @@ impl Project {
                     self.recenter = true;
                 }
 
-
                 if ui.button("copy file to local res") {
                     fs::create_dir_all(self.path.join("res"));
-                    if let Some(paths) =
-                    FileDialog::new().pick_files() {
+                    if let Some(paths) = FileDialog::new().pick_files() {
                         for path in paths {
-                            let _ = fs::copy(path.clone(), self.path.join("res").join((&path).file_name().unwrap_or(&OsString::new()).to_str().unwrap()));
+                            let _ = fs::copy(
+                                path.clone(),
+                                self.path.join("res").join(
+                                    (&path)
+                                        .file_name()
+                                        .unwrap_or(&OsString::new())
+                                        .to_str()
+                                        .unwrap(),
+                                ),
+                            );
                         }
                     }
                 }
@@ -804,8 +896,7 @@ impl Project {
         self.storage.debug_window(ui);
         self.advanced_color_picker.render(ui);
 
-        let mut edit_window_pos: [f32;2] = [0.0;2];
-
+        let mut edit_window_pos: [f32; 2] = [0.0; 2];
 
         ui.window("edit_node")
             .collapsible(true)
@@ -819,6 +910,9 @@ impl Project {
                 [size_array[0] - left_sidebar_width, size_array[1]],
             )
             .build(|| {
+                if ui.is_window_hovered() && ui.is_mouse_down(imgui::MouseButton::Left) {
+                    moving = false;
+                }
                 // println!("{:?}", self.node_edit);
                 match self.node_edit {
                     Some(a) if self.nodes.len() > a => {
@@ -835,16 +929,27 @@ impl Project {
         }
 
         ui.window("frame time")
-        .size_constraints([window_size.x * 0.5, -1.0], [window_size.x * 0.5, -1.0])
-        .no_decoration()
-        .draw_background(false)
-        .no_inputs()
-        .position(edit_window_pos, imgui::Condition::Always)
-        .position_pivot([0.0,1.0])
-        .build(|| {
-            ui.text(format!("frame time: {:.4}ms", self.total_frame_time*1000.0 ));
+            .size_constraints([window_size.x * 0.5, -1.0], [window_size.x * 0.5, -1.0])
+            .no_decoration()
+            .draw_background(false)
+            .no_inputs()
+            .position(edit_window_pos, imgui::Condition::Always)
+            .position_pivot([0.0, 1.0])
+            .build(|| {
+                ui.text(format!(
+                    "frame time: {:.4}ms",
+                    self.total_frame_time * 1000.0
+                ));
+            });
+
+        
             
-        });
+
+            if moving {
+                self.graph_offset[0] += move_delta[0];
+                self.graph_offset[1] += move_delta[1];
+            }
+
 
         // for i in self.nodes {
 
@@ -927,10 +1032,10 @@ impl Project {
 
             let mut outputs: Vec<String> = vec![];
             for (_, n) in self.nodes.iter().enumerate() {
-                if matches!(n.type_(), 
-                NodeType::Output
-                //| NodeType::Output
-            ) {
+                if matches!(
+                    n.type_(),
+                    NodeType::Output //| NodeType::Output
+                ) {
                     outputs.push(n.id());
                 }
             }
@@ -964,9 +1069,17 @@ impl Project {
     fn new_node_menu(&mut self, ui: &Ui) {
         let mut group: HashMap<String, Option<TreeNodeToken>> = HashMap::new();
 
+        
+
         ui.modal_popup_config("Add Node").build(|| {
             ui.columns(2, "select new node col", true);
             for n in 0..self.new_node_types.len() {
+                #[cfg(not(debug_assertions))]
+                {
+                    if self.new_node_types[n].type_().disabled() {
+                        continue;
+                    }
+                }
                 let mut invalid_tree: Vec<String> = vec![];
                 for k in group.keys() {
                     if !self.new_node_types[n].path().contains(&&k.as_str()) {
@@ -992,11 +1105,11 @@ impl Project {
                     .iter()
                     .all(|x| matches!(group.get(&x.to_string()), Some(Some(_))))
                 {
-                    ui.radio_button(
-                        self.new_node_types[n].name(),
-                        &mut self.selected_node_to_add,
-                        n,
-                    );
+                    let mut name = self.new_node_types[n].name();
+                    if self.new_node_types[n].type_().disabled() {
+                        name += " (Debug Only)"
+                    }
+                    ui.radio_button(name, &mut self.selected_node_to_add, n);
                 }
             }
 
@@ -1072,4 +1185,19 @@ impl Project {
             _ => {}
         }
     }
+}
+
+fn graph_to_screen_pos(mut pos: [f32; 2], graph_offset: [f32; 2], scale: f32) -> [f32; 2] {
+    for i in [0, 1] {
+        pos[i] -= graph_offset[i];
+        pos[i] *= scale;
+    }
+    return pos;
+}
+fn screen_to_graph_pos(mut pos: [f32; 2], graph_offset: [f32; 2], scale: f32) -> [f32; 2] {
+    for i in [0, 1] {
+        pos[i] /= scale;
+        pos[i] += graph_offset[i];
+    }
+    return pos;
 }

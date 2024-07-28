@@ -108,20 +108,7 @@ impl MyNode for GenericMaskNode {
 
     fn description(&mut self, ui: &imgui::Ui) {
         match self.type_ {
-            NodeType::ChromaticAberration => {
-                // ui.set_window_font_scale(2.0);
-                let begin_pos = ui.cursor_pos();
-                ui.text_colored([0.0,0.0,1.0,0.5], "Chromatic Aberration");
-                ui.set_cursor_pos([begin_pos[0]+1.0, begin_pos[1]]);
-                ui.text_colored([0.0,1.0,0.0,0.5], "Chromatic Aberration");
-                ui.set_cursor_pos([begin_pos[0]+2.0, begin_pos[1]]);
-                ui.text_colored([1.0,0.0,0.0,0.5], "Chromatic Aberration");
-                // ui.set_window_font_scale(1.0);
-            },
-            NodeType::VHS => {
-                ui.text("Warning! This not is not currently working");
-            },
-            NodeType::Blur => {
+            NodeType::BrightnessMask => {
                 ui.text("Blur Image");
             },
             a => {unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")}
