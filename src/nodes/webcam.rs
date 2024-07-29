@@ -243,6 +243,8 @@ impl MyNode for WebcamNode {
 
 impl WebcamNode {
     fn load_webcams(&mut self) {
+        return;
+        
         self.available = vec![];
         let num_of_devices = escapi::num_devices();
         for i in 0..num_of_devices {

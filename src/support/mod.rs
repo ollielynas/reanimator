@@ -1,21 +1,16 @@
-use glium::backend::Facade;
 use glium::glutin::surface::WindowSurface;
-use glium::uniforms::SamplerBehavior;
-use glium::{program, Display, Program, Surface, Texture2d};
-use imgui::sys::{igSetNextWindowSize, ImGuiCond, ImGuiCond_Always, ImGuiCond_Once, ImVec2};
-use imgui::{BackendFlags, Context, FontConfig, FontGlyphRanges, FontSource, Ui};
-use imgui_glium_renderer::{Renderer, Texture};
+use glium::{Display, Surface};
+use imgui::{Context, FontConfig, FontSource, Ui};
+use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
 use imgui_winit_support::winit::window::{Fullscreen, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
-use self_update::backends;
 use std::env::current_exe;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 use std::time::Instant;
 
 
@@ -247,7 +242,7 @@ pub fn create_context() -> imgui::Context {
             }),
         },
         // FontSource::TtfData {
-        //     data: include_bytes!("resources/WorkSans-VariableFont_wght.ttf"),
+        //     data: include_bytes!("resources/Material_Symbols_Rounded/MaterialSymbolsRounded-VariableFont_FILL,GRAD,opsz,wght.ttf"),
         //     size_pixels: FONT_SIZE,
         //     config: Some(FontConfig {
         //         // As imgui-glium-renderer isn't gamma-correct with
@@ -284,7 +279,7 @@ pub fn create_context() -> imgui::Context {
 
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {
-            fs::create_dir_all(a.config_dir.clone());
+            let _ = fs::create_dir_all(a.config_dir.clone());
             println!("{:#?}", a);
             a.config_dir
         }

@@ -125818,4 +125818,3 @@ rgb: 252,235,226
 hex: #FCEBE2,
 name: ,
 category: Graphic Designers
-        }

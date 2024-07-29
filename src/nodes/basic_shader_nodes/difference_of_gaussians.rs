@@ -36,7 +36,7 @@ impl Default for DifferenceofGaussiansNode {
             threshold: 0.1,
             hyperbole: 1.0,
             do_threshold: true,
-            sigma: 1.0,
+            sigma: 10.0,
         }
     }
 }

@@ -323,6 +323,8 @@ impl Project {
 
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
+            ui.set_window_font_scale(0.9);
+            ui.checkbox(";", &mut self.render_ticker);
         });
 
         let menu_bar_size = ui.item_rect_size();
@@ -356,7 +358,7 @@ impl Project {
 
 
                 let wheel_delta = ui.io().mouse_wheel;
-                let mut scale_changed = wheel_delta.abs() > 0.0;
+                let scale_changed = wheel_delta.abs() > 0.0;
                 let mouse_pos = ui.io().mouse_pos;
                 if scale_changed {
                     // println!("{}", wheel_delta);
@@ -370,9 +372,7 @@ impl Project {
                     self.scale = new_scale;
                     // for i in [1,0] {
                     //     self.graph_offset[0];
-                    // }
-                    scale_changed = true;
-                }
+                    }
 
                 let mut delete_node: Option<usize> = None;
 
@@ -392,13 +392,12 @@ impl Project {
                 ];
 
                 let mut moving = false;
-                let mut any_window_hovered = false;
 
 
 
                 let mut move_delta = ui.io().mouse_delta;
-                move_delta[0] /= self.scale * -1.0;
-                move_delta[1] /= self.scale * -1.0;
+                // move_delta[0] /= self.scale * -1.0;
+                // move_delta[1] /= self.scale * -1.0;
 
                 if ui.mouse_drag_delta() != [0.0, 0.0]
                         // && 
@@ -445,6 +444,7 @@ impl Project {
                         .focus_on_appearing(true)
                         .opened(&mut del_window_not)
                         .scroll_bar(false)
+                        // .focused()
                         .bg_alpha(0.9)
                         .collapsible(false)
                         .movable(true)
@@ -470,6 +470,8 @@ impl Project {
                                 moving = false;
                                 move_this_node = true;
                             }
+
+                            
 
 
                             if ui.is_window_hovered() && ui.is_window_focused() && moving {
@@ -525,7 +527,7 @@ impl Project {
 
                                 let new_pos = ui.cursor_screen_pos();
                                 let average_pos = [
-                                    (new_pos[0] + last_pos[0]) / 2.0 - 8.0,
+                                    (new_pos[0] + last_pos[0]) / 2.0 - 8.0 * self.scale,
                                     (new_pos[1] + last_pos[1]) / 2.0,
                                 ];
                                 node_pos_map
@@ -542,20 +544,22 @@ impl Project {
 
                                 let new_pos = ui.cursor_screen_pos();
                                 let average_pos = [
-                                    (new_pos[0] + last_pos[0]) / 2.0 + window_size[0] - 10.0,
+                                    (new_pos[0] + last_pos[0]) / 2.0 + window_size[0] - 10.0 * self.scale,
                                     (new_pos[1] + last_pos[1]) / 2.0,
                                 ];
                                 node_pos_map
                                     .insert(node.output_id(output.clone()), average_pos.into());
                             }
                             let mut window_pos = ui.window_pos();
-                            if move_this_node {
-                                window_pos[0] -= move_delta[0];
-                                window_pos[1] -= move_delta[1];
+
+                            if move_this_node && !scale_changed {
+                                // println!("moving");
+                                window_pos[0] += move_delta[0];
+                                window_pos[1] += move_delta[1];
                             }
                             let window_pos_relative_to_graph =
                                 screen_to_graph_pos(window_pos, self.graph_offset, self.scale);
-                            if !moving && ui.is_window_focused() {
+                            if move_this_node {
                                 node.set_xy(
                                     window_pos_relative_to_graph[0],
                                     window_pos_relative_to_graph[1],
@@ -890,7 +894,11 @@ impl Project {
                     i.end();
                 }
 
-                self.new_node_menu(ui);
+                if self.new_node_menu(ui) {
+                    moving = false;
+                }
+
+            
             });
 
         self.storage.debug_window(ui);
@@ -942,12 +950,22 @@ impl Project {
                 ));
             });
 
-        
-            
+
+            if ui.mouse_cursor() != Some(imgui::MouseCursor::Arrow) && ui.mouse_cursor() != Some(imgui::MouseCursor::Hand) {
+                moving = false;
+            }
+
+
+            if ui.is_any_item_hovered() 
+            || ui.is_any_item_active()
+            {
+                moving = false;
+            }
 
             if moving {
-                self.graph_offset[0] += move_delta[0];
-                self.graph_offset[1] += move_delta[1];
+                ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+                self.graph_offset[0] -= move_delta[0] / self.scale;
+                self.graph_offset[1] -= move_delta[1] / self.scale;
             }
 
 
@@ -1066,12 +1084,13 @@ impl Project {
         }
     }
 
-    fn new_node_menu(&mut self, ui: &Ui) {
+    fn new_node_menu(&mut self, ui: &Ui) -> bool {
         let mut group: HashMap<String, Option<TreeNodeToken>> = HashMap::new();
 
-        
+        let mut open = false;
 
         ui.modal_popup_config("Add Node").build(|| {
+            open = true;
             ui.columns(2, "select new node col", true);
             for n in 0..self.new_node_types.len() {
                 #[cfg(not(debug_assertions))]
@@ -1123,7 +1142,8 @@ impl Project {
                     let mut new_node2 = self.new_node_types[self.selected_node_to_add]
                         .type_()
                         .new_node();
-                    new_node2.set_xy(150.0, 150.0);
+                    let center = screen_to_graph_pos(ui.cursor_screen_pos(), self.graph_offset, self.scale);
+                    new_node2.set_xy(center[0], center[1]);
                     self.nodes.push(new_node2);
 
                     ui.close_current_popup();
@@ -1146,8 +1166,14 @@ impl Project {
                 ui.text("no node has been selected");
             }
 
+            
+
             // self.new_node_types[n].;
         });
+
+        return open;
+
+
     }
 
     pub fn drop_file(&mut self, path: PathBuf, ui: &Ui) {
