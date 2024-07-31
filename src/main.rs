@@ -32,6 +32,7 @@ pub mod history_tracker;
 pub mod advanced_color_picker;
 pub mod widgets;
 pub mod fonts;
+pub mod render_nodes;
 
 
 
@@ -77,7 +78,10 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
 
 fn main() {
 
-    // #[cfg(all(target_os="windows", not(debug_assertions)))]{
+    #[cfg(all(target_os="windows", not(debug_assertions)))]{
+
+
+
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
@@ -95,7 +99,7 @@ fn main() {
             }
             // panic!("{:?}", a2);
         }
-    // }
+    }
     // panic!("test");
 
     // println!("{}");
@@ -163,7 +167,7 @@ fn main() {
                 project.drop_file(path, ui);
             } 
             
-            project.render(ui, &user_settings, renderer);
+            project.render(ui, &mut user_settings, renderer);
             return_to_home = project.return_to_home_menu;
             // ui.show_default_style_editor();
             if save_timer.elapsed().as_secs_f32() > 2.0 {
@@ -175,7 +179,7 @@ fn main() {
                     Err(e) => {println!("{e}")},
                 }
                 }else {
-                    project.save();
+                    let _ = project.save();
                 }
             }
 
@@ -224,11 +228,14 @@ fn main() {
 pub fn relaunch_windows(admin: bool) {
     
     let command = if admin {
-        format!("Start-Process {} -Verb RunAs", current_exe().unwrap().as_os_str().to_str().unwrap())
+        format!("Start-Process \"{}\" -Verb RunAs", current_exe().unwrap().as_os_str().to_str().unwrap())
     }else {
-        format!("Start-Process {}", current_exe().unwrap().as_os_str().to_str().unwrap())
+        format!("Start-Process \"{}\"", current_exe().unwrap().as_os_str().to_str().unwrap())
     };
     println!("{command}");
+
+    // win_msgbox::show::<Okay>(&format!("command: {}", command));
+
     std::process::Command::new("powershell")
     .arg(command)
     .spawn().expect("cannot spawn command");

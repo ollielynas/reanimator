@@ -58,6 +58,9 @@ pub struct UserSettings {
     #[savefile_versions="4.."]
     #[savefile_default_val="Default"]
     pub font: String,
+    #[savefile_versions="5.."]
+    #[savefile_default_val="true"]
+    pub dots: bool,
     #[savefile_default_fn="none_val_font_id"]
     #[savefile_ignore]
     #[savefile_introspect_ignore]
@@ -94,6 +97,7 @@ impl Default for UserSettings {
             max_fps: 120,
             font: "Default".to_owned(),
             font_id: None,
+            dots: true,
         };
 
         return new;
@@ -300,7 +304,14 @@ impl UserSettings {
                     }
 
                 }
-                if let Some(_ui_settings) = ui.tab_item("ui") {
+                if let Some(_general_settings) = ui.tab_item("ui") {
+                    ui.spacing();
+                    ui.spacing();
+
+                    ui.checkbox("grid pattern", &mut self.dots);
+
+                }
+                if let Some(_ui_settings) = ui.tab_item("ui (reboot required)") {
                     // ui.push_style_var()
                     ui.spacing();
                     ui.spacing();

@@ -9,7 +9,7 @@ print("finished building")
 def make_tarfile(output_filename, source_dir):
     with tarfile.open(output_filename, "w:gz") as tar:
         tar.add(source_dir, arcname=os.path.basename(source_dir))
-        
+
 
 make_tarfile("target/distrib/reanimator-x86_64-pc-windows-msvc.tar.gz", "target/distrib/reanimator-x86_64-pc-windows-msvc/")
 

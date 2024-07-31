@@ -4,16 +4,39 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use node_enum::*;
 use savefile::{save_file, SavefileError};
+use strum::IntoEnumIterator;
 
 use crate::{node::*, nodes::*, storage::Storage};
 
 
 
+fn default_node_type_for_mask() -> NodeType {
+    NodeType::BrightnessMask
+}
 
+impl NodeType {
+    fn generic_mask_index(&self) -> i32 {
+        match self {
+            
+                NodeType::BrightnessMask => 0, 
+
+                a => {
+                    -1
+                    // unreachable!("node type: {a:?} has no index")
+                }
+            
+        }
+    }
+}
 
 #[derive(Savefile)]
 pub struct GenericMaskNode {
+    #[savefile_default_fn="default_node_type_for_mask"]
+    #[savefile_ignore]
+    #[savefile_versions="..0"]
     type_: NodeType,
+    #[savefile_versions="1.."]
+    type_index: i32,
     x: f32,
     y: f32,
     id: String,
@@ -33,6 +56,7 @@ impl GenericMaskNode {
             y: 0.0,
             id: random_id(),
             type_,
+            type_index: type_.generic_mask_index(),
             input: match type_ {
                 NodeType::BrightnessMask => 0.5,
                 a => {unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")}
@@ -143,6 +167,22 @@ impl MyNode for GenericMaskNode {
 
 
     fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+
+        if self.type_index != self.type_.generic_mask_index() {
+            println!("{}", self.type_index);
+            for i in NodeType::iter() {
+                if i.generic_mask_index() == self.type_index {
+                    // self.type_ = i;
+                    let new = GenericMaskNode::new(i);
+                    self.type_ = new.type_;
+                    self.input_max = new.input_max;
+                    self.input_name = new.input_name;
+                    println!("{:?}", self.type_);
+                    break
+                }
+            }
+        }
+
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {

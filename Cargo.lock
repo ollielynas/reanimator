@@ -2937,7 +2937,7 @@ dependencies = [
 
 [[package]]
 name = "reanimator"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "blake2",
  "comprexor",

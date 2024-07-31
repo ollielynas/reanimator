@@ -21,7 +21,8 @@
 
 # General TODO
 
-* [ ]  Zoom in and out of editor window
+* [X]  Zoom in and out of editor window
 * [ ]  editow wondow tabs (e.g for seeing rendiering stats)
+* [ ]  better noise shader
 
 `cargo dist build`
