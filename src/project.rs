@@ -323,8 +323,8 @@ impl Project {
 
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
-            ui.set_window_font_scale(0.9);
-            ui.checkbox(";", &mut self.render_ticker);
+            // ui.set_window_font_scale(0.9);
+            // ui.checkbox(";", &mut self.render_ticker);
         });
 
         let menu_bar_size = ui.item_rect_size();
