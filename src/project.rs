@@ -245,7 +245,7 @@ impl Project {
                                 new_node_types.push(node);
                             }
 
-                            nodes[0].set_xy(50.0, 150.0);
+                            nodes[0].set_xy(150.0, 0.0);
                             nodes[1].set_xy(0.0, 0.0);
 
                             self.nodes = nodes;

@@ -2,7 +2,8 @@ use std::{
     env::current_exe, fs::{self, DirEntry}, path::PathBuf, sync::{Mutex, MutexGuard}, thread::Thread, time::SystemTime
 };
 
-use imgui::{Style, Ui};
+use glium_glyph::glyph_brush::FontId;
+use imgui::{FontConfig, FontSource, Style, Ui};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::{AppDirs, UserDirs};
 use rfd::FileDialog;
@@ -15,10 +16,10 @@ use glium::Display;
 use glium::glutin::surface::WindowSurface;
 use std::thread;
 
-use crate::{project::Project, support::create_context};
+use crate::{fonts::MyFonts, project::Project, relaunch_windows, support::{create_context, FONT_SIZE}};
 
 
-pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 3;
+pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 4;
 
 #[derive(Savefile, EnumIter, EnumString, PartialEq, Eq, Debug, Clone)]
 pub enum UiTheme {
@@ -30,6 +31,10 @@ impl Default for UiTheme {
     fn default() -> Self {
         UiTheme::GenericLightMode
     }
+}
+
+fn none_val_font_id() -> Option<imgui::FontId> {
+    None
 }
 
 #[derive(Savefile, Clone)]
@@ -50,9 +55,17 @@ pub struct UserSettings {
     #[savefile_versions="3.."]
     #[savefile_default_val="120"]
     pub max_fps: i32,
+    #[savefile_versions="4.."]
+    #[savefile_default_val="Default"]
+    pub font: String,
+    #[savefile_default_fn="none_val_font_id"]
+    #[savefile_ignore]
+    #[savefile_introspect_ignore]
+    pub font_id: Option<imgui::FontId>,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     loading: bool,
+
 }
 
 impl Default for UserSettings {
@@ -79,6 +92,8 @@ impl Default for UserSettings {
             fullscreen: false,
             loading: false,
             max_fps: 120,
+            font: "Default".to_owned(),
+            font_id: None,
         };
 
         return new;
@@ -89,7 +104,7 @@ impl UserSettings {
     pub fn save(&self) {
         let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
             Some(a) => {
-                fs::create_dir_all(a.config_dir.clone());
+                let _ = fs::create_dir_all(a.config_dir.clone());
                 println!("{:#?}", a);
                 a.config_dir
             }
@@ -136,7 +151,7 @@ impl UserSettings {
         self.projects = projects.iter().map(|x| x.path()).collect();
     }
 
-    pub fn load_theme(&self, ctx: &mut imgui::Context) {
+    pub fn load_theme(&mut self, ctx: &mut imgui::Context) {
 
         ctx.io_mut().font_global_scale = self.global_font_scale;
 
@@ -156,7 +171,62 @@ impl UserSettings {
             }
         }
 
+        let fonts = MyFonts::new();
+        
+        if self.font != "Default" {
 
+
+        if let Ok(handle) = fonts.fonts.select_family_by_name(&self.font) {
+        let mut font = None;
+        for h in handle.fonts() {
+            let mut fonts = vec![];
+            match h.load() {
+                Ok(a) => {
+                    // println!("{:?}",a.full_name());
+                    fonts.push(a);
+                },
+                Err(_) => {},
+            }
+            fonts.sort_by_key(|x| x.full_name().len());
+            if fonts.len() > 0 {
+                font = Some(fonts[0].clone());
+            }
+            println!("{font:?}");
+        }
+        if let Some(font) = font {
+            
+        if let Some(data) = font.copy_font_data() {
+            println!("added font");
+        let id: imgui::FontId = ctx.fonts().add_font(
+            &[
+        FontSource::TtfData {
+            data: &data,
+            size_pixels: FONT_SIZE,
+            config: Some(FontConfig {
+                // As imgui-glium-renderer isn't gamma-correct with
+                // it's font rendering, we apply an arbitrary
+                // multiplier to make the font a bit "heavier". With
+                // default imgui-glow-renderer this is unnecessary.
+                rasterizer_multiply: 1.5,
+                // Oversampling font helps improve text rendering at
+                // expense of larger font atlas texture.
+                oversample_h: 4,
+                oversample_v: 4,
+                ..FontConfig::default()
+            }),
+            
+        },]
+    
+        );
+
+        self.font_id = Some(id);
+
+        
+    }
+        };
+    }
+        }
+        
 
         match self.ui_theme {
             UiTheme::GenericLightMode => {
@@ -168,10 +238,10 @@ impl UserSettings {
         }
     }
 
-    pub fn settings_window(&mut self, ui: &Ui, window_open: &mut bool) {
+    pub fn settings_window(&mut self, ui: &Ui, window_open: &mut bool, fonts: &MyFonts) {
         // println!("settings1");
         let screen_size_array = ui.io().display_size;
-
+        
         ui.window("settings")
         .no_decoration()
         .resizable(false)
@@ -188,6 +258,13 @@ impl UserSettings {
             if ui.small_button("save and close") {
                 self.save();
                 *window_open = false;
+            }
+            ui.same_line();
+            ui.spacing();
+            ui.same_line();
+            if ui.small_button("save and relaunch") {
+                self.save();
+                relaunch_windows(false);
             }
             ui.spacing();
             ui.spacing();
@@ -252,19 +329,22 @@ impl UserSettings {
                     if ui.is_item_hovered() {
                         ui.tooltip_text("Use CTRL + Mousewheel to change the \n font size of an individual window");
                     }
+                    
+                    let mut current_font = match fonts.font_names.iter().enumerate().find(|(i,x)|  x == &&self.font) {
+                        Some((i,v)) => i + 1,
+                        None => 0,
+                    };
 
-                    let fonts = ui.fonts().fonts();
-                    if false {
-                    if let Some((mut current_font_index, _current_font_id)) = fonts.iter().enumerate().find(|(_,x)| **x==ui.current_font().id()) {
-                        let index_copy = current_font_index;
-                        ui.combo("Font", &mut current_font_index, &fonts, |f: &imgui::FontId| {
-                            format!("{f:?}").into()
-                        });
-                        if index_copy != current_font_index {
-                            
-                            ui.push_font(fonts[current_font_index]).end();
-                        }
-                    }}
+                    let before = current_font;
+                    
+
+                    ui.combo_simple_string("custom font", &mut current_font, &[vec!["Default".to_owned()], fonts.font_names.clone()].concat());
+
+
+                    if before != current_font {
+                        self.font = [vec!["Default".to_owned()], fonts.font_names.clone()].concat()[current_font].clone();
+                    }
+
 
                     ui.checkbox("fullscreen", &mut self.fullscreen);
                     if ui.is_item_hovered() {
@@ -284,7 +364,7 @@ impl UserSettings {
 impl Project {
     
     pub fn project_menu(
-        ui: &mut Ui,
+        ui: &Ui,
         display: &Display<WindowSurface>,
         user_settings: &mut UserSettings,
         renderer: &mut Renderer,

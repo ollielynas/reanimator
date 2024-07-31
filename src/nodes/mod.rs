@@ -15,3 +15,4 @@ pub mod layer;
 pub mod render_3d;
 pub mod v_cam_out;
 pub mod webcam;
+pub mod text;

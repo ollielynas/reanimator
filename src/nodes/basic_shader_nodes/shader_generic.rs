@@ -33,7 +33,10 @@ impl GenericShaderNode {
             id: random_id(),
             type_,
             input: match type_ {
-                NodeType::ChromaticAberration | NodeType::VHS | NodeType::Blur => 1.0,
+                NodeType::ChromaticAberration 
+                | NodeType::VHS => 3.0,
+                NodeType::Blur => 10.0,
+                NodeType::Dot => 3.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
                 }
@@ -41,6 +44,7 @@ impl GenericShaderNode {
             input_name: match type_ {
                 NodeType::ChromaticAberration | NodeType::VHS => "Strength".to_owned(),
                 NodeType::Blur => "Radius".to_owned(),
+                NodeType::Dot => "Radius".to_owned(),
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input name fully implemented")
                 }
@@ -49,6 +53,7 @@ impl GenericShaderNode {
                 NodeType::ChromaticAberration => f32::MIN,
                 NodeType::VHS => 0.0,
                 NodeType::Blur => 0.0,
+                NodeType::Dot => 0.001,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the min value fully implemented")
                 }
@@ -56,6 +61,7 @@ impl GenericShaderNode {
             input_max: match type_ {
                 NodeType::ChromaticAberration => f32::MAX,
                 NodeType::VHS => 10.0,
+                NodeType::Dot => 20.0,
                 NodeType::Blur => f32::MAX,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
@@ -67,7 +73,7 @@ impl GenericShaderNode {
 
 impl MyNode for GenericShaderNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image", "basic shader"]
+        vec!["Image", "Basic Shader"]
     }
 
     fn set_id(&mut self, id: String) {
@@ -131,10 +137,13 @@ impl MyNode for GenericShaderNode {
                 // ui.set_window_font_scale(1.0);
             }
             NodeType::VHS => {
-                ui.text("Warning! This not is not currently working");
+                ui.text_wrapped("Warning! This not is not currently working");
             }
             NodeType::Blur => {
-                ui.text("Blur Image using Gaussian blur");
+                ui.text_wrapped("Blur Image using Gaussian blur");
+            }
+            NodeType::Dot => {
+                ui.text_wrapped("Dots\nTODO: better description");
             }
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
@@ -208,6 +217,7 @@ impl MyNode for GenericShaderNode {
             }
             NodeType::VHS => include_str!("VHS.glsl"),
             NodeType::Blur => include_str!("gaussian.glsl"),
+            NodeType::Dot => include_str!("dot.glsl"),
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
             }

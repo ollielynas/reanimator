@@ -9,7 +9,8 @@
 use std::{borrow::BorrowMut, env::current_exe, fs, process::exit, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
 
 
-use imgui_winit_support::winit::{monitor::VideoMode, window::{self, Fullscreen}};
+use fonts::MyFonts;
+use imgui_winit_support::winit::{error::OsError, monitor::VideoMode, window::{self, Fullscreen}};
 use platform_dirs::{AppDirs, UserDirs};
 use savefile;
 use project::Project;
@@ -30,6 +31,8 @@ pub mod user_info;
 pub mod history_tracker;
 pub mod advanced_color_picker;
 pub mod widgets;
+pub mod fonts;
+
 
 
 
@@ -60,8 +63,8 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     
     if status.updated() {
         #[cfg(all(target_os="windows", not(debug_assertions)))]{
-            win_msgbox::show::<Okay>(&format!("Update to version: {}\nThe application may need to be re-launched", status.version()));
-            
+            win_msgbox::show::<Okay>(&format!("Updated to version: {}", status.version()));
+            relaunch_windows(false);
         }
         exit(0);
     }
@@ -74,7 +77,7 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
 
 fn main() {
 
-    #[cfg(all(target_os="windows", not(debug_assertions)))]{
+    // #[cfg(all(target_os="windows", not(debug_assertions)))]{
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
@@ -82,12 +85,20 @@ fn main() {
         let a = update();
 
         if let Err(a2) = a {
-            win_msgbox::show::<Okay>(&format!("Error Updating \n {a2} \n You many need to run the program as admin to install the new update"));
 
+            if a2.to_string().contains("os error 5") {
+                if win_msgbox::show::<Okay>(&format!("New update avalible, press ok to install")).is_ok() {
+                    relaunch_windows(true);
+                };
+            }else {
+                win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
+            }
             // panic!("{:?}", a2);
         }
-    }
+    // }
     // panic!("test");
+
+    // println!("{}");
 
     // println!("test");
 
@@ -103,7 +114,7 @@ fn main() {
     };
 
 
-    
+    let mut fonts = MyFonts::new();
 
 
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
@@ -128,7 +139,13 @@ fn main() {
 
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer, drop_file| {
-
+        
+        let mut global_font_tokens = vec![];
+        if let Some(font_id) = user_settings.font_id {
+        if ui.fonts().get_font(font_id).is_some() {
+            global_font_tokens.push(ui.push_font(font_id));
+        }
+        }
 
         if return_to_home {
             project = None;
@@ -140,6 +157,7 @@ fn main() {
 
 
         if let Some(ref mut project) = project {
+
 
             if let Some(path) = drop_file {
                 project.drop_file(path, ui);
@@ -193,11 +211,26 @@ fn main() {
 
 
         if settings_window_open {
-            user_settings.settings_window(ui, &mut settings_window_open);
+            user_settings.settings_window(ui, &mut settings_window_open, &fonts);
         }
     
         sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) -  ui.io().delta_time).max(0.0)));
 
     }, if fullscreen {Some(Fullscreen::Borderless(None))} else {None},  &mut ctx);
 
+}
+
+
+pub fn relaunch_windows(admin: bool) {
+    
+    let command = if admin {
+        format!("Start-Process {} -Verb RunAs", current_exe().unwrap().as_os_str().to_str().unwrap())
+    }else {
+        format!("Start-Process {}", current_exe().unwrap().as_os_str().to_str().unwrap())
+    };
+    println!("{command}");
+    std::process::Command::new("powershell")
+    .arg(command)
+    .spawn().expect("cannot spawn command");
+    exit(0);
 }

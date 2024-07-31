@@ -34,7 +34,7 @@ impl Default for InvertTextureNode {
 
 impl MyNode for InvertTextureNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image", "basic shader"]
+        vec!["Image", "Basic Shader"]
     }
 
     fn set_id(&mut self, id: String) {

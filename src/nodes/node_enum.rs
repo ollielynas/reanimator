@@ -4,6 +4,7 @@ use basic_shader_nodes::difference_of_gaussians::DifferenceofGaussiansNode;
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
+use basic_shader_nodes::text_mask::TextMaskNode;
 use combine_rgba::CombineRgbaNode;
 use debug::DebugNode;
 use default_image::DefaultImage;
@@ -22,6 +23,7 @@ use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
 use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
+use text::text_input::TextInputNode;
 use webcam::WebcamNode;
 
 use crate::node::MyNode;
@@ -55,6 +57,9 @@ pub enum NodeType {
     BrightnessMask,
     DifferenceOfGaussians,
     Webcam,
+    Dot,
+    TextMask,
+    TextInput,
 }
 
 impl NodeType  {
@@ -83,12 +88,27 @@ impl NodeType  {
             NodeType::BrightnessMask => "Mask Brightness",
             NodeType::DifferenceOfGaussians => "Difference of Gaussians",
             NodeType::Webcam => "Webcam Input",
+            NodeType::Dot => "Dots",
+            NodeType::TextMask => "Text Mask",
+            NodeType::TextInput => "Text Input",
         }.to_owned()
     }
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
         
         match self {
+            NodeType::TextInput => {
+                let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::TextMask => {
+                let a: Result<TextMaskNode, SavefileError> = savefile::load_file(project_file, TextMaskNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
             NodeType::Render3D => {
                 let a: Result<Render3DNode, SavefileError> = savefile::load_file(project_file, Render3DNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
@@ -179,7 +199,11 @@ impl NodeType  {
                 let a: Result<InvertTextureNode, SavefileError> = savefile::load_file(project_file, InvertTextureNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             },
-            NodeType::ChromaticAberration | NodeType::VHS | NodeType::Blur => {
+            NodeType::ChromaticAberration 
+            | NodeType::VHS 
+            | NodeType::Blur
+            | NodeType::Dot
+             => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             }
@@ -200,6 +224,7 @@ impl NodeType  {
             NodeType::VHS
             | NodeType::ChromaticAberration
             | NodeType::Blur
+            | NodeType::Dot
              => 
             {Box::new(GenericShaderNode::new(self))},
             NodeType::BrightnessMask => 
@@ -220,6 +245,8 @@ impl NodeType  {
             NodeType::Render3D => Box::new(Render3DNode::default()),
             NodeType::DifferenceOfGaussians => Box::new(DifferenceofGaussiansNode::default()),
             NodeType::Webcam => Box::new(WebcamNode::default()),
+            NodeType::TextMask => Box::new(TextMaskNode::default()),
+            NodeType::TextInput => Box::new(TextInputNode::default()),
             }
     }
 
@@ -230,6 +257,8 @@ impl NodeType  {
             NodeType::VHS 
             | NodeType::Debug
             | NodeType::Webcam
+            | NodeType::TextInput
+            | NodeType::TextMask
         )
     }
 

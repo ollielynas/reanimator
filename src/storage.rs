@@ -2,6 +2,7 @@ use core::{hash, panic};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hasher};
 
+use font_kit::sources::multi::MultiSource;
 use glium::index::NoIndices;
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
@@ -12,6 +13,8 @@ use imgui::{TreeNodeFlags, Ui};
 use imgui_glium_renderer::Renderer;
 use std::hash::Hash;
 use image::EncodableLayout;
+
+use crate::fonts::MyFonts;
 
 const VERTEX_SHADER:  &'static str = r#"
         #version 140
@@ -28,6 +31,7 @@ const VERTEX_SHADER:  &'static str = r#"
 
 pub struct Storage {
     textures: HashMap<String, Texture2d>,
+    text: HashMap<String, String>,
     pub display: Display<WindowSurface>,
     unused_textures: HashMap<(u32, u32), Vec<Texture2d>>,
     shaders: HashMap<(String, String), Program>,
@@ -40,9 +44,15 @@ pub struct Storage {
     pub project_name: String,
     pub show_debug_window: bool,
     pub error_texture: Texture2d,
+    pub fonts: MyFonts,
 }
 
+
+
+
 impl Storage {
+
+
     pub fn new(display: Display<WindowSurface>) -> Storage {
 
         let error_image = 
@@ -79,8 +89,9 @@ impl Storage {
                     let vertex_buffer: glium::VertexBuffer<Vertex> = glium::VertexBuffer::new(&display, &shape).unwrap();
         
 
-        Storage {
+        let mut s = Storage {
             textures: HashMap::new(),
+            text: HashMap::new(),
             display,
             unused_textures: HashMap::new(),
             shaders: HashMap::new(),
@@ -93,7 +104,9 @@ impl Storage {
             project_name: String::new(),
             show_debug_window: false,
             error_texture,
-        }
+            fonts: MyFonts::new(),
+        };
+        return s;
     }
 
     pub fn calculate_hash<T: Hash>(&mut self, t: &T) -> u64 {
@@ -127,7 +140,13 @@ impl Storage {
     pub fn set_texture(&mut self, k: String, v: Texture2d) {
         self.textures.insert(k, v);
     }
+    pub fn set_text(&mut self, k: String, v: String) {
+        self.text.insert(k, v);
+    }
 
+    pub fn get_text(&self, k: &String) -> Option<&String> {
+        self.text.get(k)
+    }
     pub fn get_texture(&self, k: &String) -> Option<&Texture2d> {
         if let Some(k) = self.redirect_id_to_cache.get(k) {
             return self.cached_textures.get(k);
