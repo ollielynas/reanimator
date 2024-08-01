@@ -85,7 +85,7 @@ impl Project {
             let mut node_window_size = [0.0, 0.0];
             let mut node_window_pos = [0.0, 0.0];
 
-            ui.window(format!("{}{}({})", node.name(), " ".repeat(40), node.id()))
+            ui.window(format!("{}{}##({})", node.name(), " ".repeat(40), node.id()))
                 .resizable(false)
                 .focus_on_appearing(true)
                 .opened(&mut del_window_not)
@@ -281,6 +281,24 @@ impl Project {
             let mut focus_pop_out_window = false;
             if let Some(open) = self.pop_out_edit_window.get_mut(&node.id()) {
                 if *open {
+                    let node_window_vars2 = [
+                    ui.push_style_var(imgui::StyleVar::ItemSpacing([
+                        3.0,
+                        3.0,
+                    ])),
+                    ui.push_style_var(imgui::StyleVar::WindowPadding([
+                        10.0,
+                        10.0,
+                    ])),
+                    ui.push_style_var(imgui::StyleVar::FramePadding([
+                        5.0,
+                        5.0,
+                    ])),
+                    ui.push_style_var(imgui::StyleVar::WindowMinSize([
+                        5.0,
+                        5.0,
+                    ])),
+                ];
                     ui.window(format!("edit {} ({})", node.name(), node.id()))
                         .position(ui.io().mouse_pos, imgui::Condition::Appearing)
                         .opened(open)
@@ -289,6 +307,7 @@ impl Project {
                             {
                                 params.moving = false;
                             }
+                            
                             node.edit_menu_render(ui, renderer);
                             if ui.is_window_focused() || ui.is_any_item_hovered() {
                                 focus_pop_out_window = true;

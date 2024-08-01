@@ -64,7 +64,7 @@ impl GenericShaderNode {
             type_,
             input: match type_ {
                 NodeType::ChromaticAberration 
-                | NodeType::VHS => 3.0,
+                | NodeType::VHS => 0.5,
                 NodeType::Blur => 10.0,
                 NodeType::Dot => 3.0,
                 a => {
@@ -90,7 +90,7 @@ impl GenericShaderNode {
             },
             input_max: match type_ {
                 NodeType::ChromaticAberration => f32::MAX,
-                NodeType::VHS => 10.0,
+                NodeType::VHS => 1.0,
                 NodeType::Dot => 20.0,
                 NodeType::Blur => f32::MAX,
                 a => {
@@ -272,7 +272,7 @@ impl MyNode for GenericShaderNode {
         };
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
-            Some(a) => (a.height(), a.width()),
+            Some(a) => (a.width(), a.height()),
             None => return false,
         };
 
@@ -292,7 +292,7 @@ impl MyNode for GenericShaderNode {
 
         let uniforms = uniform! {
             tex: texture,
-            u_time: storage.time,
+            u_time: storage.time as f32,
             u_input: self.input,
             u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
         };

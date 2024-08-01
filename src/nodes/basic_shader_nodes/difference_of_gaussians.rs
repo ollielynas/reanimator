@@ -31,7 +31,7 @@ impl Default for DifferenceofGaussiansNode {
             id: random_id(),
             radius: 1.4,
             radius_diff: 30.0,
-            scale_on_2nd: 1.0,
+            scale_on_2nd: 0.5,
             greyscale: false,
             threshold: 0.1,
             hyperbole: 1.0,
@@ -110,7 +110,7 @@ impl MyNode for DifferenceofGaussiansNode {
         let fragment_shader_src = include_str!("diff_gaussian.glsl");
 
     let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.height(), a.width())},
+        Some(a) => {(a.width(), a.height())},
         None => {return false},
     };
     

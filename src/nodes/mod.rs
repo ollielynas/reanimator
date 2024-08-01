@@ -16,3 +16,5 @@ pub mod render_3d;
 pub mod v_cam_out;
 pub mod webcam;
 pub mod text;
+pub mod split_hsv;
+pub mod combine_hsv;

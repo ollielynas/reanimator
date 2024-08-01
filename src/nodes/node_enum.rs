@@ -5,6 +5,7 @@ use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
 use basic_shader_nodes::text_mask::TextMaskNode;
+use combine_hsv::CombineHsvNode;
 use combine_rgba::CombineRgbaNode;
 use debug::DebugNode;
 use default_image::DefaultImage;
@@ -21,6 +22,7 @@ use pick_random::RandomInputNode;
 use render_3d::Render3DNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
+use split_hsv::SplitHsvNode;
 use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
 use text::text_input::TextInputNode;
@@ -60,6 +62,8 @@ pub enum NodeType {
     Dot,
     TextMask,
     TextInput,
+    SplitHsv,
+    CombineHsv,
 }
 
 impl NodeType  {
@@ -91,6 +95,8 @@ impl NodeType  {
             NodeType::Dot => "Dots",
             NodeType::TextMask => "Text Mask",
             NodeType::TextInput => "Text Input",
+            NodeType::SplitHsv => "Split HSV",
+            NodeType::CombineHsv => "Combine HSV",
         }.to_owned()
     }
 
@@ -99,6 +105,18 @@ impl NodeType  {
         match self {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::CombineHsv => {
+                let a: Result<CombineHsvNode, SavefileError> = savefile::load_file(project_file,  CombineHsvNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::SplitHsv => {
+                let a: Result<SplitHsvNode, SavefileError> = savefile::load_file(project_file, SplitHsvNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
                     None}}
@@ -247,6 +265,8 @@ impl NodeType  {
             NodeType::Webcam => Box::new(WebcamNode::default()),
             NodeType::TextMask => Box::new(TextMaskNode::default()),
             NodeType::TextInput => Box::new(TextInputNode::default()),
+            NodeType::SplitHsv => Box::new(SplitHsvNode::default()),
+            NodeType::CombineHsv => Box::new(CombineHsvNode::default()),
             }
     }
 
@@ -254,7 +274,7 @@ impl NodeType  {
     pub fn disabled(&self) -> bool {
         matches!(
             self,
-            NodeType::VHS 
+            // NodeType::VHS 
             | NodeType::Debug
             | NodeType::Webcam
             | NodeType::TextInput

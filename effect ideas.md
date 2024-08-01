@@ -1,12 +1,12 @@
 # effect ideas
 
 - [ ]  Hue shift
-- [ ]  rgba channel splitter
+- [X]  rgba channel splitter
 - [ ]  crop
 - [X]  differance of gause
 - [ ]  node TYP behavior
 - [ ]  animated movement
-- [ ]  vhs effect
+- [X]  vhs effect
 - [X]  Rgb slider based color pallet restriction thingy
 - [X]  layer
 - [X]  mask applier
@@ -14,10 +14,16 @@
 - [ ]  pixel sorting (maybe?)
 - [ ]  rotate
 - [ ]  greyscale
-- [ ]  gif input
+- [X]  gif input
 - [X]  image input
 - [X]  random frame picker
-- [ ]  gif output
+- [X]  gif output
+- [ ]  [kuwahara filter](https://youtu.be/LDhN-JK3U9g?si=7YaGe_BvN_acuJSx)
+- [ ]  [video to text](https://youtu.be/gg40RWiaHRY?si=mx2N1iIbF49yPuvU)
+- [ ]  [ink blot](https://youtu.be/E9-LRRDVmo8?si=XZAbp1_e6eysUcNe)
+- [ ]  split hsv
+- [ ]  text output
+- [X]  text input
 
 # General TODO
 

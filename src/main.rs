@@ -79,9 +79,6 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
 fn main() {
 
     #[cfg(all(target_os="windows", not(debug_assertions)))]{
-
-
-
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
@@ -135,6 +132,7 @@ fn main() {
     let mut settings_window_open = false;
     
     
+
     user_settings.load_theme(&mut ctx);
 
     let fullscreen = user_settings.fullscreen; 
@@ -143,11 +141,16 @@ fn main() {
 
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer, drop_file| {
+
+
+        
+
         
         let mut global_font_tokens = vec![];
         if let Some(font_id) = user_settings.font_id {
         if ui.fonts().get_font(font_id).is_some() {
             global_font_tokens.push(ui.push_font(font_id));
+
         }
         }
 

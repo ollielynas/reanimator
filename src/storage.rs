@@ -169,16 +169,16 @@ impl Storage {
 
     pub fn drop_texture(&mut self, id: String) {
         let texture = self.textures.remove(&id);
-
         if let Some(texture) = texture {
-            if let Some(ref mut a) = self.unused_textures.get_mut(&(texture.height(), texture.width())) {
+            if let Some(ref mut a) = self.unused_textures.get_mut(&(texture.width(), texture.height())) {
                 if a.len() < 20 {
                 a.push(texture);
             }
             }else {
-                self.unused_textures.insert((texture.height(), texture.width()), vec![texture]);
+                self.unused_textures.insert((texture.width(), texture.height()), vec![texture]);
             }
         }
+
     }
 
 
@@ -250,8 +250,8 @@ impl Storage {
 
     pub fn create_and_set_texture(
         &mut self,
-        height: u32,
         width: u32,
+        height: u32,
         k: String,
     ) {
 
@@ -261,11 +261,11 @@ impl Storage {
                 texture.as_surface().clear_color(148.0/255.0,0.0,211.0/255.0, 1.0);
                 self.set_texture(k, texture);
             }
-            _ => {
+            Some(a)=> {
                 let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
                         .unwrap();
-
+                println!("{}",a.len());
                 let not_texture: RawImage2d<u8> = RawImage2d::from_raw_rgba(
                     image.as_bytes().to_vec(),
                     (image.width(), image.height()),
@@ -273,8 +273,19 @@ impl Storage {
                 let texture: Texture2d = Texture2d::new(&self.display, not_texture).unwrap();
                 self.set_texture(k, texture);
             }
+            _ => {
+                let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
+                    ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
+                        .unwrap();
+                let not_texture: RawImage2d<u8> = RawImage2d::from_raw_rgba(
+                    image.as_bytes().to_vec(),
+                    (image.width(), image.height()),
+                );
+
+                let texture: Texture2d = Texture2d::new(&self.display, not_texture).unwrap();
+                self.set_texture(k, texture);
+            }
         }
-        
     }
 
 

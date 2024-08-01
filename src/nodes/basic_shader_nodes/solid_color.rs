@@ -122,7 +122,7 @@ impl MyNode for ColorNode {
             None => {return false},
         };
     self.size = match storage.get_texture(get_output) {
-        Some(a) => {(a.height(), a.width())},
+        Some(a) => {(a.width(), a.height())},
         None => {return false},
     };
     }

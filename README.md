@@ -1,10 +1,14 @@
 # ReAnimator
 
-A node based gif vfx tool
+A node based vfx tool
 
-Examples of effects created:
+![1722506998082](images/README/1722506998082.png)
+
+![1722506767281](images/README/1722506767281.png)
 
 ![1721984562523](images/README/1721984562523.gif)
+
+![1722506733936](images/README/1722506733936.png)
 
 ![1720516805818](images/README/1720516805818.png)
 

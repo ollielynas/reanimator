@@ -35,8 +35,6 @@ where
     // let mut imgui = create_context();
 
 
-    
-
     let title = match Path::new(&title).file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
         None => title,
@@ -52,7 +50,7 @@ where
         .set_window_builder(builder)
         .build(&event_loop);
     // program!()
-    
+
     let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
     
     // let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
@@ -79,13 +77,13 @@ where
         };
         // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
-        
+
     }
 
     let mut last_frame = Instant::now();
 
     startup(imgui, &mut renderer, &display);
-    
+
     event_loop
         .run(move |event, window_target| match event {
             Event::NewEvents(_) => {
@@ -95,9 +93,10 @@ where
                 // imgui.io_mut().font_global_scale = 0.5;
             }
             Event::AboutToWait => {
+                
                 platform
-                    .prepare_frame(imgui.io_mut(), &window)
-                    .expect("Failed to prepare frame");
+                .prepare_frame(imgui.io_mut(), &window)
+                .expect("Failed to prepare frame");
                 
                 // window.set_maximized(true);
                 window.request_redraw();
@@ -106,7 +105,8 @@ where
                 event: WindowEvent::DroppedFile(a),
                 ..
             } => {
-                let ui = imgui.frame();
+                let ui = imgui.new_frame();
+
                 let mut run = true;
                 run_ui(&mut run, ui, &display, &mut renderer, Some(a));
                 if !run {
@@ -168,6 +168,7 @@ where
                 event: WindowEvent::Resized(new_size),
                 ..
             } => {
+
                 if new_size.width > 0 && new_size.height > 0 {
                     display.resize((new_size.width, new_size.height));
                 }
@@ -178,6 +179,7 @@ where
                 ..
             } => window_target.exit(),
             event => {
+
                 platform.handle_event(imgui.io_mut(), &window, &event);
             }
         })
@@ -209,22 +211,7 @@ pub fn create_context() -> imgui::Context {
                 ..FontConfig::default()
             }),
         },
-        // FontSource::TtfData {
-        //     data: include_bytes!("resources/Roboto-Regular.ttf"),
-        //     size_pixels: FONT_SIZE,
-        //     config: Some(FontConfig {
-        //         // As imgui-glium-renderer isn't gamma-correct with
-        //         // it's font rendering, we apply an arbitrary
-        //         // multiplier to make the font a bit "heavier". With
-        //         // default imgui-glow-renderer this is unnecessary.
-        //         rasterizer_multiply: 1.5,
-        //         // Oversampling font helps improve text rendering at
-        //         // expense of larger font atlas texture.
-        //         oversample_h: 4,
-        //         oversample_v: 4,
-        //         ..FontConfig::default()
-        //     }),
-        // },
+        
         FontSource::TtfData {
             data: include_bytes!("resources/Dokdo-Regular.ttf"),
             size_pixels: FONT_SIZE,
@@ -275,7 +262,9 @@ pub fn create_context() -> imgui::Context {
     imgui.fonts().build_rgba32_texture();
     imgui.fonts().build_alpha8_texture();
     
-    println!("{:?}",imgui.fonts().fonts());
+    println!("is font built: {}",imgui.fonts().is_built());
+
+    println!("fonts {:?}",imgui.fonts().fonts());
 
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {

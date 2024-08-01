@@ -107,7 +107,7 @@ impl MyNode for DebugNode {
             "#;
 
     let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.height(), a.width())},
+        Some(a) => {(a.width(), a.height())},
         None => {return false},
     };
     

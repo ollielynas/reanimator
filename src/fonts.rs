@@ -37,6 +37,7 @@ impl MyFonts {
         // let sys = font_kit::source::SystemSource;
         
         self.font_names = sys.all_families().unwrap_or_default();
+        self.font_names.sort();
         let multi: MultiSource = MultiSource::from_sources(vec![
             Box::new(sys),
             // Box::new(font_kit::source::)

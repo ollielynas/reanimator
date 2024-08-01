@@ -14,6 +14,7 @@ use glium::Display;
 
 
 use glium::glutin::surface::WindowSurface;
+use win_msgbox::Okay;
 use std::thread;
 
 use crate::{fonts::MyFonts, project::Project, relaunch_windows, support::{create_context, FONT_SIZE}};
@@ -191,14 +192,17 @@ impl UserSettings {
                 },
                 Err(_) => {},
             }
-            fonts.sort_by_key(|x| x.full_name().len());
+            fonts.sort_by_key(|x| x.full_name().to_lowercase()
+            .replace("bold", "bolddddddddddddddd")
+            .replace("regular", "")
+            .len());
             if fonts.len() > 0 {
                 font = Some(fonts[0].clone());
             }
             println!("{font:?}");
         }
         if let Some(font) = font {
-            
+        
         if let Some(data) = font.copy_font_data() {
             println!("added font");
         let id: imgui::FontId = ctx.fonts().add_font(
@@ -211,7 +215,7 @@ impl UserSettings {
                 // it's font rendering, we apply an arbitrary
                 // multiplier to make the font a bit "heavier". With
                 // default imgui-glow-renderer this is unnecessary.
-                rasterizer_multiply: 1.5,
+                // rasterizer_multiply: 1.5,
                 // Oversampling font helps improve text rendering at
                 // expense of larger font atlas texture.
                 oversample_h: 4,
@@ -225,12 +229,66 @@ impl UserSettings {
 
         self.font_id = Some(id);
 
+
+        if !ctx.fonts().is_built() {
+            println!("font not build");
+            ctx.fonts().build_rgba32_texture();
+            ctx.fonts().build_alpha8_texture();
+            if !ctx.fonts().is_built() {
+                self.font = "Default".to_owned();
+                self.save();
+                // #[cfg(all(target_os="windows", not(debug_assertions)))]{
+                    win_msgbox::show::<Okay>(&format!("Font Loading Error"));
+                // }
+                let id: imgui::FontId = ctx.fonts().add_font(
+                    &[
+                FontSource::TtfData {
+                    data: include_bytes!("support/resources/WorkSans-VariableFont_wght.ttf"),
+                    size_pixels: FONT_SIZE,
+                    config: Some(FontConfig {
+                        // As imgui-glium-renderer isn't gamma-correct with
+                        // it's font rendering, we apply an arbitrary
+                        // multiplier to make the font a bit "heavier". With
+                        // default imgui-glow-renderer this is unnecessary.
+                        // rasterizer_multiply: 1.5,
+                        // Oversampling font helps improve text rendering at
+                        // expense of larger font atlas texture.
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                    
+                },]
+            
+                );
         
+                self.font_id = Some(id);
+
+                ctx.fonts().build_rgba32_texture();
+                ctx.fonts().build_alpha8_texture();
+
+                
+            }
+            // ctx.new_frame();
+        }   
+
+        
+        // println!("built fonts");
+        // ctx.new_frame().push_font(id);
+        // if ctx.frame().fonts().get_font(id).is_some() {
+        //     println!("built fonts");
+        //     // ctx.io_mut().display_size = [20.0,20.0];
+
+        //     println!("built fonts 3");
+        // }
+
+
+
     }
         };
     }
         }
-        
+
 
         match self.ui_theme {
             UiTheme::GenericLightMode => {
