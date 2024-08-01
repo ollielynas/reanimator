@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+html body {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    font-family: "Work Sans", sans-serif;
+    font-optical-sizing: auto;
+    /* font-weight: <weight>; */
+    font-style: normal;
+}
+
+
+
+.header {
+    position: absolute;
+    display: flex;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2em;
+    background-color: black;
+    color: white;
+    font-size: 2em;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 1em;
+    font-weight: 100;
+    letter-spacing: 0.1em;
+    z-index: 3;
+}
+
+.img-link {
+    height: 1.0em;
+}
+
+.buttons {
+    margin-right: 1em;
+}
+
+
+.download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+    position: absolute;
+    top: 3em;
+    bottom: 3em;
+    left: 0;
+    right: 60vw;
+    background-color: white;
+}
+
+.download-button {
+    text-decoration: none;
+}
+
+.download-info {
+    display: flex;
+    flex-direction: column;
+    /* align-items: center; */
+    justify-content: left;
+}
+
+.name, .version {
+    padding: 0;
+    margin: 0;
+    padding-top: 0.8em;
+    font-size: 0.7em;
+}
+
+.slideshow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+    position: absolute;
+    top: 3em;
+    bottom: 3em;
+    right: 0;
+    left: 40vw;
+    background-color: rgba(138, 28, 28, 0);
+}
+
+.img1 {
+    max-width: 40vw;
+    max-height: 40vh;
+    height: max-content;
+    width: max-content;
+    filter: drop-shadow(9px 13px 6px #000000);
+    border-radius: 0.25em;
+    aspect-ratio: auto;
+}
+
+.button-66 {
+  background-color: #0a6bff;
+  border-radius: 4px;
+  border: 0;
+  box-shadow: rgba(1,60,136,.5) 0 -1px 3px 0 inset,rgba(0,44,97,.1) 0 3px 6px 0;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: inherit;
+  font-family: "Space Grotesk",-apple-system,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  margin: 0;
+  min-height: 56px;
+  min-width: 120px;
+  padding: 16px 20px;
+  position: relative;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  vertical-align: baseline;
+  transition: all .2s cubic-bezier(.22, .61, .36, 1);
+  scale: 0.8;
+}
+
+.button-66:hover {
+  background-color: #065dd8;
+  transform: translateY(-2px);
+}
+
+@media (min-width: 768px) {
+  .button-66 {
+    padding: 16px 44px;
+    min-width: 150px;
+  }
+}

@@ -188,7 +188,7 @@ impl MyNode for OutputNode {
         // ui.set_column_width(0, ui.window_size()[0] * 0.2);
         
         if let Some(cb) = ui.begin_combo(
-            "example_combo",
+            "##",
             self.output.name(),
         ) {
             for cur in &items {
