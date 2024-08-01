@@ -50,14 +50,13 @@ html body {
     position: absolute;
     top: 3em;
     bottom: 3em;
-    left: 0;
+    left: 2em;
+    /* padding-left: ; */
     right: 60vw;
     background-color: white;
 }
 
-.download-button {
-    text-decoration: none;
-}
+
 
 .download-info {
     display: flex;
@@ -133,4 +132,55 @@ html body {
     padding: 16px 44px;
     min-width: 150px;
   }
+}
+
+.download-button {
+    text-decoration: none;
+    display: flex;
+    align-items: row;
+    justify-content: space-between;
+}
+
+.ph {
+    font-size: 1.3em;
+    padding-left: 0.6em;
+}
+
+.description {
+    margin-top: 0;
+}
+
+@media all and (orientation:portrait) {
+    .slideshow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 0;
+        position: absolute;
+        top: 40vh;
+        bottom: 0em;
+        right: 0;
+        left: 0vw;
+        background-color: rgba(138, 28, 28, 0);
+    }
+    
+.download {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+    position: absolute;
+    top: 15em;
+    bottom: 60vh;
+    left: 0;
+    right: 0vw;
+    padding-left: 0;
+    background-color: white;
+}
+
+
+}
+
+.download-info {
+    max-width: 60vw;
 }
