@@ -9,6 +9,7 @@ use combine_hsv::CombineHsvNode;
 use combine_rgba::CombineRgbaNode;
 use debug::DebugNode;
 use default_image::DefaultImage;
+use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
 use image_io::OutputNode;
 use layer::LayerNode;
@@ -22,6 +23,7 @@ use pick_random::RandomInputNode;
 use render_3d::Render3DNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
+use scale::ScaleNode;
 use split_hsv::SplitHsvNode;
 use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
@@ -64,6 +66,9 @@ pub enum NodeType {
     TextInput,
     SplitHsv,
     CombineHsv,
+    Scale,
+    LinearErrorDither,
+    BayerDither,
 }
 
 impl NodeType  {
@@ -97,6 +102,9 @@ impl NodeType  {
             NodeType::TextInput => "Text Input",
             NodeType::SplitHsv => "Split HSV",
             NodeType::CombineHsv => "Combine HSV",
+            NodeType::Scale => "Resize",
+            NodeType::LinearErrorDither => "Linear Error Dither",
+            NodeType::BayerDither => "Bayer Dither",
         }.to_owned()
     }
 
@@ -105,6 +113,24 @@ impl NodeType  {
         match self {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::BayerDither => {
+                let a: Result<BayerDitherNode, SavefileError> = savefile::load_file(project_file, BayerDitherNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::LinearErrorDither => {
+                let a: Result<LinearErrorDitherNode, SavefileError> = savefile::load_file(project_file, LinearErrorDitherNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::Scale => {
+                let a: Result<ScaleNode, SavefileError> = savefile::load_file(project_file, ScaleNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
                     None}}
@@ -267,6 +293,9 @@ impl NodeType  {
             NodeType::TextInput => Box::new(TextInputNode::default()),
             NodeType::SplitHsv => Box::new(SplitHsvNode::default()),
             NodeType::CombineHsv => Box::new(CombineHsvNode::default()),
+            NodeType::Scale => Box::new(ScaleNode::default()),
+            NodeType::LinearErrorDither => Box::new(LinearErrorDitherNode::default()),
+            NodeType::BayerDither => Box::new(BayerDitherNode::default()),
             }
     }
 
@@ -279,6 +308,8 @@ impl NodeType  {
             | NodeType::Webcam
             | NodeType::TextInput
             | NodeType::TextMask
+            | NodeType::LinearErrorDither
+            // | NodeType::BayerDither
         )
     }
 

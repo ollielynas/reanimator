@@ -60,28 +60,16 @@ impl Project {
         params: &mut RenderNodesParams,
         renderer: &mut Renderer,
     ) {
-        for (i, node) in self.nodes.iter_mut().enumerate() {
+
+        // let mut focus 
+
+        for (i, node) in self.nodes.iter_mut().enumerate().rev() {
             let mut del_window_not = true;
 
             let node_screen_pos =
                 graph_to_screen_pos([node.x(), node.y()], self.graph_offset, self.scale);
 
-            let mut out_of_bounds = false;
-
-            if node_screen_pos[0] + params.move_delta[0] > params.size_array[0] - 20.0
-                || node_screen_pos[0] + params.move_delta[0] < 20.0
-                || node_screen_pos[1] + params.move_delta[1] > params.size_array[1] - 20.0
-                || node_screen_pos[1] + params.move_delta[1] < 20.0
-            {
-                out_of_bounds = true;
-            }
-            if out_of_bounds {
-                // ui.set_window_font_scale(0.01);
-                // println!("tiny");
-                // ui.push_style_var(imgui::StyleVar::Alpha(0.0));
-            } else {
-                // ui.set_window_font_scale(1.0);
-            }
+            
             let mut node_window_size = [0.0, 0.0];
             let mut node_window_pos = [0.0, 0.0];
 
@@ -108,13 +96,14 @@ impl Project {
                     [f32::MAX, -1.0],
                 )
                 .build(|| {
-                    let _ = ui.begin_disabled(out_of_bounds);
+                    // let _ = ui.begin_disabled(out_of_bounds);
                     node_window_pos = ui.window_pos();
                     // println!("{:?}", move_delta);
                     let mut move_this_node = false;
                     if ui.is_window_hovered() && params.moving {
                         params.moving = false;
                         move_this_node = true;
+                        ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand))
                     }
 
                     if ui.is_window_hovered() && ui.is_window_focused() && params.moving {
@@ -266,6 +255,7 @@ impl Project {
                                     .join(node.id() + ".bin"),
                             );
                             if let Some(n) = node_clone {
+                                // n.run(&mut Storage::new(r), self.connections, renderer);
                                 params.duplicate_node = Some(n);
                             }
                             fs::remove_dir_all(self.path.join("temp"));

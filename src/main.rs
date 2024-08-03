@@ -33,6 +33,7 @@ pub mod advanced_color_picker;
 pub mod widgets;
 pub mod fonts;
 pub mod render_nodes;
+pub mod project_settings;
 
 
 
@@ -99,9 +100,6 @@ fn main() {
     }
     // panic!("test");
 
-    // println!("{}");
-
-    // println!("test");
 
     // update();
 
@@ -143,9 +141,8 @@ fn main() {
     }, move |_, ui, display, renderer, drop_file| {
 
 
-        
 
-        
+        let frame_start = Instant::now();
         let mut global_font_tokens = vec![];
         if let Some(font_id) = user_settings.font_id {
         if ui.fonts().get_font(font_id).is_some() {
@@ -220,8 +217,7 @@ fn main() {
         if settings_window_open {
             user_settings.settings_window(ui, &mut settings_window_open, &fonts);
         }
-    
-        sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) -  ui.io().delta_time).max(0.0)));
+        sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) - (Instant::now() - frame_start).as_secs_f32()).max(0.0)));
 
     }, if fullscreen {Some(Fullscreen::Borderless(None))} else {None},  &mut ctx);
 

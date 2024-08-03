@@ -112,7 +112,11 @@ impl MyNode for OutputNode {
             self.texture_id = Some(renderer.textures().insert(Texture { texture: Rc::new(
                 Texture2d::empty(&storage.display, 10, 10).unwrap()
             ), 
-            sampler: SamplerBehavior::default() }));
+            sampler: SamplerBehavior {
+                // minify_filter: MinifySamplerFilter:,
+                magnify_filter: MagnifySamplerFilter::Nearest,
+                ..Default::default()
+            } }));
         }
 
         if let Some(frame) = storage.get_texture(get_output) {
@@ -129,7 +133,7 @@ impl MyNode for OutputNode {
                     &texture.texture.as_surface(), 
                     
                     &BlitTarget { left: 0, bottom: texture.texture.height(), width: texture.texture.width() as i32, height: -(texture.texture.height() as i32)}, 
-                    MagnifySamplerFilter::Linear
+                    MagnifySamplerFilter::Nearest
                         );
             }
         }
@@ -244,7 +248,7 @@ impl MyNode for OutputNode {
                         let img: ImageBuffer<Rgba<u8>, _> =
                             ImageBuffer::from_raw(frame.width(), frame.height(), img.data.into_owned())
                                 .unwrap();
-                        let img = DynamicImage::ImageRgba8(img).flipv();
+                        let img = DynamicImage::ImageRgba8(img);
 
 
                     let a = img.save(path);
@@ -335,7 +339,7 @@ impl MyNode for OutputNode {
         if let Some(image_id) = self.texture_id {
             let image_dimensions_bad = renderer.textures().get(image_id).unwrap().texture.dimensions();
             ui.text(format!("image size: {image_dimensions_bad:?}"));
-            let pos = ui.cursor_pos();
+            // let pos = ui.cursor_pos();
             let avail = ui.content_region_avail();
             let image_dimensions = [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
 

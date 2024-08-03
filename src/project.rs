@@ -28,6 +28,8 @@ use strum::IntoEnumIterator;
 use crate::node::random_id;
 use crate::nodes::load_gif::LoadGifNode;
 use crate::nodes::load_image::LoadImage;
+use crate::{project, project_settings};
+use crate::project_settings::ProjectSettings;
 use crate::render_nodes::RenderNodesParams;
 use crate::{
     advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
@@ -77,9 +79,9 @@ pub struct Project {
     pub pop_out_edit_window: HashMap<String, bool>,
     total_frame_time: f32,
     loading: i32,
-    render_ticker: bool,
     render_ticker_timer: Instant,
     open_settings: bool,
+    project_settings: ProjectSettings,
 }
 
 impl Project {
@@ -118,7 +120,7 @@ impl Project {
             pop_out_edit_window: HashMap::new(),
             total_frame_time: 0.0,
             loading: 0,
-            render_ticker: false,
+            project_settings: ProjectSettings::default(),
             render_ticker_timer: Instant::now(),
             open_settings: false,
         };
@@ -144,6 +146,7 @@ impl Project {
         fs::create_dir_all(self.path.clone())?;
 
         savefile::save_file(self.path.join("connections.bin"), 0, &self.connections)?;
+        savefile::save_file(self.path.join("project_settings.bin"), 0, &self.project_settings)?;
         let _ = fs::remove_dir_all(self.path.join("nodes"));
         fs::create_dir_all(self.path.join("nodes"))?;
         for node in &self.nodes {
@@ -202,7 +205,8 @@ impl Project {
                     ui.text(format!(
                         "{}%",
                         ((self.loading as f32 / MAX_LOADING as f32) * 100.0
-                            - fastrand::f32() * (100.0 / MAX_LOADING as f32))
+                            // - fastrand::f32() * (100.0 / MAX_LOADING as f32)
+                        )
                             .clamp(0.0, 100.0)
                             .round()
                     ));
@@ -210,7 +214,7 @@ impl Project {
                     println!("loading step: {}", self.loading);
 
                     if self.loading != 0 {
-                        sleep(Duration::from_secs_f32(0.25));
+                        // sleep(Duration::from_secs_f32(0.25));
                     }
 
                     match self.loading {
@@ -265,6 +269,16 @@ impl Project {
                             });
                         }
                         1 => {
+
+                            if let Ok(project_settings) =
+                                savefile::load_file::<ProjectSettings, PathBuf>(
+                                    self.path.join("project_settings.bin"),
+                                    0,
+                                )
+                            {
+                                self.project_settings = project_settings;
+                            }
+
                             if let Ok(connections) =
                                 savefile::load_file::<HashMap<String, String>, PathBuf>(
                                     self.path.join("connections.bin"),
@@ -375,6 +389,8 @@ impl Project {
                 let mouse_pos = ui.io().mouse_pos;
                 
 
+                // ui.get_foreground_draw_list().add_line(mouse_pos, [mouse_pos[0]+params.move_delta[0]*10.0 , mouse_pos[1] +params.move_delta[1] * 10.0], [1.0,0.0,1.0,1.0]).thickness(1.0).build();
+
 
                 let node_window_vars = [
                     ui.push_style_var(imgui::StyleVar::ItemSpacing([
@@ -403,14 +419,11 @@ impl Project {
                 // move_delta[0] /= self.scale * -1.0;
                 // move_delta[1] /= self.scale * -1.0;
 
-                if ui.mouse_drag_delta() != [0.0, 0.0]
-                        // && 
-                        && ui.is_mouse_down(imgui::MouseButton::Left)
+                if  ui.is_mouse_down(imgui::MouseButton::Left)
                         && ui.is_mouse_dragging(imgui::MouseButton::Left)
                     {
                         params.moving = true;
-                    } else if !ui.is_window_focused() {
-                        params.move_delta = [0.0, 0.0];
+                        // println!("")
                     }
 
                 
@@ -424,11 +437,9 @@ impl Project {
                 if let Some(mut d) = params.duplicate_node {
                     d.set_xy(d.x() + 10.0, d.y() + 10.0);
                     d.set_id(random_id());
-                    println!("{}", d.id());
                     self.nodes.push(d);
                 }
 
-                // println!("{:?}", self.node_edit);
 
                 if let Some(kill) = params.delete_node {
                     self.nodes.remove(kill);
@@ -502,8 +513,6 @@ impl Project {
                             
                             let texture_input = self.storage.get_texture(b).is_some();
                             let text_input = self.storage.get_text(b).is_some();
-                            // println!("{a} {b}");
-                            // println!("{a}");
 
                             draw_list
                                 .add_bezier_curve(
@@ -519,6 +528,11 @@ impl Project {
                     }
                 }
             // });
+
+        if self.project_settings.render_ticker && self.render_ticker_timer.elapsed().as_secs_f32() > 1.0 {
+            self.render_ticker_timer = Instant::now();
+            params.time_list.push(ui.time());
+        }
 
         for t in params.time_list {
             let before_run_nodes = Instant::now();
@@ -602,14 +616,17 @@ impl Project {
                 if ui.button("save") {
                     println!("save button, {:?}", self.save());
                 }
-
+                
                 ui.separator();
 
+                ui.checkbox("auto update", &mut self.project_settings.render_ticker);
+                
+                ui.separator();
+                
                 if ui.button("return home") {
                     self.save();
                     self.return_to_home_menu = true;
                 }
-
                 if self.display_history {
                     self.history_window(ui);
                 }
@@ -662,7 +679,6 @@ impl Project {
                 if ui.is_window_hovered() {
                     params.scale_changed = false;
                 }
-                // println!("{:?}", self.node_edit);
                 match self.node_edit {
                     Some(a) if self.nodes.len() > a => {
                         self.nodes[a].edit_menu_render(ui, renderer);
@@ -704,7 +720,6 @@ impl Project {
             }
 
             if params.scale_changed {
-                // println!("{}", wheel_delta);
                 let new_scale = (self.scale * (1.1_f32.powf(wheel_delta))).clamp(0.05, 2.0);
                 let scale_delta = new_scale/self.scale;
                 let mouse_pos_graph = screen_to_graph_pos(mouse_pos, self.graph_offset, self.scale);
@@ -944,7 +959,6 @@ impl Project {
         let [mut x, mut y] = ui.io().mouse_pos;
         x = 100.0;
         y = 100.0;
-        println!("{x} {y}");
         println!("droped {:?}", path);
         match ext {
             "gif" => {

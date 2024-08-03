@@ -15,6 +15,7 @@ use std::hash::Hash;
 use image::EncodableLayout;
 
 use crate::fonts::MyFonts;
+use crate::relaunch_windows;
 
 const VERTEX_SHADER:  &'static str = r#"
         #version 140
@@ -216,6 +217,11 @@ impl Storage {
 
         if ui.button("crash (panic)") {
             panic!("debug crash {}", line!());
+        }
+        if ui.button("relaunch (admin)") {
+            #[cfg(target_os="windows")] {
+                relaunch_windows(true);
+            }
         }
 
     }

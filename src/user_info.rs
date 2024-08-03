@@ -163,7 +163,6 @@ impl UserSettings {
         ctx.io_mut().font_allow_user_scaling = true;
         
         // ctx.load_ini_settings(data)
-        
 
         match self.ui_theme {
             UiTheme::GenericLightMode | UiTheme::GenericDarkMode => {
@@ -303,6 +302,7 @@ impl UserSettings {
     pub fn settings_window(&mut self, ui: &Ui, window_open: &mut bool, fonts: &MyFonts) {
         // println!("settings1");
         let screen_size_array = ui.io().display_size;
+
         
         ui.window("settings")
         .no_decoration()
@@ -311,20 +311,21 @@ impl UserSettings {
         .position([0.0,0.0], imgui::Condition::Always)
         .size(screen_size_array, imgui::Condition::Always)
         .build(||{
-            ui.set_window_font_scale(1.3);
+            ui.set_window_font_scale(1.7);
             ui.text("settings");
             ui.set_window_font_scale(1.0);
-            ui.same_line();
+            ui.spacing();
+            // ui.same_line();
             ui.spacing();
             ui.same_line();
-            if ui.small_button("save and close") {
+            if ui.button("save and close") {
                 self.save();
                 *window_open = false;
             }
             ui.same_line();
             ui.spacing();
             ui.same_line();
-            if ui.small_button("save and relaunch") {
+            if ui.button("save and relaunch") {
                 self.save();
                 relaunch_windows(false);
             }
@@ -333,6 +334,8 @@ impl UserSettings {
             ui.spacing();
 
             if let Some(tab_bar)=ui.tab_bar("settings tab bar") {
+                ui.indent();
+                ui.indent();
                 if let Some(_general_settings) = ui.tab_item("general") {
                     ui.spacing();
                     ui.spacing();
@@ -357,9 +360,9 @@ impl UserSettings {
 
                     ui.input_int("target fps", &mut self.max_fps).build();
                     self.max_fps = self.max_fps.max(10);
-                    if ui.is_item_hovered() {
-                        ui.tooltip_text("The programme kinda struggles to hit this atm often going 20 fps or so over the target");
-                    }
+                    // if ui.is_item_hovered() {
+                    //     ui.tooltip_text("The programme kinda struggles to hit this atm often going 20 fps or so over the target");
+                    // }
 
                 }
                 if let Some(_general_settings) = ui.tab_item("ui") {
