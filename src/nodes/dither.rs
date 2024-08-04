@@ -386,6 +386,20 @@ impl MyNode for BayerDitherNode {
         NodeType::BayerDither
     }
 
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+        ui.text(format!("size: {}x{}", self.size, self.size));
+        ui.separator();
+        if ui.button("2x2") {
+            self.size = 2;
+        }
+        if ui.button("4x4") {
+            self.size = 4;
+        }
+        if ui.button("8x8") {
+            self.size = 8;
+        }
+    }
+
 
 
 

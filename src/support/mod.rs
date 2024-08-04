@@ -1,11 +1,12 @@
 use glium::glutin::surface::WindowSurface;
 use glium::{Display, Surface};
+use image::{load_from_memory_with_format, GenericImageView};
 use imgui::{Context, FontConfig, FontSource, Ui};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
-use imgui_winit_support::winit::window::{Fullscreen, WindowBuilder};
+use imgui_winit_support::winit::window::{Fullscreen, Icon, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
 use std::env::current_exe;
@@ -42,9 +43,15 @@ where
     let event_loop = EventLoop::new().expect("Failed to create EventLoop");
     // Program::
 
+    let icon = load_from_memory_with_format(include_bytes!("./res/icon.ico"), image::ImageFormat::Ico).unwrap();
+
     let builder = WindowBuilder::new()
         .with_title(title)
-        .with_fullscreen(fullscreen)
+        .with_maximized(fullscreen.is_some())
+        .with_window_icon(Some(
+            Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap()
+        ))
+        // .with_fullscreen(fullscreen)
         .with_inner_size(LogicalSize::new(1024, 512));
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
         .set_window_builder(builder)
