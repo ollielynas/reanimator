@@ -103,7 +103,7 @@ impl NodeType  {
             NodeType::SplitHsv => "Split HSV",
             NodeType::CombineHsv => "Combine HSV",
             NodeType::Scale => "Resize",
-            NodeType::LinearErrorDither => "Linear Error Dither",
+            NodeType::LinearErrorDither => "Error Diffusion Dither",
             NodeType::BayerDither => "Bayer Dither",
         }.to_owned()
     }
@@ -308,7 +308,7 @@ impl NodeType  {
             | NodeType::Webcam
             | NodeType::TextInput
             | NodeType::TextMask
-            | NodeType::LinearErrorDither
+            // | NodeType::LinearErrorDither
             // | NodeType::BayerDither
         )
     }

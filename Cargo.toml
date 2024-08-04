@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.12" 
+version = "0.1.13" 
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "A gif vfx tool"

@@ -305,6 +305,7 @@ impl MyNode for GenericShaderNode {
                 shader,
                 &uniforms,
                 &DrawParameters {
+                    // time_elapsed_query: Some(),
                     ..Default::default()
                 },
             )

@@ -120,34 +120,34 @@ impl Project {
 
                     let window_size = ui.window_size();
 
-                    let speed = self.node_speeds.get(&node.id());
-                    // ui.set_window_font_scale(0.6);
-                    if self.node_run_order.0 == params.connection_hash {
-                        ui.text(format!(
-                            "{}. |",
-                            self.node_run_order
-                                .1
-                                .iter()
-                                .enumerate()
-                                .find_map(|(i, x)| {
-                                    if **x == node.id() {
-                                        Some(i.to_string())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .unwrap_or("NA".to_string())
-                        ))
-                    }
-                    ui.same_line();
-                    if speed.is_some() {
-                        ui.text(format!(
-                            "{} micros",
-                            speed.unwrap_or(&Duration::ZERO).as_micros()
-                        ));
-                    } else {
-                        ui.text("NA");
-                    }
+                    // let speed = self.node_speeds.get(&node.id());
+                    // // ui.set_window_font_scale(0.6);
+                    // if self.node_run_order.0 == params.connection_hash {
+                    //     ui.text(format!(
+                    //         "{}. |",
+                    //         self.node_run_order
+                    //             .1
+                    //             .iter()
+                    //             .enumerate()
+                    //             .find_map(|(i, x)| {
+                    //                 if **x == node.id() {
+                    //                     Some(i.to_string())
+                    //                 } else {
+                    //                     None
+                    //                 }
+                    //             })
+                    //             .unwrap_or("NA".to_string())
+                    //     ))
+                    // }
+                    // ui.same_line();
+                    // if speed.is_some() {
+                    //     ui.text(format!(
+                    //         "{} micros",
+                    //         speed.unwrap_or(&Duration::ZERO).as_micros()
+                    //     ));
+                    // } else {
+                    //     ui.text("NA");
+                    // }
                     // ui.set_window_font_scale(1.0);
 
                     // ui.columns(2, node.id(), false);

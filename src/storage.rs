@@ -4,6 +4,7 @@ use std::hash::{DefaultHasher, Hasher};
 
 use font_kit::sources::multi::MultiSource;
 use glium::index::NoIndices;
+use glium::program::Attribute;
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
@@ -247,6 +248,8 @@ impl Storage {
                 Ok(a) => a,
                 Err(a) => {println!("shader_comp_error:--------------- \n\n\n {a:#?}\n\n\n --------------"); return None;}
             };
+            
+            
 
             self.shaders.insert((vert.clone(), frag.clone()), program);
         }

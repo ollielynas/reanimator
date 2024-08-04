@@ -1,7 +1,8 @@
+use glium::debug::TimestampQuery;
 use glium::{program, BlitTarget, Display, Program, Surface};
 use imgui::drag_drop::PayloadIsWrongType;
-use imgui::{Style, WindowHoveredFlags};
 use imgui::{sys::ImVec2, ImColor32, TreeNodeToken, Ui};
+use imgui::{Style, WindowFlags, WindowHoveredFlags};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::AppDirs;
 use std::collections::HashSet;
@@ -28,7 +29,6 @@ use strum::IntoEnumIterator;
 use crate::node::random_id;
 use crate::nodes::load_gif::LoadGifNode;
 use crate::nodes::load_image::LoadImage;
-use crate::{project, project_settings};
 use crate::project_settings::ProjectSettings;
 use crate::render_nodes::RenderNodesParams;
 use crate::{
@@ -41,6 +41,7 @@ use crate::{
     storage::Storage,
     user_info::{self, UserSettings},
 };
+use crate::{project, project_settings};
 use rfd::FileDialog;
 
 pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -78,6 +79,7 @@ pub struct Project {
     advanced_color_picker: AdvancedColorPicker,
     pub pop_out_edit_window: HashMap<String, bool>,
     total_frame_time: f32,
+    total_gpu_frame_time: f32,
     loading: i32,
     render_ticker_timer: Instant,
     open_settings: bool,
@@ -119,6 +121,7 @@ impl Project {
             recenter: true,
             pop_out_edit_window: HashMap::new(),
             total_frame_time: 0.0,
+            total_gpu_frame_time: 0.0,
             loading: 0,
             project_settings: ProjectSettings::default(),
             render_ticker_timer: Instant::now(),
@@ -146,7 +149,11 @@ impl Project {
         fs::create_dir_all(self.path.clone())?;
 
         savefile::save_file(self.path.join("connections.bin"), 0, &self.connections)?;
-        savefile::save_file(self.path.join("project_settings.bin"), 0, &self.project_settings)?;
+        savefile::save_file(
+            self.path.join("project_settings.bin"),
+            0,
+            &self.project_settings,
+        )?;
         let _ = fs::remove_dir_all(self.path.join("nodes"));
         fs::create_dir_all(self.path.join("nodes"))?;
         for node in &self.nodes {
@@ -204,11 +211,12 @@ impl Project {
                     ui.set_window_font_scale(2.0);
                     ui.text(format!(
                         "{}%",
-                        ((self.loading as f32 / MAX_LOADING as f32) * 100.0
+                        (
+                            (self.loading as f32 / MAX_LOADING as f32) * 100.0
                             // - fastrand::f32() * (100.0 / MAX_LOADING as f32)
                         )
-                            .clamp(0.0, 100.0)
-                            .round()
+                        .clamp(0.0, 100.0)
+                        .round()
                     ));
                     ui.set_window_font_scale(1.0);
                     println!("loading step: {}", self.loading);
@@ -269,7 +277,6 @@ impl Project {
                             });
                         }
                         1 => {
-
                             if let Ok(project_settings) =
                                 savefile::load_file::<ProjectSettings, PathBuf>(
                                     self.path.join("project_settings.bin"),
@@ -329,18 +336,17 @@ impl Project {
 
         let wheel_delta = ui.io().mouse_wheel;
 
-
         let mut params: RenderNodesParams = RenderNodesParams {
             duplicate_node: None,
             move_delta: ui.io().mouse_delta,
             size_array,
             moving: false,
             connection_hash: self.nodes.len() as u64
-            + calculate_hash(
-                &<HashMap<String, String> as Clone>::clone(&self.connections)
-                    .into_iter()
-                    .collect::<Vec<(String, String)>>(),
-            ),
+                + calculate_hash(
+                    &<HashMap<String, String> as Clone>::clone(&self.connections)
+                        .into_iter()
+                        .collect::<Vec<(String, String)>>(),
+                ),
             scale_changed: wheel_delta.abs() > 0.0,
             node_pos_map: HashMap::new(),
             time_list: vec![],
@@ -351,7 +357,6 @@ impl Project {
         // self.node_edit = None;
         // hash
 
-
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
             // ui.set_window_font_scale(0.9);
@@ -359,7 +364,6 @@ impl Project {
         });
 
         let menu_bar_size = ui.item_rect_size();
-
 
         let mut new_node_popup = false;
 
@@ -369,177 +373,187 @@ impl Project {
         // ui.show_default_style_editor();
         // renderer.render(target, draw_data)
 
-                // println!("{:?}", ui.mouse_drag_delta());
+        // println!("{:?}", ui.mouse_drag_delta());
 
-                if let Some(_popup_menu) = ui.begin_popup_context_window() {
-                    if ui.menu_item("new node") {
-                        new_node_popup = true;
+        if let Some(_popup_menu) = ui.begin_popup_context_window() {
+            if ui.menu_item("new node") {
+                new_node_popup = true;
+            }
+        }
+
+        // self.new_node_menu(ui);
+
+        if ui.is_window_focused() {
+            self.selected = None;
+        }
+
+        let mouse_pos = ui.io().mouse_pos;
+
+        // ui.get_foreground_draw_list().add_line(mouse_pos, [mouse_pos[0]+params.move_delta[0]*10.0 , mouse_pos[1] +params.move_delta[1] * 10.0], [1.0,0.0,1.0,1.0]).thickness(1.0).build();
+
+        let node_window_vars = [
+            ui.push_style_var(imgui::StyleVar::ItemSpacing([
+                3.0 * self.scale,
+                3.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::WindowPadding([
+                10.0 * self.scale,
+                10.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::FramePadding([
+                5.0 * self.scale,
+                5.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::WindowMinSize([
+                5.0 * self.scale,
+                5.0 * self.scale,
+            ])),
+        ];
+
+        // move_delta[0] /= self.scale * -1.0;
+        // move_delta[1] /= self.scale * -1.0;
+
+        if ui.is_mouse_down(imgui::MouseButton::Left)
+            && ui.is_mouse_dragging(imgui::MouseButton::Left)
+        {
+            params.moving = true;
+            // println!("")
+        }
+
+        self.render_node(ui, &mut params, renderer);
+
+        for var in node_window_vars {
+            var.end();
+        }
+
+        if let Some(mut d) = params.duplicate_node {
+            d.set_xy(d.x() + 10.0, d.y() + 10.0);
+            d.set_id(random_id());
+            self.nodes.push(d);
+        }
+
+        if let Some(kill) = params.delete_node {
+            self.nodes.remove(kill);
+        }
+
+        self.recenter = false;
+
+        let draw_list = ui.get_background_draw_list();
+        if user_settings.dots {
+            self.render_background(ui, &draw_list);
+        };
+
+        let mouse_pos = ui.io().mouse_pos;
+        match (
+            self.selected_input.clone(),
+            self.selected_output.clone(),
+            mouse_pos,
+        ) {
+            (None, Some(a), m) => {
+                if let Some(pos) = params.node_pos_map.get(&a) {
+                    let mut pos = pos.clone();
+                    if pos == ImVec2::new(PI, PI) {
+                        pos = ImVec2::new(size_array[0], m[1]);
                     }
+                    draw_list
+                        .add_bezier_curve(
+                            m,
+                            [(m[0] + pos.x) * 0.5, m[1]],
+                            [(m[0] + pos.x) * 0.5, pos.y],
+                            [pos.x, pos.y],
+                            ImColor32::BLACK,
+                        )
+                        .build();
                 }
-
-                // self.new_node_menu(ui);
-
-                if ui.is_window_focused() {
-                    self.selected = None;
+            }
+            (Some(a), None, m) => {
+                if let Some(pos) = params.node_pos_map.get(&a) {
+                    draw_list
+                        .add_bezier_curve(
+                            [pos.x, pos.y],
+                            [(m[0] + pos.x) * 0.5, pos.y],
+                            [(m[0] + pos.x) * 0.5, m[1]],
+                            [m[0], m[1]],
+                            ImColor32::BLACK,
+                        )
+                        .build();
                 }
+                self.connections.remove(&a);
+            }
+            (Some(a), Some(b), _) => {
+                self.connections.insert(a, b);
 
+                self.selected_input = None;
+                self.selected_output = None;
+            }
+            (None, None, _) => {}
+        }
 
+        if self.selected_input.is_some() || self.selected_output.is_some() {
+            if ui.is_any_mouse_down() && !ui.is_any_item_hovered() {
+                self.selected_input = None;
+                self.selected_output = None;
+            }
+        }
 
+        for (a, b) in &self.connections {
+            if let Some(pos2) = params.node_pos_map.get(a) {
+                if let Some(pos) = params.node_pos_map.get(b) {
+                    let texture_input = self.storage.get_texture(b).is_some();
+                    let text_input = self.storage.get_text(b).is_some();
 
-                let mouse_pos = ui.io().mouse_pos;
-                
-
-                // ui.get_foreground_draw_list().add_line(mouse_pos, [mouse_pos[0]+params.move_delta[0]*10.0 , mouse_pos[1] +params.move_delta[1] * 10.0], [1.0,0.0,1.0,1.0]).thickness(1.0).build();
-
-
-                let node_window_vars = [
-                    ui.push_style_var(imgui::StyleVar::ItemSpacing([
-                        3.0 * self.scale,
-                        3.0 * self.scale,
-                    ])),
-                    ui.push_style_var(imgui::StyleVar::WindowPadding([
-                        10.0 * self.scale,
-                        10.0 * self.scale,
-                    ])),
-                    ui.push_style_var(imgui::StyleVar::FramePadding([
-                        5.0 * self.scale,
-                        5.0 * self.scale,
-                    ])),
-                    ui.push_style_var(imgui::StyleVar::WindowMinSize([
-                        5.0 * self.scale,
-                        5.0 * self.scale,
-                    ])),
-                ];
-
-
-            
-
-
-
-                // move_delta[0] /= self.scale * -1.0;
-                // move_delta[1] /= self.scale * -1.0;
-
-                if  ui.is_mouse_down(imgui::MouseButton::Left)
-                        && ui.is_mouse_dragging(imgui::MouseButton::Left)
-                    {
-                        params.moving = true;
-                        // println!("")
-                    }
-
-                
-
-                self.render_node(ui, &mut params, renderer);
-
-                for var in node_window_vars {
-                    var.end();
+                    draw_list
+                        .add_bezier_curve(
+                            [pos.x, pos.y],
+                            [(pos.x + pos2.x) * 0.5, pos.y],
+                            [(pos.x + pos2.x) * 0.5, pos2.y],
+                            [pos2.x, pos2.y],
+                            if text_input {
+                                [0.0, 0.5, 0.0, 1.0]
+                            } else if texture_input {
+                                [0.0, 0.0, 0.5, 1.0]
+                            } else {
+                                [0.0, 0.0, 0.0, 1.0]
+                            },
+                        )
+                        .thickness(
+                            if texture_input || text_input {
+                                3.0
+                            } else {
+                                2.0
+                            } * self.scale,
+                        )
+                        .build();
                 }
+            }
+        }
+        // });
 
-                if let Some(mut d) = params.duplicate_node {
-                    d.set_xy(d.x() + 10.0, d.y() + 10.0);
-                    d.set_id(random_id());
-                    self.nodes.push(d);
-                }
-
-
-                if let Some(kill) = params.delete_node {
-                    self.nodes.remove(kill);
-                }
-
-                self.recenter = false;
-
-                let draw_list = ui.get_background_draw_list();
-                if user_settings.dots {
-                self.render_background(ui, &draw_list);
-            };
-
-
-                let mouse_pos = ui.io().mouse_pos;
-                match (
-                    self.selected_input.clone(),
-                    self.selected_output.clone(),
-                    mouse_pos,
-                ) {
-                    (None, Some(a), m) => {
-                        if let Some(pos) =  params.node_pos_map.get(&a) {
-                            let mut pos = pos.clone();
-                            if pos == ImVec2::new(PI, PI) {
-                                pos = ImVec2::new(size_array[0], m[1]);
-                            }
-                            draw_list
-                                .add_bezier_curve(
-                                    m,
-                                    [(m[0] + pos.x) * 0.5, m[1]],
-                                    [(m[0] + pos.x) * 0.5, pos.y],
-                                    [pos.x, pos.y],
-                                    ImColor32::BLACK,
-                                )
-                                .build();
-                        }
-                    }
-                    (Some(a), None, m) => {
-                        if let Some(pos) = params.node_pos_map.get(&a) {
-                            draw_list
-                                .add_bezier_curve(
-                                    [pos.x, pos.y],
-                                    [(m[0] + pos.x) * 0.5, pos.y],
-                                    [(m[0] + pos.x) * 0.5, m[1]],
-                                    [m[0], m[1]],
-                                    ImColor32::BLACK,
-                                )
-                                .build();
-                        }
-                        self.connections.remove(&a);
-                    }
-                    (Some(a), Some(b), _) => {
-                        self.connections.insert(a, b);
-
-                        self.selected_input = None;
-                        self.selected_output = None;
-                    }
-                    (None, None, _) => {}
-                }
-
-                if self.selected_input.is_some() || self.selected_output.is_some() {
-                    if ui.is_any_mouse_down() && !ui.is_any_item_hovered() {
-                        self.selected_input = None;
-                        self.selected_output = None;
-                    }
-                }
-
-                for (a, b) in &self.connections {
-                    if let Some(pos2) =  params.node_pos_map.get(a) {
-                        if let Some(pos) =  params.node_pos_map.get(b) {
-
-                            
-                            let texture_input = self.storage.get_texture(b).is_some();
-                            let text_input = self.storage.get_text(b).is_some();
-
-                            draw_list
-                                .add_bezier_curve(
-                                    [pos.x, pos.y],
-                                    [(pos.x + pos2.x) * 0.5, pos.y],
-                                    [(pos.x + pos2.x) * 0.5, pos2.y],
-                                    [pos2.x, pos2.y],
-                                    if text_input {[0.0,0.5,0.0,1.0]} else if texture_input {[0.0, 0.0, 0.5,1.0]} else {[0.0,0.0,0.0,1.0]},
-                                )
-                                .thickness(if texture_input || text_input {3.0} else {2.0} * self.scale)
-                                .build();
-                        }
-                    }
-                }
-            // });
-
-        if self.project_settings.render_ticker && self.render_ticker_timer.elapsed().as_secs_f32() > 1.0 {
+        if self.project_settings.render_ticker
+            && self.render_ticker_timer.elapsed().as_secs_f32() > 1.0
+        {
             self.render_ticker_timer = Instant::now();
             params.time_list.push(ui.time());
         }
 
+        let mut before = glium::debug::TimestampQuery::new(&self.storage.display);
+        let mut after= glium::debug::TimestampQuery::new(&self.storage.display);
+        let mut first = true;
+        // params.time_list = vec![0.0];
         for t in params.time_list {
+            if first {
+            before = glium::debug::TimestampQuery::new(&self.storage.display);}
             let before_run_nodes = Instant::now();
             self.storage.time = t;
             self.run_nodes(renderer);
             self.total_frame_time = before_run_nodes.elapsed().as_secs_f32();
+            if first {
+            after = glium::debug::TimestampQuery::new(&self.storage.display);
         }
+            first =false;
+        }
+
+    
 
         let mut left_sidebar_width = 0.0;
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
@@ -616,13 +630,13 @@ impl Project {
                 if ui.button("save") {
                     println!("save button, {:?}", self.save());
                 }
-                
+
                 ui.separator();
 
                 ui.checkbox("auto update", &mut self.project_settings.render_ticker);
-                
+
                 ui.separator();
-                
+
                 if ui.button("return home") {
                     self.save();
                     self.return_to_home_menu = true;
@@ -642,14 +656,11 @@ impl Project {
                 if self.new_node_menu(ui) {
                     params.moving = false;
                     params.scale_changed = false;
-
                 }
 
                 if ui.is_window_hovered() {
                     params.scale_changed = false;
                 }
-
-            
             });
 
         self.storage.debug_window(ui);
@@ -697,49 +708,61 @@ impl Project {
             .size_constraints([window_size.x * 0.5, -1.0], [window_size.x * 0.5, -1.0])
             .no_decoration()
             .draw_background(false)
-            .no_inputs()
+            // .no_inputs()
+            // .flags(WindowFlags:)
             .position(edit_window_pos, imgui::Condition::Always)
             .position_pivot([0.0, 1.0])
             .build(|| {
+                
+                match (after, before) {
+                    (Some(after), Some(before)) => {
+                        
+                        let elapsed = after.get() - before.get();
+                        // println!("{}", elapsed);
+                        if elapsed > 100000 {
+                        self.total_gpu_frame_time =  (elapsed as f64 / 10.0_f64.powi(9)) as f32;
+                    }
+                    }
+                    _ => (),
+                }
+
                 ui.text(format!(
-                    "frame time: {:.4}ms",
-                    self.total_frame_time * 1000.0
+                    "[CPU/GPU]: [{:.2}/{:.2}] ms",
+                    self.total_frame_time * 1000.0,
+                    self.total_gpu_frame_time * 1000.0,
                 ));
+
             });
 
+        if ui.mouse_cursor() != Some(imgui::MouseCursor::Arrow)
+            && ui.mouse_cursor() != Some(imgui::MouseCursor::Hand)
+        {
+            params.moving = false;
+        }
 
-            if ui.mouse_cursor() != Some(imgui::MouseCursor::Arrow) && ui.mouse_cursor() != Some(imgui::MouseCursor::Hand) {
-                params.moving = false;
+        if ui.is_any_item_hovered() || ui.is_any_item_active() {
+            params.moving = false;
+        }
+
+        if params.scale_changed {
+            let new_scale = (self.scale * (1.1_f32.powf(wheel_delta))).clamp(0.05, 2.0);
+            let scale_delta = new_scale / self.scale;
+            let mouse_pos_graph = screen_to_graph_pos(mouse_pos, self.graph_offset, self.scale);
+            for i in [1, 0] {
+                self.graph_offset[i] =
+                    ((scale_delta - 1.0) * mouse_pos_graph[i] + self.graph_offset[i]) / scale_delta;
             }
 
+            self.scale = new_scale;
+            // for i in [1,0] {
+            //     self.graph_offset[0];
+        }
 
-            if ui.is_any_item_hovered() 
-            || ui.is_any_item_active()
-            {
-                params.moving = false;
-            }
-
-            if params.scale_changed {
-                let new_scale = (self.scale * (1.1_f32.powf(wheel_delta))).clamp(0.05, 2.0);
-                let scale_delta = new_scale/self.scale;
-                let mouse_pos_graph = screen_to_graph_pos(mouse_pos, self.graph_offset, self.scale);
-                for i in [1, 0] {
-                    self.graph_offset[i] = ((scale_delta -1.0)*mouse_pos_graph[i]+self.graph_offset[i])/scale_delta;
-                }
-
-                self.scale = new_scale;
-                // for i in [1,0] {
-                //     self.graph_offset[0];
-                }
-
-            if params.moving {
-                ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
-                self.graph_offset[0] -= params.move_delta[0] / self.scale;
-                self.graph_offset[1] -= params.move_delta[1] / self.scale;
-            }
-
-
-
+        if params.moving {
+            ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+            self.graph_offset[0] -= params.move_delta[0] / self.scale;
+            self.graph_offset[1] -= params.move_delta[1] / self.scale;
+        }
 
         // for i in self.nodes {
 
@@ -768,8 +791,6 @@ impl Project {
         for (i, n) in self.nodes.iter().enumerate() {
             node_indices.insert(n.id(), i);
         }
-
-        
 
         if connection_hash != self.node_run_order.0 {
             let mut node_graph: HashMap<String, Vec<String>> = HashMap::new();
@@ -942,14 +963,10 @@ impl Project {
                 ui.text("no node has been selected");
             }
 
-            
-
             // self.new_node_types[n].;
         });
 
         return open;
-
-
     }
 
     pub fn drop_file(&mut self, path: PathBuf, ui: &Ui) {
@@ -982,7 +999,6 @@ impl Project {
                 node.set_xy(x, y);
                 self.nodes.push(node);
             }
-
             _ => {}
         }
     }
