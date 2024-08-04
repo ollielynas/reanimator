@@ -343,7 +343,7 @@ impl MyNode for OutputNode {
             let avail = ui.content_region_avail();
             let image_dimensions = [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
 
-            let scale = (avail[0]/image_dimensions[0]).min(avail[1]/image_dimensions[1])*0.8;
+            let scale = (avail[0]/image_dimensions[0]).min(avail[1]/image_dimensions[1])*0.95;
             if scale !=0.0 && image_dimensions[0] != 0.0 && image_dimensions[1] != 0.0 {
 
             ui.invisible_button("custom_button", [image_dimensions[0]*scale, image_dimensions[1]*scale]);

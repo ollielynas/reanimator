@@ -9,7 +9,7 @@
 - [X]  vhs effect
 - [X]  Rgb slider based color pallet restriction thingy
 - [X]  layer
-- [X]  mask applier
+- [X]  mask appliers
 - [X]  that rgb separation thing who's name i can't remember
 - [ ]  pixel sorting (maybe?)
 - [ ]  rotate
@@ -24,6 +24,7 @@
 - [ ]  split hsv
 - [ ]  text output
 - [X]  text input
+- [X]  scale
 
 # General TODO
 
