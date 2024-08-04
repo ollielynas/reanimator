@@ -160,6 +160,19 @@ impl MyNode for ScaleNode {
         map: HashMap<String, String>,
         renderer: &mut Renderer,
     ) -> bool {
+
+        if self.use_percent {
+            // round evan to annoy anatol 
+            self.target_size = (
+                (self.og_size.0 as f32 * self.target_percent / 100.0)
+                    .round_ties_even()
+                    .max(1.0) as u32,
+                (self.og_size.1 as f32 * self.target_percent / 100.0)
+                    .round_ties_even()
+                    .max(1.0) as u32,
+            );
+        }
+
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
@@ -174,7 +187,7 @@ impl MyNode for ScaleNode {
 
         self.og_size = texture_size;
 
-        storage.create_and_set_texture(self.target_size.0, self.target_size.0, output_id.clone());
+        storage.create_and_set_texture(self.target_size.0, self.target_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,

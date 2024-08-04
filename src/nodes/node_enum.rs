@@ -69,6 +69,7 @@ pub enum NodeType {
     Scale,
     LinearErrorDither,
     BayerDither,
+    Sharpness,
 }
 
 impl NodeType  {
@@ -105,6 +106,7 @@ impl NodeType  {
             NodeType::Scale => "Resize",
             NodeType::LinearErrorDither => "Error Diffusion Dither",
             NodeType::BayerDither => "Bayer Dither",
+            NodeType::Sharpness => "Sharpness",
         }.to_owned()
     }
 
@@ -247,6 +249,7 @@ impl NodeType  {
             | NodeType::VHS 
             | NodeType::Blur
             | NodeType::Dot
+            | NodeType::Sharpness
              => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
@@ -269,6 +272,7 @@ impl NodeType  {
             | NodeType::ChromaticAberration
             | NodeType::Blur
             | NodeType::Dot
+            | NodeType::Sharpness
              => 
             {Box::new(GenericShaderNode::new(self))},
             NodeType::BrightnessMask => 

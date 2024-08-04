@@ -22,6 +22,7 @@ impl NodeType {
                 NodeType::VHS => 1,
                 NodeType::Blur => 2,
                 NodeType::Dot => 3,
+                NodeType::Sharpness => 4,
                 a => {
                     -1
                     // unreachable!("node type: {a:?} has no index")
@@ -67,6 +68,7 @@ impl GenericShaderNode {
                 | NodeType::VHS => 0.5,
                 NodeType::Blur => 10.0,
                 NodeType::Dot => 3.0,
+                NodeType::Sharpness => 1.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
                 }
@@ -75,6 +77,7 @@ impl GenericShaderNode {
                 NodeType::ChromaticAberration | NodeType::VHS => "Strength".to_owned(),
                 NodeType::Blur => "Radius".to_owned(),
                 NodeType::Dot => "Radius".to_owned(),
+                NodeType::Sharpness => "Sharpness".to_owned(),
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input name fully implemented")
                 }
@@ -84,6 +87,7 @@ impl GenericShaderNode {
                 NodeType::VHS => 0.0,
                 NodeType::Blur => 0.0,
                 NodeType::Dot => 0.001,
+                NodeType::Sharpness => 0.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the min value fully implemented")
                 }
@@ -93,6 +97,7 @@ impl GenericShaderNode {
                 NodeType::VHS => 1.0,
                 NodeType::Dot => 20.0,
                 NodeType::Blur => f32::MAX,
+                NodeType::Sharpness => 4.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
                 }
@@ -174,6 +179,9 @@ impl MyNode for GenericShaderNode {
             }
             NodeType::Dot => {
                 ui.text_wrapped("Dots\nTODO: better description");
+            }
+            NodeType::Sharpness => {
+                ui.text_wrapped("Sharpens Image");
             }
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
@@ -266,6 +274,7 @@ impl MyNode for GenericShaderNode {
             NodeType::VHS => include_str!("VHS.glsl"),
             NodeType::Blur => include_str!("gaussian.glsl"),
             NodeType::Dot => include_str!("dot.glsl"),
+            NodeType::Sharpness => include_str!("sharp.glsl"),
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
             }
