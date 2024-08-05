@@ -6,7 +6,7 @@ use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
-use imgui_winit_support::winit::window::{Fullscreen, Icon, WindowBuilder};
+use imgui_winit_support::winit::window::{Fullscreen, Icon, Window, WindowBuilder};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
 use std::env::current_exe;
@@ -31,7 +31,7 @@ pub const FONT_SIZE: f32 = 13.0;
 pub fn init_with_startup<FInit, FUi>(title: &str, mut startup: FInit, mut run_ui: FUi, fullscreen: Option<Fullscreen>, imgui: &mut Context)
 where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
-    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>) + 'static,
+    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>,&Window) + 'static,
 {
     // let mut imgui = create_context();
 
@@ -54,12 +54,14 @@ where
         // .with_fullscreen(fullscreen)
         .with_inner_size(LogicalSize::new(1024, 512));
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
-        .set_window_builder(builder)
+        .set_window_builder(builder.clone())
         .build(&event_loop);
-    // program!()
+
 
     let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
     
+    
+
     // let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
 
 
@@ -69,6 +71,7 @@ where
         eprintln!("Failed to initialize clipboard");
     }
 
+    
 
     let mut platform = WinitPlatform::init(imgui);
     {
@@ -84,9 +87,10 @@ where
         };
         // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
-
+        // platform.attach_window(imgui.io_mut(), &window2, dpi_mode);
+        
     }
-
+    // window.set_cursor_hittest(false);
     let mut last_frame = Instant::now();
 
     startup(imgui, &mut renderer, &display);
@@ -104,6 +108,8 @@ where
                 platform
                 .prepare_frame(imgui.io_mut(), &window)
                 .expect("Failed to prepare frame");
+
+                
                 
                 // window.set_maximized(true);
                 window.request_redraw();
@@ -115,7 +121,7 @@ where
                 let ui = imgui.new_frame();
 
                 let mut run = true;
-                run_ui(&mut run, ui, &display, &mut renderer, Some(a));
+                run_ui(&mut run, ui, &display, &mut renderer, Some(a),&window);
                 if !run {
                     window_target.exit();
                 }
@@ -146,7 +152,7 @@ where
             } => {
                 let ui = imgui.frame();
                 let mut run = true;
-                run_ui(&mut run, ui, &display, &mut renderer, None);
+                run_ui(&mut run, ui, &display, &mut renderer, None, &window);
                 if !run {
                     window_target.exit();
                 }
@@ -213,8 +219,8 @@ pub fn create_context() -> imgui::Context {
                 rasterizer_multiply: 1.5,
                 // Oversampling font helps improve text rendering at
                 // expense of larger font atlas texture.
-                oversample_h: 4,
-                oversample_v: 4,
+                oversample_h: 8,
+                oversample_v: 8,
                 ..FontConfig::default()
             }),
         },

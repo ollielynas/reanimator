@@ -27,6 +27,7 @@ use std::{
 use strum::IntoEnumIterator;
 
 use crate::node::random_id;
+use crate::nodes::cover_window::CoverWindowNode;
 use crate::nodes::load_gif::LoadGifNode;
 use crate::nodes::load_image::LoadImage;
 use crate::project_settings::ProjectSettings;
@@ -194,9 +195,42 @@ impl Project {
         }
     }
 
-    pub fn render(&mut self, ui: &Ui, user_settings: &mut UserSettings, renderer: &mut Renderer) {
+    pub fn render(&mut self, ui: &Ui, user_settings: &mut UserSettings, renderer: &mut Renderer, window: &imgui_winit_support::winit::window::Window) {
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
+        
+        let mut run_id = String::new();
+        for node in &mut self.nodes {
+            if node.type_() == NodeType::CoverWindow {
+                let a: Option<&CoverWindowNode> = (*node).as_any().downcast_ref::<CoverWindowNode>();
+                if let Some(cover_node) = a {
+            if cover_node.type_() == NodeType::CoverWindow && cover_node.render {
+                run_id = node.id();
+            }
+        }}}
+
+        if run_id != String::new() {
+            self.storage.time = ui.time();
+        self.run_nodes(renderer, vec![run_id.clone()]);
+        }
+        for node in &mut self.nodes {
+        if node.type_() == NodeType::CoverWindow {
+            let a: Option<&mut CoverWindowNode> = (*node).as_any_mut().downcast_mut::<CoverWindowNode>();
+            if let Some(cover_node) = a {
+                    if cover_node.render && run_id == cover_node.id() {
+                        if cover_node.render(ui, window, &mut self.storage, renderer) {
+                            return;
+                        }else {
+                            window.set_cursor_hittest(true);
+                            window.set_decorations(true);
+                            window.set_resizable(true);
+                            window.set_window_level(imgui_winit_support::winit::window::WindowLevel::default());
+                        }
+                    }
+                }
+            }
+        }
+        
 
         if self.loading <= MAX_LOADING + 1 {
             ui.window("loading")
@@ -319,8 +353,8 @@ impl Project {
                         2 => {
                             self.recenter_nodes(ui);
 
-                            self.run_nodes(renderer);
-                            self.run_nodes(renderer);
+                            self.run_nodes(renderer , vec![]);
+                            self.run_nodes(renderer , vec![]);
                         }
                         3 => {
                             self.save();
@@ -452,14 +486,15 @@ impl Project {
             (None, Some(a), m) => {
                 if let Some(pos) = params.node_pos_map.get(&a) {
                     let mut pos = pos.clone();
-                    if pos == ImVec2::new(PI, PI) {
-                        pos = ImVec2::new(size_array[0], m[1]);
-                    }
+                    // if pos == ImVec2::new(PI, PI) {
+                    //     pos = ImVec2::new(size_array[0], m[1]);
+                    // }
+                    let diff = (m[0] - pos.x).abs();
                     draw_list
                         .add_bezier_curve(
                             m,
-                            [(m[0] + pos.x) * 0.5, m[1]],
-                            [(m[0] + pos.x) * 0.5, pos.y],
+                            [m[0] - diff * 0.3, m[1]],
+                            [pos.x + diff * 0.3, pos.y],
                             [pos.x, pos.y],
                             ImColor32::BLACK,
                         )
@@ -468,11 +503,13 @@ impl Project {
             }
             (Some(a), None, m) => {
                 if let Some(pos) = params.node_pos_map.get(&a) {
+                    let diff = (m[0] - pos.x).abs();
+
                     draw_list
                         .add_bezier_curve(
                             [pos.x, pos.y],
-                            [(m[0] + pos.x) * 0.5, pos.y],
-                            [(m[0] + pos.x) * 0.5, m[1]],
+                            [m[0] + diff * 0.3, m[1]],
+                            [pos.x - diff * 0.3, pos.y],
                             [m[0], m[1]],
                             ImColor32::BLACK,
                         )
@@ -501,12 +538,12 @@ impl Project {
                 if let Some(pos) = params.node_pos_map.get(b) {
                     let texture_input = self.storage.get_texture(b).is_some();
                     let text_input = self.storage.get_text(b).is_some();
-
+                    let dif = (pos.x - pos2.x).abs();
                     draw_list
                         .add_bezier_curve(
                             [pos.x, pos.y],
-                            [(pos.x + pos2.x) * 0.5, pos.y],
-                            [(pos.x + pos2.x) * 0.5, pos2.y],
+                            [(pos.x + dif * 0.3), pos.y],
+                            [(pos2.x - dif * 0.3), pos2.y],
                             [pos2.x, pos2.y],
                             if text_input {
                                 [0.0, 0.5, 0.0, 1.0]
@@ -541,11 +578,12 @@ impl Project {
         let mut first = true;
         // params.time_list = vec![0.0];
         for t in params.time_list {
+            // println!("t");
             if first {
             before = glium::debug::TimestampQuery::new(&self.storage.display);}
             let before_run_nodes = Instant::now();
             self.storage.time = t;
-            self.run_nodes(renderer);
+            self.run_nodes(renderer, vec![]);
             self.total_frame_time = before_run_nodes.elapsed().as_secs_f32();
             if first {
             after = glium::debug::TimestampQuery::new(&self.storage.display);
@@ -564,6 +602,7 @@ impl Project {
             .position([0.0, menu_bar_size[1] - 1.0], imgui::Condition::Always)
             .size_constraints([0.0, window_size.y], [window_size.x * 0.4, window_size.y])
             .resizable(true)
+            .collapsible(false)
             // .always_auto_resize(true)
             .build(|| {
                 let sidebar_things = vec![ui.push_style_var(imgui::StyleVar::FrameBorderSize(0.0))];
@@ -673,7 +712,7 @@ impl Project {
         let mut edit_window_pos: [f32; 2] = [0.0; 2];
 
         ui.window("edit_node")
-            .collapsible(true)
+            .collapsible(false)
             .position_pivot([0.0, 1.0])
             .position(
                 [left_sidebar_width - 1.0, size_array[1]],
@@ -775,10 +814,12 @@ impl Project {
         // ui.show_user_guide();
     }
 
-    pub fn run_nodes(&mut self, renderer: &mut Renderer) {
+    pub fn run_nodes(&mut self, renderer: &mut Renderer, with_id: Vec<String>) {
         self.storage.reset();
         self.node_speeds.clear();
 
+        // println!("run");
+        
         let connection_hash = self.nodes.len() as u64
             + calculate_hash(
                 &<HashMap<String, String> as Clone>::clone(&self.connections)
@@ -843,7 +884,9 @@ impl Project {
                 }
             }
 
-            let mut outputs: Vec<String> = vec![];
+            let mut outputs: Vec<String> = with_id;
+            println!("{}", outputs.len());
+            if outputs.len() == 0 {
             for (_, n) in self.nodes.iter().enumerate() {
                 if matches!(
                     n.type_(),
@@ -852,6 +895,7 @@ impl Project {
                     outputs.push(n.id());
                 }
             }
+        }
 
             for out in outputs {
                 dfs(out, &mut colors, &mut order, &mut node_graph);
@@ -885,9 +929,13 @@ impl Project {
 
         let mut open = false;
 
-        ui.modal_popup_config("Add Node").build(|| {
+        ui.modal_popup_config("Add Node")
+        // .resizable(false)
+        .build(|| {
             open = true;
             ui.columns(2, "select new node col", true);
+            let avil = ui.content_region_avail();
+            ui.child_window("child window").size([0.0, - ui.calc_text_size("|")[1]*1.5]).build(|| {
             for n in 0..self.new_node_types.len() {
                 #[cfg(not(debug_assertions))]
                 {
@@ -933,6 +981,9 @@ impl Project {
                     a.end();
                 }
             }
+
+        });
+
             if let Some(new_node) = self.new_node_types.get(self.selected_node_to_add) {
                 if ui.button("add") {
                     let mut new_node2 = self.new_node_types[self.selected_node_to_add]
@@ -965,6 +1016,8 @@ impl Project {
 
             // self.new_node_types[n].;
         });
+
+        
 
         return open;
     }

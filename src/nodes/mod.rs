@@ -20,3 +20,5 @@ pub mod split_hsv;
 pub mod combine_hsv;
 pub mod scale;
 pub mod dither;
+pub mod desktop_capture;
+pub mod cover_window;

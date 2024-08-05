@@ -563,7 +563,7 @@ impl Project {
 
     pub fn load_objects(&mut self, mut renderer: Mutex<&mut Renderer>) {
         // let mut r = ;
-        self.run_nodes(renderer.get_mut().unwrap());
+        self.run_nodes(renderer.get_mut().unwrap(), vec![]);
     }
 
 }

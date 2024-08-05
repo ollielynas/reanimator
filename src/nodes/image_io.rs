@@ -311,7 +311,7 @@ impl MyNode for OutputNode {
                             gif_encoder.encode_frame(frame);
                             // println!("a");
                         }
-                        gif_encoder.set_repeat(image::gif::Repeat::Infinite);
+                        gif_encoder.set_repeat(image::gif::Repeat::Infinite).unwrap();
                         
                         // println!("{:?}", buffer);
                     }

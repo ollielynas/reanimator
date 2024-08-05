@@ -440,7 +440,6 @@ impl MyNode for BayerDitherNode {
         };
 
 
-        
 
         let fragment_shader_src = include_str!("dither.glsl");
 

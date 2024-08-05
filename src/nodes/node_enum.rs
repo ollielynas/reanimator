@@ -7,8 +7,10 @@ use basic_shader_nodes::solid_color::ColorNode;
 use basic_shader_nodes::text_mask::TextMaskNode;
 use combine_hsv::CombineHsvNode;
 use combine_rgba::CombineRgbaNode;
+use cover_window::CoverWindowNode;
 use debug::DebugNode;
 use default_image::DefaultImage;
+use desktop_capture::CaptureWindowNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
 use image_io::OutputNode;
@@ -20,6 +22,7 @@ use mask::generic_mask::GenericMaskNode;
 use mask::multiply::MultiplyNode;
 use mask::white_noise::WhiteNoiseNode;
 use pick_random::RandomInputNode;
+use regex::Regex;
 use render_3d::Render3DNode;
 use restrict_pallet::RestrictPalletNode;
 use savefile::{self, SavefileError};
@@ -29,6 +32,7 @@ use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
 use text::text_input::TextInputNode;
 use webcam::WebcamNode;
+use win_screenshot::utils::{window_list, HwndName};
 
 use crate::node::MyNode;
 
@@ -70,6 +74,8 @@ pub enum NodeType {
     LinearErrorDither,
     BayerDither,
     Sharpness,
+    CaptureDesktop,
+    CoverWindow,
 }
 
 impl NodeType  {
@@ -107,6 +113,8 @@ impl NodeType  {
             NodeType::LinearErrorDither => "Error Diffusion Dither",
             NodeType::BayerDither => "Bayer Dither",
             NodeType::Sharpness => "Sharpness",
+            NodeType::CaptureDesktop => "Capture Window",
+            NodeType::CoverWindow => "Cover Window",
         }.to_owned()
     }
 
@@ -116,6 +124,42 @@ impl NodeType  {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::CaptureDesktop => {
+                let a: Result<CaptureWindowNode, SavefileError> = savefile::load_file(project_file, CaptureWindowNode::savefile_version());
+                
+                match a {Ok(mut b) => {
+                    let re = Regex::new(&b.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap());
+    let hwnd = window_list()
+        .unwrap()
+        .iter()
+        .find(|i| re.is_match(&i.window_name))
+        .unwrap_or(&HwndName {hwnd: 0, window_name: "error".to_owned()})
+        .hwnd;
+            b.hwnd = hwnd;
+                    Some(Box::new(b))
+                }, Err(e) => {
+                    println!("{e}");
+                    None}}
+                
+            }
+            NodeType::CoverWindow => {
+                let a: Result<CoverWindowNode, SavefileError> = savefile::load_file(project_file, CoverWindowNode::savefile_version());
+                match a {Ok(mut b) => {
+                
+                
+                    let re = Regex::new(&b.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap());
+    let hwnd = window_list()
+        .unwrap()
+        .iter()
+        .find(|i| re.is_match(&i.window_name))
+        .unwrap_or(&HwndName {hwnd: 0, window_name: "error".to_owned()})
+        .hwnd;
+            b.hwnd = hwnd;
+                    Some(Box::new(b))
+                }, Err(e) => {
                     println!("{e}");
                     None}}
             }
@@ -300,6 +344,8 @@ impl NodeType  {
             NodeType::Scale => Box::new(ScaleNode::default()),
             NodeType::LinearErrorDither => Box::new(LinearErrorDitherNode::default()),
             NodeType::BayerDither => Box::new(BayerDitherNode::default()),
+            NodeType::CaptureDesktop => Box::new(CaptureWindowNode::default()),
+            NodeType::CoverWindow => Box::new(CoverWindowNode::default()),
             }
     }
 

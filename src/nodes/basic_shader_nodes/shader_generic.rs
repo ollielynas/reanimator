@@ -172,7 +172,7 @@ impl MyNode for GenericShaderNode {
                 // ui.set_window_font_scale(1.0);
             }
             NodeType::VHS => {
-                ui.text_wrapped("Warning! This not is not currently working");
+                ui.text_wrapped("Adds a VHS effect");
             }
             NodeType::Blur => {
                 ui.text_wrapped("Blur Image using Gaussian blur");

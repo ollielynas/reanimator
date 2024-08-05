@@ -6,11 +6,11 @@
     windows_subsystem = "windows"
   )]
 
-use std::{borrow::BorrowMut, env::current_exe, fs, process::exit, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
+use std::{borrow::BorrowMut, env::{self, current_exe}, fs, process::exit, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
 
 
 use fonts::MyFonts;
-use imgui_winit_support::winit::{error::OsError, monitor::VideoMode, window::{self, Fullscreen}};
+use imgui_winit_support::winit::{dpi::LogicalPosition, error::OsError, monitor::VideoMode, window::{self, Fullscreen, Window, WindowBuilder}};
 use platform_dirs::{AppDirs, UserDirs};
 use savefile;
 use project::Project;
@@ -78,7 +78,7 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
 
 
 fn main() {
-
+    // env::set_var("RUST_BACKTRACE", "1");
     #[cfg(all(target_os="windows", not(debug_assertions)))]{
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
@@ -135,13 +135,20 @@ fn main() {
 
     let fullscreen = user_settings.fullscreen; 
 
+    let mut added_window = false;
+
 
 
     init_with_startup("ReAnimator", |_, _, display| {
-    }, move |_, ui, display, renderer, drop_file| {
+    }, move |_, ui, display, renderer, drop_file, window| {
 
 
+        // window.set_cursor_hittest(false);
 
+        // window.set_outer_position(LogicalPosition::new(400.0, 200.0));
+
+        // platform.attach_window(io, window, hidpi_mode)
+        // platform.attach_window(ctx.io_mut(), Window::new(), imgui_winit_support::HiDpiMode::Default);
         let frame_start = Instant::now();
         let mut global_font_tokens = vec![];
         if let Some(font_id) = user_settings.font_id {
@@ -150,6 +157,11 @@ fn main() {
 
         }
         }
+
+        
+        // if !added_window {
+        //     platform.attach_window(ctx.io_mut(), WindowBuilder::new().w, imgui_winit_support::HiDpiMode::Default);
+        // };
 
         if return_to_home {
             project = None;
@@ -167,7 +179,7 @@ fn main() {
                 project.drop_file(path, ui);
             } 
             
-            project.render(ui, &mut user_settings, renderer);
+            project.render(ui, &mut user_settings, renderer, window);
             return_to_home = project.return_to_home_menu;
             // ui.show_default_style_editor();
             if save_timer.elapsed().as_secs_f32() > 2.0 {
@@ -176,7 +188,9 @@ fn main() {
                 let r = project.update_history_and_save();
                 match r {
                     Ok(_) => {},
-                    Err(e) => {println!("{e}")},
+                    Err(e) => {
+                        println!("{e}")},
+                
                 }
                 }else {
                     let _ = project.save();
@@ -212,15 +226,12 @@ fn main() {
         });
         }
 
-
-
         if settings_window_open {
             user_settings.settings_window(ui, &mut settings_window_open, &fonts);
         }
         sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) - (Instant::now() - frame_start).as_secs_f32()).max(0.0)));
 
     }, if fullscreen {Some(Fullscreen::Borderless(None))} else {None},  &mut ctx);
-
 }
 
 
