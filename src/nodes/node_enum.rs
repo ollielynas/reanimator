@@ -296,7 +296,12 @@ impl NodeType  {
             | NodeType::Sharpness
              => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
-                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+                match a {Ok(mut b) => {
+                    b.load_type();
+                    Some(Box::new(b))
+                }, Err(_) => None}
+
+                
             }
             NodeType::BrightnessMask => {
                 let a: Result<GenericMaskNode, SavefileError> = savefile::load_file(project_file, GenericMaskNode::savefile_version());

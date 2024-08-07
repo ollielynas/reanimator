@@ -112,6 +112,13 @@ impl Project {
 
                     ui.set_window_font_scale(self.scale);
 
+                    if self.project_settings.generic_io.input_id == Some(node.id()) {
+                        ui.text("generic input")
+                    }
+                    if self.project_settings.generic_io.output_id == Some(node.id()) {
+                        ui.text("generic output")
+                    }
+
                     if ui.is_window_focused() {
                         self.node_edit = Some(i);
                     }
@@ -242,6 +249,18 @@ impl Project {
                     }
 
                     if let Some(popup) = ui.begin_popup_context_window() {
+
+                        if node.inputs().len() == 0 && node.outputs().len() == 1 {
+                            if ui.menu_item("set as generic input") {
+                                self.project_settings.generic_io.input_id = Some(node.id());
+                            }
+                        }
+                        if node.inputs().len() == 1 && node.outputs().len() == 0 {
+                            if ui.menu_item("set as generic output") {
+                                self.project_settings.generic_io.output_id = Some(node.id());
+                            }
+                        }
+
                         if ui.menu_item("duplicate") {
                             let a = fs::create_dir_all(self.path.join("temp").join(node.name()));
                             if let Err(e) = a {

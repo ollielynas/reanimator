@@ -102,6 +102,8 @@ impl CoverWindowNode {
                 window.set_cursor_hittest(false);
                 window.set_decorations(false);
                 window.set_resizable(false);
+                window.set_transparent(true);
+            
                 window
                     .set_window_level(imgui_winit_support::winit::window::WindowLevel::AlwaysOnTop);
                 window.set_outer_position(Position::Physical((rect.left, rect.top).into()));
@@ -149,8 +151,8 @@ impl CoverWindowNode {
                         return true;
                     }
                 } else {
-                    println!("tecture");
-                    return false;
+                    ui.text("failed to load get texture");
+                    return true;
                 }
             } else {
                 return false;

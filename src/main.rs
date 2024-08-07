@@ -10,7 +10,7 @@ use std::{borrow::BorrowMut, env::{self, current_exe}, fs, process::exit, thread
 
 
 use fonts::MyFonts;
-use imgui_winit_support::winit::{dpi::LogicalPosition, error::OsError, monitor::VideoMode, window::{self, Fullscreen, Window, WindowBuilder}};
+use imgui_winit_support::winit::{dpi::{LogicalPosition, LogicalSize}, error::OsError, monitor::VideoMode, window::{self, Fullscreen, Window, WindowBuilder}};
 use platform_dirs::{AppDirs, UserDirs};
 use savefile;
 use project::Project;
@@ -18,6 +18,7 @@ use self_update::cargo_crate_version;
 use support::{create_context, init_with_startup};
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
 use win_msgbox::{raw::w, Okay};
+
 #[macro_use]
 extern crate savefile_derive;
 
@@ -34,7 +35,9 @@ pub mod widgets;
 pub mod fonts;
 pub mod render_nodes;
 pub mod project_settings;
-
+pub mod generic_io;
+pub mod sidebar;
+pub mod batch_edit;
 
 
 
@@ -113,7 +116,7 @@ fn main() {
     };
 
 
-    let mut fonts = MyFonts::new();
+    let fonts = MyFonts::new();
 
 
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
@@ -142,13 +145,6 @@ fn main() {
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer, drop_file, window| {
 
-
-        // window.set_cursor_hittest(false);
-
-        // window.set_outer_position(LogicalPosition::new(400.0, 200.0));
-
-        // platform.attach_window(io, window, hidpi_mode)
-        // platform.attach_window(ctx.io_mut(), Window::new(), imgui_winit_support::HiDpiMode::Default);
         let frame_start = Instant::now();
         let mut global_font_tokens = vec![];
         if let Some(font_id) = user_settings.font_id {
@@ -158,14 +154,13 @@ fn main() {
         }
         }
 
-        
-        // if !added_window {
-        //     platform.attach_window(ctx.io_mut(), WindowBuilder::new().w, imgui_winit_support::HiDpiMode::Default);
-        // };
 
         if return_to_home {
             project = None;
             return_to_home = false;
+            window.set_maximized(false);
+            window.request_inner_size(LogicalSize::new(1024, 512));
+
         }
 
         let size_array = ui.io().display_size;
@@ -193,6 +188,17 @@ fn main() {
                 
                 }
                 }else {
+                    
+                    if window.is_maximized() {
+                        project.project_settings.maximised = true;
+                    }else {
+                        if let Ok(pos) = window.outer_position() {
+                            project.project_settings.window_pos = Some([pos.x as f32, pos.y as f32]); 
+                        }
+                        let size = window.inner_size();
+                        project.project_settings.window_size = Some([size.width as f32, size.height as f32]); 
+                    }
+
                     let _ = project.save();
                 }
             }

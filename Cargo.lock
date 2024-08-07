@@ -994,6 +994,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
+name = "dtoa"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcbb2bf8e87535c23f7a8a321e364ce21462d0ff10cb6407820e8e96dfff6653"
+
+[[package]]
 name = "dtt"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1943,6 +1949,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2104,7 +2119,7 @@ checksum = "cc551d0ab93de1cb49e6b1020b6f2b53877501e6d9f96eb13816598d0d5edc71"
 dependencies = [
  "argh",
  "glam",
- "itertools",
+ "itertools 0.10.5",
  "png 0.17.13",
  "rand",
  "rayon",
@@ -2362,6 +2377,16 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
+
+[[package]]
+name = "numfmt"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db7467e47de9fb6ea5b3f47dc34c1cf0b86359f072a46f6278119544cdbd0021"
+dependencies = [
+ "dtoa",
+ "itoa",
+]
 
 [[package]]
 name = "objc"
@@ -2953,7 +2978,9 @@ dependencies = [
  "imgui",
  "imgui-glium-renderer",
  "imgui-winit-support",
+ "itertools 0.13.0",
  "lumo",
+ "numfmt",
  "open",
  "pac2",
  "platform-dirs",

@@ -187,7 +187,7 @@ impl Storage {
     pub fn debug_window(&mut self, ui: &Ui) {
         if !self.show_debug_window {return}
 
-        let window = ui.window("debug window")
+        let window: Option<imgui::WindowToken> = ui.window("debug window")
         .opened(&mut self.show_debug_window)
         .begin();
 
@@ -283,6 +283,7 @@ impl Storage {
                 self.set_texture(k, texture);
             }
             _ => {
+                println!("new texture");
                 let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
                         .unwrap();

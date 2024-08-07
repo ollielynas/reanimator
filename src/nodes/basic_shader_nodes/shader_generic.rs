@@ -55,6 +55,24 @@ pub struct GenericShaderNode {
 }
 
 impl GenericShaderNode {
+
+    pub fn load_type(&mut self) {
+        if self.type_index != self.type_.generic_shader_index() {
+            println!("{}", self.type_index);
+            for i in NodeType::iter() {
+                if i.generic_shader_index() == self.type_index {
+                    // self.type_ = i;
+                    let new = GenericShaderNode::new(i);
+                    self.type_ = new.type_;
+                    self.input_max = new.input_max;
+                    self.input_name = new.input_name;
+                    println!("{:?}", self.type_);
+                    break
+                }
+            }
+        }
+    }
+
     pub fn new(type_: NodeType) -> GenericShaderNode {
         println!("{:?}", type_);
         GenericShaderNode {

@@ -160,6 +160,11 @@ let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap
                     Err(_) => {return false;},
                 }
             }else {
+                
+                // match capture_window_ex(self.hwnd, Using::BitBlt, Area::ClientOnly, None, None) {
+                //     Ok(a) => a,
+                //     Err(_) => {return false;},
+                // }
                 match capture_window(self.hwnd) {
                     Ok(a) => a,
                     Err(_) => {return false;},
@@ -213,7 +218,7 @@ let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap
                     },
                 )
                 .unwrap();
-            std::thread::sleep(Duration::from_millis(5));
+            // std::thread::sleep(Duration::from_millis(5));
 
             return true;
 

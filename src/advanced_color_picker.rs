@@ -2,6 +2,8 @@ use std::{clone, collections::HashMap, default};
 
 use imgui::Ui;
 use textdistance::{self, Algorithm, Cosine, Sift4Simple};
+use win_screenshot::prelude::capture_display;
+use windows::Win32::{Foundation::POINT, UI::WindowsAndMessaging::GetCursorPos};
 
 
 pub struct AdvancedColorPicker {
@@ -156,6 +158,15 @@ impl AdvancedColorPicker {
                 }
             }
     
+            if let Some(_tab_iter) = ui.tab_item("Pick Color") {
+                let mut color = self.get_cursor_color(ui);
+                ui.color_edit4("old color", &mut self.color);
+                ui.color_edit4("selected color", &mut color);
+                ui.text("press shift to select color");
+                if ui.io().key_shift {
+                    self.color = color;
+                }
+            }
             if let Some(tab_iter) = ui.tab_item("Pantone Colors") {
                 // ui.columns(2, "pantone search", true);
                 ui.text(format!("loaded {} colors", self.pantone_colors.len()));
@@ -213,4 +224,23 @@ impl AdvancedColorPicker {
         );
         self.open = open;
     }
+
+
+    fn get_cursor_color(&mut self, ui: &Ui) -> [f32;4]  {
+        let mut color = [0.0;4];
+        if let Ok(display) = capture_display() {
+            let mut global_pos:POINT = POINT::default();
+            unsafe { GetCursorPos(&mut global_pos) };
+            let index = (display.width as i32 * global_pos.y + global_pos.x)*4;
+            if index >= 0 && index < display.pixels.len() as i32 - 2 {
+                let r = display.pixels[index as usize];
+                let g = display.pixels[index as usize + 1];
+                let b = display.pixels[index as usize + 2];
+                color = [r as f32 / 255.0,g as f32 / 255.0,b as f32 / 255.0,1.0]
+            }
+        }
+        return color;
+    }
+
 }
+
