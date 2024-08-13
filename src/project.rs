@@ -30,8 +30,10 @@ use std::{
 use strum::IntoEnumIterator;
 
 use crate::generic_io::EditTab;
+use crate::generic_node_info::GenericNodeInfo;
 use crate::node::random_id;
 use crate::nodes::cover_window::CoverWindowNode;
+use crate::nodes::debug;
 use crate::nodes::load_gif::LoadGifNode;
 use crate::nodes::load_image::LoadImage;
 use crate::project_settings::ProjectSettings;
@@ -56,7 +58,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-const MAX_LOADING: i32 = 3;
+const MAX_LOADING: i32 = 4;
 
 // #[savefile_derive]
 pub struct Project {
@@ -91,6 +93,7 @@ pub struct Project {
     pub open_settings: bool,
     pub project_settings: ProjectSettings,
     pub edit_tab: EditTab,
+    pub backup_data: Vec<GenericNodeInfo>,
 }
 
 impl Project {
@@ -134,6 +137,7 @@ impl Project {
             render_ticker_timer: Instant::now(),
             open_settings: false,
             edit_tab: EditTab::BatchFileEdit,
+            backup_data: vec![],
         };
         return new;
     }
@@ -156,7 +160,7 @@ impl Project {
             return Ok(());
         }
 
-        
+        self.backup_data = vec![];
 
         fs::create_dir_all(self.path.clone())?;
 
@@ -176,6 +180,7 @@ impl Project {
                 output_ok = true;
             }
             fs::create_dir_all(self.path.join("nodes").join(node.name()))?;
+            self.backup_data.push(node.generic_info());
             node.save(self.path.join("nodes"))?;
         }
 
@@ -185,6 +190,9 @@ impl Project {
         if !output_ok {
             self.project_settings.generic_io.output_id = None;
         }
+
+
+        savefile::save_file(self.path.join("backup_data.bin"), GenericNodeInfo::savefile_version(), &self.backup_data);
 
         return Ok(());
     }
@@ -226,11 +234,6 @@ impl Project {
         renderer: &mut Renderer,
         window: &imgui_winit_support::winit::window::Window,
     ) {
-
-
-
-        
-
 
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
@@ -278,6 +281,9 @@ impl Project {
                         3 => {
                             ui.text("Saving");
                         }
+                        4 => {
+                            ui.text("Verifying save integrity");
+                        }
                         _ => {}
                     }
 
@@ -297,6 +303,7 @@ impl Project {
                                 let node: Box<dyn MyNode> = node_type.new_node();
                                 debug_assert_eq!(node_type, node.type_());
                                 debug_assert_eq!(node_type.name(), node.name());
+                                
                                 new_node_types.push(node);
                             }
 
@@ -317,6 +324,22 @@ impl Project {
                             });
                         }
                         1 => {
+                            if let Ok(project_settings) =
+                                savefile::load_file::<ProjectSettings, PathBuf>(
+                                    self.path.join("project_settings.bin"),
+                                    0,
+                                )
+                            {
+                                self.project_settings = project_settings;
+                            }
+                            if let Ok(backup_data) =
+                                savefile::load_file::<Vec<GenericNodeInfo>, PathBuf>(
+                                    self.path.join("backup_data.bin"),
+                                    GenericNodeInfo::savefile_version(),
+                                )
+                            {
+                                self.backup_data = backup_data;
+                            }
                             if let Ok(project_settings) =
                                 savefile::load_file::<ProjectSettings, PathBuf>(
                                     self.path.join("project_settings.bin"),
@@ -366,6 +389,24 @@ impl Project {
 
                             self.run_nodes(renderer);
                             self.run_nodes(renderer);
+                            for (i, (_id, speed)) in self.node_speeds.iter().enumerate() {
+                                let type_: NodeType = self.nodes[i].type_();
+                                let speed = speed.as_secs_f32()/(self.total_frame_time.max(self.total_gpu_frame_time)/self.node_speeds.len() as f32);
+                                if let Some(array) = user_settings.node_speed.get_mut(&self.nodes[i].name()) {
+                                    array.push(speed);
+                                    if array.len() > 40 {
+                                        array.remove(40);
+                                    }
+                            }else {
+                                user_settings.node_speed.insert(self.nodes[i].name(), vec![speed]);
+                            }
+
+                        }
+                        #[cfg(debug_assertion)] {
+                            let a = savefile::save_file("src/node_speeds.bin", 0, &user_settings.node_speed);
+                            println!("{a:?}");
+                        
+                        }
                         }
                         3 => {
                             self.save();
@@ -380,6 +421,14 @@ impl Project {
                                 window.set_maximized(true);
                             }
 
+                        }
+                        4 => {
+                            for node in &self.nodes {
+                                self.backup_data.retain(|x| x.id != node.id());
+                            }
+                            for data in &self.backup_data {
+                                self.nodes.push(data.restore_node());
+                            }
                         }
                         a => {
                             unreachable!("There is no loading step: {a}")
@@ -526,17 +575,6 @@ impl Project {
 
 
 
-        // Context::set_pixels_per_point(&self, pixels_per_point)
-        // self.node_edit = None;
-        // hash
-
-
-
-        // unsafe { ui.style().scale_all_sizes(0.5) };
-        // let mut style = ui.style().
-        // ui.show_style_editor();
-        // ui.show_default_style_editor();
-        // renderer.render(target, draw_data)
 
         // println!("{:?}", ui.mouse_drag_delta());
 

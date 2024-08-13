@@ -86,7 +86,7 @@ impl MyFile {
         self.path.file_name().unwrap_or(&OsStr::new("Error")).to_str().unwrap().split(".").next().unwrap().to_string()
     }
     pub fn type_(&self) -> String {
-        self.path.extension().unwrap_or(&OsStr::new(".error")).to_str().unwrap().to_string()
+        self.path.extension().unwrap_or(&OsStr::new("")).to_str().unwrap().to_string()
     }
 }
 
@@ -128,7 +128,7 @@ impl Project {
 
     pub fn run_batch(&mut self, renderer: &mut Renderer) {
 
-        
+
         let binding = self.project_settings.batch_files.files[self.project_settings.batch_files.index].clone();
         let raw_in: Vec<RawImage2d<u8>> = binding.get_raw();
         if raw_in.len() > 0 {
@@ -160,7 +160,7 @@ impl Project {
     }
     
 
-    pub fn render_batch_edit(&mut self, ui: &Ui, sidebar_params: &mut SidebarParams, user_settings: &mut UserSettings) {
+    pub fn render_batch_edit(&mut self, ui: &Ui, sidebar_params: &mut SidebarParams, _user_settings: &mut UserSettings) {
         
 
 
@@ -187,10 +187,13 @@ impl Project {
             }
             if self.project_settings.generic_io.output_id.is_none() {
                 ui.text_wrapped("! The generic output node has not been set, you will not be able to perform batch operations");
-            }
+            } 
             if self.project_settings.generic_io.output_id.is_none() || self.project_settings.generic_io.output_id.is_none() {
                 ui.text_wrapped("you can set any valid node as a generic input/output using the right click popup menu");
             }
+
+            
+
             if ui.button("add files") {
                 let files = FileDialog::new().pick_files();
 
@@ -204,7 +207,7 @@ impl Project {
                 self.project_settings.batch_files.files = self.project_settings.batch_files.files.iter().unique_by(|x| x.path.clone()).cloned().collect::<Vec<MyFile>>();
             } 
             ui.same_line();
-            if ui.button("add folders") {
+            if ui.button("add folder") {
                 let folder = FileDialog::new().pick_folder();
 
                 if let Some(folder) = folder {
@@ -235,6 +238,7 @@ impl Project {
 
             ui.spacing();
             ui.spacing();
+
             
             if ui.button("Name") && self.project_settings.batch_files.files.len()>=2 {
                 let first = self.project_settings.batch_files.files[0].path.clone();

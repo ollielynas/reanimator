@@ -1,22 +1,18 @@
 use std::{any::Any, collections::HashMap, path::PathBuf, rc::Rc};
 
 use glium::{
-    texture::Texture3d,
-    uniform,
     uniforms::{MagnifySamplerFilter, SamplerBehavior},
-    BlitTarget, DrawParameters, Rect, Surface, Texture2d,
+    BlitTarget, Rect, Texture2d,
+    Surface
 };
-use imgui::{TextureId, Ui, Window};
+use imgui::{TextureId, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
-use imgui_winit_support::winit::{
-    dpi::{Position, Size},
-    raw_window_handle::HasWindowHandle,
-};
+use imgui_winit_support::winit::{dpi::{Position, Size}, raw_window_handle::{HasDisplayHandle, HasWindowHandle}};
 use savefile::{save_file, SavefileError};
 use windows::Win32::{
     Foundation::{HWND, POINT, RECT},
     Graphics::Gdi::ClientToScreen,
-    UI::WindowsAndMessaging::{self, GetClientRect, GetForegroundWindow},
+    UI::WindowsAndMessaging::{GetClientRect, GetForegroundWindow},
 };
 
 use crate::{
@@ -71,6 +67,11 @@ impl CoverWindowNode {
         storage: &mut Storage,
         renderer: &mut Renderer,
     ) -> bool {
+
+        if self.hwnd == 0 {
+            return false;
+        }
+
         if self.render {
             let mut rect = RECT::default();
             unsafe {
@@ -93,17 +94,19 @@ impl CoverWindowNode {
                 rect.top = point.y;
             }
 
+            
+
             let steam_focused = unsafe { GetForegroundWindow().0 == self.hwnd };
 
             if steam_focused {
-                window.request_inner_size(Size::Physical(
+                let _ = window.request_inner_size(Size::Physical(
                     (rect.right as f64, rect.bottom as f64).into(),
                 ));
-                window.set_cursor_hittest(false);
+                let _ = window.set_cursor_hittest(false);
                 window.set_decorations(false);
                 window.set_resizable(false);
                 window.set_transparent(true);
-            
+                
                 window
                     .set_window_level(imgui_winit_support::winit::window::WindowLevel::AlwaysOnTop);
                 window.set_outer_position(Position::Physical((rect.left, rect.top).into()));
@@ -218,7 +221,7 @@ impl MyNode for CoverWindowNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer) {
         ui.checkbox("enable", &mut self.render);
 
         if ui.is_item_hovered() {
@@ -232,13 +235,17 @@ impl MyNode for CoverWindowNode {
             let hwnd = window_list()
                 .unwrap()
                 .iter()
-                .find(|i| re.is_match(&i.window_name))
+                .find(|i|re.is_match(&i.window_name) && !i.window_name.contains("ReAnimator"))
                 .unwrap_or(&HwndName {
                     hwnd: 0,
                     window_name: "error".to_owned(),
                 })
                 .hwnd;
+            if self.app_name.len() >= 2 {
             self.hwnd = hwnd;
+            }else {
+                self.hwnd = 0;
+            }
         }
 
         let mut hwnd = self.hwnd as i32;

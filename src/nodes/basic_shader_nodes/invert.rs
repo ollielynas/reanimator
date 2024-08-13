@@ -1,6 +1,6 @@
-use std::{any::Any, collections::HashMap, fs, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{implement_vertex, texture, uniform, DrawParameters, Frame, Surface};
+use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
@@ -88,7 +88,7 @@ impl MyNode for InvertTextureNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
@@ -161,7 +161,7 @@ impl MyNode for InvertTextureNode {
         self
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
         ui.checkbox("invert alpha", &mut self.invert_alpha);
     }
 }

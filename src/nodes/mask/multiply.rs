@@ -90,7 +90,7 @@ impl MyNode for MultiplyNode {
 
 
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_outputs = self.inputs().iter().map(|x| match map.get(&self.input_id(x.to_string())) {
             Some(a) => a,

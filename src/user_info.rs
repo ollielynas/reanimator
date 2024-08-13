@@ -1,8 +1,7 @@
 use std::{
-    env::current_exe, fs::{self, DirEntry}, path::PathBuf, sync::{Mutex, MutexGuard}, thread::Thread, time::SystemTime
+    collections::HashMap, env::current_exe, fs::{self, DirEntry}, path::PathBuf, sync::{Mutex, MutexGuard}, thread::Thread, time::SystemTime
 };
 
-use glium_glyph::glyph_brush::FontId;
 use imgui::{FontConfig, FontSource, Style, Ui};
 use imgui_glium_renderer::Renderer;
 use platform_dirs::{AppDirs, UserDirs};
@@ -17,7 +16,7 @@ use glium::glutin::surface::WindowSurface;
 use win_msgbox::Okay;
 use std::thread;
 
-use crate::{fonts::MyFonts, project::Project, relaunch_windows, support::{create_context, FONT_SIZE}};
+use crate::{fonts::MyFonts, nodes::node_enum::NodeType, project::Project, relaunch_windows, set_as_default_for_filetype, support::{create_context, FONT_SIZE}};
 
 
 pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 4;
@@ -60,6 +59,10 @@ pub struct UserSettings {
     #[savefile_default_val="Default"]
     pub font: String,
     #[savefile_versions="5.."]
+    
+    /// doesn't currently work, and should not be used
+    pub node_speed: HashMap<String, Vec<f32>>,
+    #[savefile_versions="5.."]
     #[savefile_default_val="true"]
     pub dots: bool,
     #[savefile_default_fn="none_val_font_id"]
@@ -71,6 +74,8 @@ pub struct UserSettings {
     loading: bool,
 
 }
+
+
 
 impl Default for UserSettings {
     fn default() -> Self {
@@ -99,6 +104,8 @@ impl Default for UserSettings {
             font: "Default".to_owned(),
             font_id: None,
             dots: true,
+
+            node_speed: savefile::load_from_mem::<HashMap<String, Vec<f32>>>(include_bytes!("node_speeds.bin"), 0).unwrap_or_default(),
         };
 
         return new;
@@ -271,15 +278,6 @@ impl UserSettings {
             // ctx.new_frame();
         }   
 
-        
-        // println!("built fonts");
-        // ctx.new_frame().push_font(id);
-        // if ctx.frame().fonts().get_font(id).is_some() {
-        //     println!("built fonts");
-        //     // ctx.io_mut().display_size = [20.0,20.0];
-
-        //     println!("built fonts 3");
-        // }
 
 
 
@@ -424,6 +422,16 @@ impl UserSettings {
                     }
 
                 }
+                if let Some(_general_settings) = ui.tab_item("advanced") {
+                    ui.spacing();
+                    ui.spacing();
+                    if ui.button("Register as default application for .repj files") {
+                        set_as_default_for_filetype(true);
+                    }
+                    if ui.is_item_hovered() {
+                        ui.tooltip_text("Application must be run as admin");
+                    }
+                }
                 tab_bar.end();
             }
 
@@ -518,7 +526,7 @@ impl Project {
 
                                 let p = save_dir.join(new_project_1.name());
                                 
-                                fs::create_dir_all(&p);
+                                let _ = fs::create_dir_all(&p);
 
                                 for i in fs::read_dir(p).unwrap() {
                                     if let Ok(i) = i {
@@ -531,7 +539,7 @@ impl Project {
                                             .as_secs()
                                             > (86400 * 7)
                                         {
-                                            fs::remove_file(i.path());
+                                            let _ = fs::remove_file(i.path());
                                         }
                                     }
                                 }
@@ -541,11 +549,7 @@ impl Project {
                                 new_project = Some(new_project_1);
                             }
 
-                            // ui.same_line_with_spacing(ui.window_size()[0]-ui.calc_text_size("del")[0], 10.0);
-                            // ui.push_style_color(imgui::StyleColor::Button, [0.8,0.3,0.3,1.0]);
-                            // ui.push_style_color(imgui::StyleColor::ButtonHovered, [0.7,0.3,0.3,1.0]);
-                            // ui.push_style_color(imgui::StyleColor::ButtonActive, [0.7,0.4,0.4,1.0]);
-                            // ui.button("del");
+
                         }
                     });
 

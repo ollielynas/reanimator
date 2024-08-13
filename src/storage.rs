@@ -8,10 +8,9 @@ use glium::program::Attribute;
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
-use glium::{implement_vertex, pixel_buffer, program, Program, Surface, Vertex};
-use image::{DynamicImage, GenericImage, ImageBuffer, ImageFormat, Rgba};
+use glium::{implement_vertex, Program, Surface};
+use image::{DynamicImage, ImageBuffer, Rgba};
 use imgui::{TreeNodeFlags, Ui};
-use imgui_glium_renderer::Renderer;
 use std::hash::Hash;
 use image::EncodableLayout;
 

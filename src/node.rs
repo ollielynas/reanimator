@@ -7,8 +7,7 @@ use imgui_glium_renderer::Renderer;
 use savefile::prelude::*;
 
 use crate::{
-    nodes::{image_io::OutputNode, node_enum::NodeType},
-    storage::Storage,
+    generic_node_info::GenericNodeInfo, nodes::{image_io::OutputNode, node_enum::NodeType}, storage::Storage
 };
 
 
@@ -16,6 +15,15 @@ use crate::{
 pub trait MyNode {
 
     fn savefile_version() -> u32 where Self: Sized;
+
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x(),
+            y: self.y(),
+            type_: self.type_(),
+            id: self.id(),
+        }
+    }
 
     fn as_any(&self) -> &dyn Any;
     

@@ -1,6 +1,5 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
@@ -85,14 +84,14 @@ impl MyNode for TextInputNode {
     }
 
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
         let region = ui.content_region_avail();
         ui.input_text_multiline("Text", &mut self.text, region).build();
     }
 
 
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, _map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
         let output_id = self.output_id(self.outputs()[0].clone());
 
 

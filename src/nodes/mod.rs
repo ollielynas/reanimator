@@ -22,3 +22,4 @@ pub mod scale;
 pub mod dither;
 pub mod desktop_capture;
 pub mod cover_window;
+pub mod detect_motion;

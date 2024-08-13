@@ -99,7 +99,7 @@ impl MyNode for DifferenceofGaussiansNode {
 
 
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
@@ -153,7 +153,7 @@ impl MyNode for DifferenceofGaussiansNode {
         
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
         ui.input_float("Inner Radius", &mut self.radius).build();
         ui.input_float("Radius Difference", &mut self.radius_diff).build();
         ui.slider("Weight",0.0,1.0, &mut self.scale_on_2nd);

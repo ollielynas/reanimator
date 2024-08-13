@@ -6,16 +6,18 @@
     windows_subsystem = "windows"
   )]
 
-use std::{borrow::BorrowMut, env::{self, current_exe}, fs, process::exit, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
+use std::{borrow::BorrowMut, env::{self, current_exe}, fs, os::windows::process::CommandExt, process::{exit, Command}, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
 
 
 use fonts::MyFonts;
 use imgui_winit_support::winit::{dpi::{LogicalPosition, LogicalSize}, error::OsError, monitor::VideoMode, window::{self, Fullscreen, Window, WindowBuilder}};
+use import_export::load_project;
 use platform_dirs::{AppDirs, UserDirs};
 use savefile;
 use project::Project;
 use self_update::cargo_crate_version;
 use support::{create_context, init_with_startup};
+use system_extensions::dialogues::messagebox::{IconType, MessageBox, WindowType};
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
 use win_msgbox::{raw::w, Okay};
 
@@ -38,7 +40,8 @@ pub mod project_settings;
 pub mod generic_io;
 pub mod sidebar;
 pub mod batch_edit;
-
+pub mod import_export;
+pub mod generic_node_info;
 
 
 
@@ -46,8 +49,22 @@ pub mod batch_edit;
 // static DISPLAY_TEXTURE_ID: Mutex<Option<TextureId>> = Mutex::new(None);
 
 
+pub fn set_as_default_for_filetype(popup_message: bool) {
+
+    let command = format!("ftype \"ReAnimator Project\"=\"{}\"  \"%1\" && assoc .repj=\"ReAnimator Project\"", current_exe().unwrap().as_os_str().to_str().unwrap());
+    println!("{command}");
+    let res = Command::new("cmd")
+    .raw_arg("/C ".to_owned() + &command)
+    .output();
+    if popup_message {
+        win_msgbox::show::<Okay>(&format!("{} \n\n\n {:?}", command, res));
+    }
+}
+
+
 fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     println!("updating");
+
     
     let relase_builds = self_update::backends::github::ReleaseList::configure()
     .repo_owner("ollielynas")
@@ -65,9 +82,14 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
         .current_version(cargo_crate_version!())
         .build()?
         .update()?;
+
     
     if status.updated() {
+
         #[cfg(all(target_os="windows", not(debug_assertions)))]{
+
+            set_as_default_for_filetype(false);
+
             win_msgbox::show::<Okay>(&format!("Updated to version: {}", status.version()));
             relaunch_windows(false);
         }
@@ -79,20 +101,23 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     Ok(())
 }
 
-
 fn main() {
     // env::set_var("RUST_BACKTRACE", "1");
+
+    
     #[cfg(all(target_os="windows", not(debug_assertions)))]{
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
-
         let a = update();
 
         if let Err(a2) = a {
 
             if a2.to_string().contains("os error 5") {
-                if win_msgbox::show::<Okay>(&format!("New update avalible, press ok to install")).is_ok() {
+                if MessageBox::new("Updater", "New update avalible, press ok to install")
+                .set_icon_type(IconType::ICON_INFORMATION)
+                .set_window_type(WindowType::OK_CANCEL)
+                .show().is_ok() {
                     relaunch_windows(true);
                 };
             }else {
@@ -102,6 +127,35 @@ fn main() {
         }
     }
     // panic!("test");
+
+    let args: Vec<String> = env::args().collect();
+
+    println!("{args:?}");
+
+    set_as_default_for_filetype(false);
+
+
+    let res = Command::new("cmd")
+    .raw_arg("/C ".to_owned()+ "assoc .repj")
+    .output();
+
+    
+
+    let assoc = match res {
+        Ok(a) => a.status.success(),
+        Err(_) => false,
+    };
+
+
+    if !assoc {
+        if MessageBox::new("ReAnimator", "ReAnimator has not been set a the default application for .repj files. Press Ok to set as default")
+                .set_icon_type(IconType::ICON_WARNING)
+                .set_window_type(WindowType::OK_CANCEL)
+                .show().is_ok() {
+                    relaunch_windows(true);
+                };
+    }
+
 
 
     // update();
@@ -115,15 +169,18 @@ fn main() {
         },
     };
 
-
     let fonts = MyFonts::new();
 
 
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
+    let mut project: Option<Project> = None;
+    
+    
     user_settings.update_projects();
 
+
+
     let mut return_to_home = false;
-    let mut project: Option<Project> = None;
     
     let mut ctx: imgui::Context = create_context();
 
@@ -139,18 +196,27 @@ fn main() {
     let fullscreen = user_settings.fullscreen; 
 
     let mut added_window = false;
-
+    let mut loaded_project = false;
 
 
     init_with_startup("ReAnimator", |_, _, display| {
     }, move |_, ui, display, renderer, drop_file, window| {
+
+
+        if args.len() >= 2 && args[1].contains(".repj") && !loaded_project {
+            if let Some(p) = load_project(args[1].clone(), user_settings.clone()) {
+                project = Some(Project::new(p, display.clone()));
+                loaded_project = true;
+            }
+        }
+
+    
 
         let frame_start = Instant::now();
         let mut global_font_tokens = vec![];
         if let Some(font_id) = user_settings.font_id {
         if ui.fonts().get_font(font_id).is_some() {
             global_font_tokens.push(ui.push_font(font_id));
-
         }
         }
 
@@ -185,7 +251,6 @@ fn main() {
                     Ok(_) => {},
                     Err(e) => {
                         println!("{e}")},
-                
                 }
                 }else {
                     
@@ -219,12 +284,12 @@ fn main() {
             }
             // ui.same_line();
         });
-            ui.window("version")
+            ui.window("v")
         .draw_background(false)
         .movable(false)
         .no_decoration()
         .position_pivot([0.5,1.0])
-        .size_constraints([ui.calc_text_size("xxxxxxxxxxxxx")[0],-1.0], [9999.0,-1.0])
+        .size_constraints([ui.calc_text_size("")[0],-1.0], [9999.0,-1.0])
         .position([size_array[0]*0.5,size_array[1]], imgui::Condition::Always)
         .build(|| {
             ui.text("v".to_owned()+cargo_crate_version!());

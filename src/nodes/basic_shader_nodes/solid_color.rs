@@ -4,7 +4,7 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, nodes::{node_enum::NodeType}, storage::Storage};
+use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
 
 
 
@@ -93,7 +93,7 @@ impl MyNode for ColorNode {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
         
         let output_id = self.output_id(self.outputs()[0].clone());
         
@@ -157,7 +157,7 @@ impl MyNode for ColorNode {
         ui.text_wrapped("basic node, for debugging purposes")
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
         ui.columns(2, "color col", true);
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {

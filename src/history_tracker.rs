@@ -89,11 +89,11 @@ impl Project {
             index: UNIX_EPOCH.elapsed().unwrap().as_secs_f64(),
         };
 
-        let compressor = Compressor::new(
+        let compressor: Compressor = Compressor::new(
             old.path.as_os_str().to_str().unwrap(),
             new_path.as_os_str().to_str().unwrap(),
         );
-        let compress_info = compressor.compress(CompressionLevel::Fast)?;
+        let _compress_info = compressor.compress(CompressionLevel::Fast)?;
 
         let _its_ok_if_this_errors = fs::remove_dir_all(old.path.clone());
 
@@ -173,7 +173,6 @@ impl Project {
                     );
                     item_width.end();
                 }
-                // ui.list_box("snapshots", current_item, items, height_in_items);
             });
     }
 }

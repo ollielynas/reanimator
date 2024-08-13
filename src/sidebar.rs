@@ -110,6 +110,9 @@ impl Project {
 
                 ui.separator();
 
+                if ui.button("export project") {
+                    self.export();
+                }
                 if ui.button("return home") {
                     self.save();
                     self.return_to_home_menu = true;

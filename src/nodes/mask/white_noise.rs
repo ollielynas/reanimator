@@ -1,10 +1,10 @@
-use std::{any::Any, collections::HashMap, ops::RangeBounds, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, nodes::{node_enum::NodeType}, storage::Storage};
+use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
 
 
 
@@ -93,7 +93,7 @@ impl MyNode for WhiteNoiseNode {
 
 
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
         
         let output_id = self.output_id(self.outputs()[0].clone());
         
@@ -172,7 +172,7 @@ impl MyNode for WhiteNoiseNode {
         ui.text_wrapped("source of white noise");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {
             let mut input_val = [self.size.0 as i32,self.size.1 as i32];

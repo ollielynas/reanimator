@@ -10,10 +10,12 @@
         "greyscale",
         "hasher",
         "imgui",
+        "messagebox",
         "Mousewheel",
         "msgbox",
         "opengl",
         "reanimator",
+        "scussefuly",
         "wght"
     ]
 }

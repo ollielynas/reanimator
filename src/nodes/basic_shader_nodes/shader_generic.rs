@@ -1,7 +1,6 @@
 use std::{
     any::Any,
     collections::HashMap,
-    ops::{RangeBounds, RangeInclusive},
     path::PathBuf,
 };
 
@@ -23,7 +22,7 @@ impl NodeType {
                 NodeType::Blur => 2,
                 NodeType::Dot => 3,
                 NodeType::Sharpness => 4,
-                a => {
+                _a => {
                     -1
                     // unreachable!("node type: {a:?} has no index")
                 }
@@ -236,7 +235,7 @@ impl MyNode for GenericShaderNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> bool {
 
 

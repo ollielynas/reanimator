@@ -4,7 +4,8 @@ use basic_shader_nodes::difference_of_gaussians::DifferenceofGaussiansNode;
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
-use basic_shader_nodes::text_mask::TextMaskNode;
+use detect_motion::MotionNode;
+use mask::text_mask::TextMaskNode;
 use combine_hsv::CombineHsvNode;
 use combine_rgba::CombineRgbaNode;
 use cover_window::CoverWindowNode;
@@ -13,6 +14,7 @@ use default_image::DefaultImage;
 use desktop_capture::CaptureWindowNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
+use glium::Display;
 use image_io::OutputNode;
 use layer::LayerNode;
 use load_gif::LoadGifNode;
@@ -30,6 +32,7 @@ use scale::ScaleNode;
 use split_hsv::SplitHsvNode;
 use split_rgba::SplitRgbaNode;
 use strum_macros::EnumIter;
+use text::display_text::DisplayTextNode;
 use text::text_input::TextInputNode;
 use webcam::WebcamNode;
 use win_screenshot::utils::{window_list, HwndName};
@@ -40,7 +43,7 @@ use crate::nodes::*;
 
 
 
-#[derive(Savefile, EnumIter, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Savefile, EnumIter, PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub enum NodeType {
     Debug,
     Output,
@@ -76,6 +79,8 @@ pub enum NodeType {
     Sharpness,
     CaptureDesktop,
     CoverWindow,
+    DisplayText,
+    Motion,
 }
 
 impl NodeType  {
@@ -115,6 +120,8 @@ impl NodeType  {
             NodeType::Sharpness => "Sharpness",
             NodeType::CaptureDesktop => "Capture Window",
             NodeType::CoverWindow => "Cover Window",
+            NodeType::DisplayText => "Display Text",
+            NodeType::Motion => "Detect Motion",
         }.to_owned()
     }
 
@@ -122,6 +129,18 @@ impl NodeType  {
         
         match self {
             NodeType::TextInput => {
+                let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::Motion => {
+                let a: Result<MotionNode, SavefileError> = savefile::load_file(project_file, MotionNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::DisplayText => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
@@ -351,6 +370,8 @@ impl NodeType  {
             NodeType::BayerDither => Box::new(BayerDitherNode::default()),
             NodeType::CaptureDesktop => Box::new(CaptureWindowNode::default()),
             NodeType::CoverWindow => Box::new(CoverWindowNode::default()),
+            NodeType::DisplayText => Box::new(DisplayTextNode::default()),
+            NodeType::Motion => Box::new(MotionNode::default()),
             }
     }
 
@@ -358,13 +379,11 @@ impl NodeType  {
     pub fn disabled(&self) -> bool {
         matches!(
             self,
-            // NodeType::VHS 
             | NodeType::Debug
             | NodeType::Webcam
             | NodeType::TextInput
             | NodeType::TextMask
-            // | NodeType::LinearErrorDither
-            // | NodeType::BayerDither
+            | NodeType::DisplayText
         )
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.14" 
+version = "0.1.16" 
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "A gif vfx tool"
@@ -44,7 +44,6 @@ lumo = "0.3.2"
 open = "5.3.0"
 escapi = "4.0.0"
 font-kit = "0.14.1"
-glium-glyph = "=0.14.0"
 # win_desktop_duplication = "0.10.10"
 rusty-duplication = "0.5.0"
 win-screenshot = "4.0.11"
@@ -53,6 +52,13 @@ willhook = "0.6.3"
 windows = { version = "0.57.0", features = ["Win32"] }
 numfmt = "1.1.1"
 itertools = "0.13.0"
+system-extensions = {version = "0.0.4", features = ["dialogues"]}
+project-root = "0.2.2"
+# typer = "0.1.1"
+# gfx_glyph = "0.17.1"
+# glium_text_rusttype = "0.3.3"
+# text-image = "0.1.2"
+# piston2d-glium_graphics = "0.95.0"
 # windows = "0.58.0"
 
 [build-dependencies]

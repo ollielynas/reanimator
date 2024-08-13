@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, ops::{RangeBounds, RangeInclusive}, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
@@ -20,7 +20,7 @@ impl NodeType {
             
                 NodeType::BrightnessMask => 0, 
 
-                a => {
+                _a => {
                     -1
                     // unreachable!("node type: {a:?} has no index")
                 }
@@ -81,6 +81,7 @@ impl GenericMaskNode {
 impl MyNode for GenericMaskNode {
 
     fn path(&self) -> Vec<&str> {
+        
         vec!["Image","Mask"]
     }
 
@@ -166,7 +167,7 @@ impl MyNode for GenericMaskNode {
 
 
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
 
         if self.type_index != self.type_.generic_mask_index() {
             println!("{}", self.type_index);

@@ -1,6 +1,10 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{uniform, uniforms::{self, Uniforms}, BlitTarget, DrawParameters, Rect, Surface};
+use glium::{
+    uniform,
+    uniforms::{self, Uniforms},
+    BlitTarget, DrawParameters, Rect, Surface,
+};
 use imgui::{sys::ImColor, ImColor32};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
@@ -12,12 +16,19 @@ use crate::{
 
 use super::node_enum::NodeType;
 
+
+fn convert(old:Vec<[f32;4]>) -> Vec<([f32;4], bool)> {
+    old.iter().map(|x| (x.clone(),false)).collect()
+}
+
 #[derive(Savefile)]
 pub struct LayerNode {
     x: f32,
     y: f32,
     id: String,
-    layers: Vec<[f32; 4]>,
+    // #[savefile_versions_as="0..0:convert:Vec<[f32;4]>"]
+    #[savefile_versions="1.."]
+    layers: Vec<([f32; 4], bool)>,
     base_texture_size: (u32, u32),
 }
 
@@ -34,11 +45,11 @@ impl Default for LayerNode {
 }
 impl MyNode for LayerNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","Combine"]
+        vec!["Image", "Combine"]
     }
 
     fn savefile_version() -> u32 {
-        0
+        1
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -91,9 +102,8 @@ impl MyNode for LayerNode {
         map: HashMap<String, String>,
         renderer: &mut Renderer,
     ) -> bool {
-
         let output_id = self.output_id(self.outputs()[0].clone());
-        
+
         let base_input_key = match map.get(&self.input_id(self.inputs()[0].clone())) {
             Some(a) => a,
             None => {
@@ -112,8 +122,7 @@ impl MyNode for LayerNode {
             inputs.push(get_output);
         }
 
-        let fragment_shader_src2 =
-            r#"
+        let fragment_shader_src2 = r#"
 
             #version 140
 
@@ -186,24 +195,27 @@ impl MyNode for LayerNode {
                 return false;
             }
         };
-        
-        
+
         self.base_texture_size = base_texture.dimensions();
         let texture2 = storage.get_texture(&output_id).unwrap();
 
+        base_texture.as_surface().blit_color(
+            &Rect {
+                left: 0,
+                bottom: 0,
+                width: base_texture.width(),
+                height: base_texture.height(),
+            },
+            &texture2.as_surface(),
+            &BlitTarget {
+                left: 0,
+                bottom: 0,
+                width: texture2.width() as i32,
+                height: texture2.height() as i32,
+            },
+            uniforms::MagnifySamplerFilter::Linear,
+        );
 
-        base_texture.as_surface().blit_color(&Rect {
-            left: 0,
-            bottom: 0,
-            width: base_texture.width(),
-            height: base_texture.height(),
-        }, &texture2.as_surface(), &BlitTarget {
-            left: 0,
-            bottom: 0,
-            width: texture2.width() as i32,
-            height: texture2.height() as i32,
-        }, uniforms::MagnifySamplerFilter::Linear);
-        
         for x in 0..self.layers.len() {
             let layer = self.layers[x];
             let id = inputs[x];
@@ -218,34 +230,32 @@ impl MyNode for LayerNode {
             let uniforms = uniform! {
                 base_texture: texture2,
                 base_size: [self.base_texture_size.0 as f32, self.base_texture_size.1 as f32],
-                layer_pos: [layer[0], layer[1]],
-                layer_target_size: [layer[2], layer[3]],
+                layer_pos: [layer.0[0] * if layer.1 {self.base_texture_size.0 as f32} else {1.0}, layer.0[1] * if layer.1 {self.base_texture_size.1 as f32} else {1.0}],
+                layer_target_size: [layer.0[2] * if layer.1 {self.base_texture_size.0 as f32} else {1.0}, layer.0[3] * if layer.1 {self.base_texture_size.1 as f32} else {1.0}],
                 layer_size: [texture.dimensions().0 as f32, texture.dimensions().1 as f32],
                 layer: texture,
             };
 
             texture2
-            .as_surface()
-            .draw(
-                &storage.vertex_buffer,
-                &storage.indices,
-                shader,
-                &uniforms,
-                &(DrawParameters {
-                    ..Default::default()
-                }),
-            )
-            .unwrap();
+                .as_surface()
+                .draw(
+                    &storage.vertex_buffer,
+                    &storage.indices,
+                    shader,
+                    &uniforms,
+                    &(DrawParameters {
+                        ..Default::default()
+                    }),
+                )
+                .unwrap();
         }
-        
+
         return true;
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
-
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
         ui.columns(2, "", true);
@@ -254,14 +264,17 @@ impl MyNode for LayerNode {
         let mut focus = 999_usize;
         let mut hover = 999_usize;
         for (i, l) in self.layers.iter_mut().enumerate() {
-            let mut xy = [l[0], l[1]];
-            let mut wh = [l[2], l[3]];
+            let mut xy = [l.0[0], l.0[1]];
+            let mut wh = [l.0[2], l.0[3]];
+            let mut use_percent = l.1;
             ui.group(|| {
-            
-                ui.input_float2(format!("target <x,y> position ({i})"), &mut xy).build();
-                ui.input_float2(format!("target <width, height> ({i})"), &mut wh).build();
+                ui.checkbox(format!("use % based pos"), &mut use_percent);
+                ui.input_float2(format!("target <x,y> position ({i})"), &mut xy)
+                    .build();
+                ui.input_float2(format!("target <width, height> ({i})"), &mut wh)
+                    .build();
             });
-            *l = [xy[0],xy[1],wh[0],wh[1]];
+            *l = ([xy[0], xy[1], wh[0], wh[1]], use_percent);
             if ui.is_item_focused() {
                 focus = i;
             }
@@ -282,12 +295,7 @@ impl MyNode for LayerNode {
         }
 
         if ui.button("add layer") {
-            self.layers.push([
-                (self.base_texture_size.0 as f32) * 0.25,
-                (self.base_texture_size.1 as f32) * 0.25,
-                (self.base_texture_size.0 as f32) * 0.25,
-                (self.base_texture_size.0 as f32) * 0.25,
-            ]);
+            self.layers.push(([0.25, 0.25, 0.5, 0.5], true));
         }
 
         ui.next_column();
@@ -313,26 +321,49 @@ impl MyNode for LayerNode {
             )
             .filled(true)
             .build();
-        
+
         for (i, layer) in self.layers.iter().enumerate() {
             draw_list
-            .add_rect(
-                [pos[0]+( layer[0])*scale,pos[1]+(image_dimensions[1] -layer[1])*scale],
-                [
-                    pos[0] + ( layer[0] + layer[2]) * scale,
-                    pos[1] + (image_dimensions[1] - layer[1] - layer[3]) * scale,
-                ],
-                if focus == i {
-                    ImColor32::from_rgba(20, 20, 180, 235)
-                }
-                else if hover == i {
-                    ImColor32::from_rgba(20, 180, 20, 235)
-                }else {
-                    ImColor32::from_rgba(180, 20, 20, 235)
-                }
-            )
-            .thickness(3.0)
-            .build();
+                .add_rect(
+                    [
+                        pos[0] + (layer.0[0]) * scale,
+                        pos[1] + (image_dimensions[1] - layer.0[1]) * scale,
+                    ],
+                    [
+                        pos[0]
+                            + (layer.0[0] + layer.0[2])
+                                * scale
+                                * if layer.1 {
+                                    self.base_texture_size.0 as f32
+                                } else {
+                                    1.0
+                                },
+                        pos[1]
+                            + (image_dimensions[1]
+                                - layer.0[1]
+                                    * if layer.1 {
+                                        self.base_texture_size.1 as f32
+                                    } else {
+                                        1.0
+                                    }
+                                - layer.0[3]
+                                    * if layer.1 {
+                                        self.base_texture_size.1 as f32
+                                    } else {
+                                        1.0
+                                    })
+                                * scale,
+                    ],
+                    if focus == i {
+                        ImColor32::from_rgba(20, 20, 180, 235)
+                    } else if hover == i {
+                        ImColor32::from_rgba(20, 180, 20, 235)
+                    } else {
+                        ImColor32::from_rgba(180, 20, 20, 235)
+                    },
+                )
+                .thickness(3.0)
+                .build();
         }
     }
 

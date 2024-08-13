@@ -12,6 +12,7 @@ pub struct ProjectSettings {
     pub window_size: Option<[f32;2]>,
     pub maximised: bool,
     pub batch_files: RunBatch,
+    
 }
 
 
