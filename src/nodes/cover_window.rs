@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{any::Any, collections::HashMap, os::raw::c_void, path::PathBuf, rc::Rc};
 
 use glium::{
     uniforms::{MagnifySamplerFilter, SamplerBehavior},
@@ -14,7 +14,7 @@ use windows::Win32::{
     Graphics::Gdi::ClientToScreen,
     UI::WindowsAndMessaging::{GetClientRect, GetForegroundWindow},
 };
-
+// use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 use crate::{
     node::{random_id, MyNode},
     storage::Storage,
@@ -75,7 +75,8 @@ impl CoverWindowNode {
         if self.render {
             let mut rect = RECT::default();
             unsafe {
-                let a = GetClientRect(HWND(self.hwnd), &mut rect);
+                
+                let a = GetClientRect(HWND(self.hwnd as *mut _), &mut rect);
                 if a.is_err() {
                     self.render = false;
                     // println!("{a:?}");
@@ -85,7 +86,7 @@ impl CoverWindowNode {
                     x: rect.left,
                     y: rect.top,
                 };
-                let a = ClientToScreen(HWND(self.hwnd), &mut point);
+                let a = ClientToScreen(HWND(self.hwnd as *mut _), &mut point);
                 if !a.as_bool() {
                     self.render = false;
                     return false;
@@ -94,9 +95,7 @@ impl CoverWindowNode {
                 rect.top = point.y;
             }
 
-            
-
-            let steam_focused = unsafe { GetForegroundWindow().0 == self.hwnd };
+            let steam_focused = unsafe { GetForegroundWindow().0 == self.hwnd as *mut _ };
 
             if steam_focused {
                 let _ = window.request_inner_size(Size::Physical(

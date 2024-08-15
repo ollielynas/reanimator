@@ -9,6 +9,7 @@
         "glsl",
         "greyscale",
         "hasher",
+        "hwnd",
         "imgui",
         "messagebox",
         "Mousewheel",
