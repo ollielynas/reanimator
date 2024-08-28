@@ -153,7 +153,7 @@ impl MyNode for DifferenceofGaussiansNode {
         
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.input_float("Inner Radius", &mut self.radius).build();
         ui.input_float("Radius Difference", &mut self.radius_diff).build();
         ui.slider("Weight",0.0,1.0, &mut self.scale_on_2nd);

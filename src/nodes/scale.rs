@@ -120,7 +120,7 @@ impl MyNode for ScaleNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.text(format!("original size: {:?}", self.og_size));
         ui.checkbox("use percent based scaling", &mut self.use_percent);
 

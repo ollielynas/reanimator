@@ -28,7 +28,7 @@ impl Project {
             let out = output_path.display().to_string();
             let input = self.path.display().to_string();
             let compressor = Compressor::new(&input, &out);
-            let compress_info = compressor.compress(CompressionLevel::Maximum);
+            let compress_info = compressor.compress(CompressionLevel::Default);
         }
     }
 }

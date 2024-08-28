@@ -1,18 +1,19 @@
 use crate::{
     node::{random_id, MyNode},
-    storage::Storage,
+    storage::{self, Storage},
 };
 use glium::{texture::RawImage2d, Texture2d};
-use image::{self, ImageFormat};
 use image::EncodableLayout;
+use image::{self, ImageFormat};
 use imgui::text_filter;
 use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
 
-use super::node_enum::NodeType;
+use crate::nodes::node_enum::NodeType;
 
+use super::apply_path_root;
 
 #[derive(Savefile)]
 pub struct LoadImage {
@@ -50,7 +51,7 @@ impl MyNode for LoadImage {
     }
 
     fn path(&self) -> Vec<&str> {
-        vec!["IO","Load"]
+        vec!["IO", "Load"]
     }
 
     fn x(&self) -> f32 {
@@ -75,34 +76,35 @@ impl MyNode for LoadImage {
         ui.bullet_text("Farbfeld");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
-        ui.text(format!("path: {}", match &self.path {Some(a) => {
-            a.as_path().to_str().unwrap()
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        ui.text(
+            format!(
+            "path: {}",
+            match &self.path {
+                Some(a) => {
+                    a.as_path().to_str().unwrap()
+                }
+                None => "no path selected",
+            }
+        )
+        );
+
+        if ui.button("change path") {
+            self.texture_cache = None;
+            self.path = FileDialog::new()
+                .add_filter(
+                    "",
+                    &[
+                        "png", "jpg", "jepg", "webp", "tiff", "tif", "tga", "bmp", "ico", "hdr",
+                        "pbm", "pam", "ppm", "pgm", "ff",
+                    ],
+                )
+                .pick_file();
+
+            if let Some(ref mut path) = self.path {
+                apply_path_root::set_root(path, &storage);
+            }
         }
-        None => "no path selected"
-    }));
-
-    if ui.button("change path") {
-        self.texture_cache = None;
-        self.path = FileDialog::new().add_filter("", &[
-            "png",
-            "jpg",
-            "jepg",
-            "webp",
-            "tiff",
-            "tif",
-            "tga",
-            "bmp",
-            "ico",
-            "hdr",
-            "pbm", 
-            "pam", 
-            "ppm", 
-            "pgm",
-            "ff"
-            ]).pick_file();
-    }
-
     }
 
     fn type_(&self) -> NodeType {
@@ -152,7 +154,7 @@ impl MyNode for LoadImage {
             if self.texture_cache.is_none()
                 || !storage.cached_texture_exists(self.texture_cache.unwrap())
             {
-                let bytes = match fs::read(path) {
+                let bytes = match fs::read(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
                     Err(e) => {
                         println!("{e}");
@@ -180,7 +182,6 @@ impl MyNode for LoadImage {
             }
         }
         storage.set_id_of_cached_texture(self.texture_cache.unwrap(), output_id);
-        // storage.set_texture(output_id,  texture);
 
         return true;
     }

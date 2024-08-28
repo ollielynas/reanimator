@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{batch_edit::RunBatch, generic_io::GenericIO};
+use crate::{batch_edit::RunBatch, generic_io::GenericIO, project_files::LocalFiles};
 
 
 
@@ -12,7 +12,8 @@ pub struct ProjectSettings {
     pub window_size: Option<[f32;2]>,
     pub maximised: bool,
     pub batch_files: RunBatch,
-    
+    #[savefile_ignore]
+    pub local_files: LocalFiles,
 }
 
 
@@ -33,6 +34,7 @@ impl Default for ProjectSettings {
                 run: false,
                 index: 0,
             },
+            local_files: LocalFiles::default(),
         }
     }
 }

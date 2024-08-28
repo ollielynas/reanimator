@@ -42,7 +42,8 @@ pub mod sidebar;
 pub mod batch_edit;
 pub mod import_export;
 pub mod generic_node_info;
-
+pub mod project_files;
+pub mod ffmpeg_console;
 
 
 // in theoiry this is just a temp solution, but im never going to 
@@ -83,7 +84,6 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
         .build()?
         .update()?;
 
-    
     if status.updated() {
 
         #[cfg(all(target_os="windows", not(debug_assertions)))]{
@@ -209,8 +209,6 @@ fn main() {
                 loaded_project = true;
             }
         }
-
-    
 
         let frame_start = Instant::now();
         let mut global_font_tokens = vec![];

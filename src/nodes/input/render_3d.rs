@@ -16,7 +16,9 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use std::{any::Any, collections::HashMap, env::current_exe, fs::{self, remove_dir_all}, hash::Hash, path::PathBuf};
 
-use super::node_enum::NodeType;
+use crate::nodes::node_enum::NodeType;
+
+use super::apply_path_root;
 
 #[derive(Savefile)]
 pub struct Render3DNode {
@@ -268,7 +270,7 @@ impl MyNode for Render3DNode {
   
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
 
         ui.columns(3, "render col", true);
 
@@ -290,6 +292,9 @@ impl MyNode for Render3DNode {
 
         if ui.button("change obj path") {
             self.obj_path = FileDialog::new().add_filter("", &["obj"]).pick_file();
+            if let Some(ref mut path) = self.obj_path {
+                apply_path_root::set_root(path, &storage);
+            }
         }
 
         ui.next_column();

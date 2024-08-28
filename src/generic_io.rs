@@ -2,6 +2,7 @@
 pub enum EditTab {
     Nodes,
     BatchFileEdit,
+    ProjectRes,
 }
 
 

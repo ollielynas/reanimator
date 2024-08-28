@@ -13,6 +13,8 @@ use strum::IntoEnumIterator;
 use crate::{node::*, nodes::*, storage::Storage};
 
 
+
+
 impl NodeType {
     fn generic_shader_index(&self) -> i32 {
         match self {
@@ -22,6 +24,7 @@ impl NodeType {
                 NodeType::Blur => 2,
                 NodeType::Dot => 3,
                 NodeType::Sharpness => 4,
+                NodeType::BlurSp => 5,
                 _a => {
                     -1
                     // unreachable!("node type: {a:?} has no index")
@@ -86,6 +89,7 @@ impl GenericShaderNode {
                 NodeType::Blur => 10.0,
                 NodeType::Dot => 3.0,
                 NodeType::Sharpness => 1.0,
+                NodeType::BlurSp => 0.1,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
                 }
@@ -95,6 +99,7 @@ impl GenericShaderNode {
                 NodeType::Blur => "Radius".to_owned(),
                 NodeType::Dot => "Radius".to_owned(),
                 NodeType::Sharpness => "Sharpness".to_owned(),
+                NodeType::BlurSp => "Threshold".to_owned(),
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input name fully implemented")
                 }
@@ -105,6 +110,7 @@ impl GenericShaderNode {
                 NodeType::Blur => 0.0,
                 NodeType::Dot => 0.001,
                 NodeType::Sharpness => 0.0,
+                NodeType::BlurSp => 0.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the min value fully implemented")
                 }
@@ -112,6 +118,7 @@ impl GenericShaderNode {
             input_max: match type_ {
                 NodeType::ChromaticAberration => f32::MAX,
                 NodeType::VHS => 1.0,
+                NodeType::BlurSp => 1.0,
                 NodeType::Dot => 20.0,
                 NodeType::Blur => f32::MAX,
                 NodeType::Sharpness => 4.0,
@@ -158,7 +165,7 @@ impl MyNode for GenericShaderNode {
         self.id.clone()
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         if self.input_name.is_empty() {
             ui.text("This shader has no inputs");
             return;
@@ -199,6 +206,9 @@ impl MyNode for GenericShaderNode {
             }
             NodeType::Sharpness => {
                 ui.text_wrapped("Sharpens Image");
+            }
+            NodeType::BlurSp => {
+                ui.text_wrapped("blursps");
             }
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
@@ -292,6 +302,7 @@ impl MyNode for GenericShaderNode {
             NodeType::Blur => include_str!("gaussian.glsl"),
             NodeType::Dot => include_str!("dot.glsl"),
             NodeType::Sharpness => include_str!("sharp.glsl"),
+            NodeType::BlurSp => include_str!("blursp.glsl"),
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
             }
@@ -316,12 +327,15 @@ impl MyNode for GenericShaderNode {
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
 
-        let uniforms = uniform! {
+        let mut uniforms = uniform! {
             tex: texture,
             u_time: storage.time as f32,
             u_input: self.input,
             u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
         };
+
+
+
         let texture2 = storage.get_texture(&output_id).unwrap();
         texture2
             .as_surface()

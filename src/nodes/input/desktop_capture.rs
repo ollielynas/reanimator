@@ -23,8 +23,7 @@ use crate::{
     storage::Storage,
 };
 
-use super::node_enum::NodeType;
-
+use crate::nodes::node_enum::NodeType;
 
 
 #[derive(Savefile)]
@@ -109,7 +108,7 @@ impl MyNode for CaptureWindowNode {
     }
 
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
 
         ui.checkbox("capture entire screen", &mut self.entire_screen);
 

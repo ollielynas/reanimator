@@ -220,7 +220,7 @@ impl MyNode for CoverWindowNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.checkbox("enable", &mut self.render);
 
         if ui.is_item_hovered() {

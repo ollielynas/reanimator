@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use glium::debug::TimestampQuery;
 use glium::texture::RawImage2d;
 use glium::{program, BlitTarget, Display, Program, Rect, Surface};
@@ -34,8 +36,9 @@ use crate::generic_node_info::GenericNodeInfo;
 use crate::node::random_id;
 use crate::nodes::cover_window::CoverWindowNode;
 use crate::nodes::debug;
-use crate::nodes::load_gif::LoadGifNode;
-use crate::nodes::load_image::LoadImage;
+
+use crate::nodes::input::load_gif::LoadGifNode;
+use crate::nodes::input::load_image::LoadImage;
 use crate::project_settings::ProjectSettings;
 use crate::render_nodes::RenderNodesParams;
 use crate::sidebar::SidebarParams;
@@ -58,7 +61,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-const MAX_LOADING: i32 = 4;
+const MAX_LOADING: i32 = 5;
 
 // #[savefile_derive]
 pub struct Project {
@@ -284,6 +287,9 @@ impl Project {
                         4 => {
                             ui.text("Verifying save integrity");
                         }
+                        5 => {
+                            ui.text("Updateing ffmpeg");
+                        }
                         _ => {}
                     }
 
@@ -380,9 +386,13 @@ impl Project {
                                         }
                                     }
                                 }
+                                
                             } else {
                                 println!("project not found");
                             }
+
+                            self.storage.project_root = self.path.clone().join("root");
+                            
                         }
                         2 => {
                             self.recenter_nodes(ui);
@@ -404,7 +414,7 @@ impl Project {
                         }
                         #[cfg(debug_assertion)] {
                             let a = savefile::save_file("src/node_speeds.bin", 0, &user_settings.node_speed);
-                            println!("{a:?}");
+                            // println!("{a:?}");
                         
                         }
                         }
@@ -420,6 +430,7 @@ impl Project {
                             if self.project_settings.maximised {
                                 window.set_maximized(true);
                             }
+                            self.project_settings.local_files.reload(&self.storage)
 
                         }
                         4 => {
@@ -429,6 +440,9 @@ impl Project {
                             for data in &self.backup_data {
                                 self.nodes.push(data.restore_node());
                             }
+                        }
+                        5 => {
+                            ffmpeg_sidecar::download::auto_download().unwrap();
                         }
                         a => {
                             unreachable!("There is no loading step: {a}")
@@ -506,6 +520,9 @@ impl Project {
                     if let Some(_item) = ui.tab_item("batch edit") {
                         self.edit_tab = EditTab::BatchFileEdit;
                     }
+                    if let Some(_item) = ui.tab_item("project resources") {
+                        self.edit_tab = EditTab::ProjectRes;
+                    }
                 }
                 sidebar_params.menu_bar_size[1] += ui.window_size()[1] - 7.0;
             });
@@ -521,6 +538,9 @@ impl Project {
             EditTab::Nodes => {},
             EditTab::BatchFileEdit => {
                 self.render_batch_edit(ui, &mut sidebar_params, user_settings);
+            },
+            EditTab::ProjectRes => {
+                self.render_local_files(ui, &mut sidebar_params, user_settings);
             },
         }
 
@@ -793,7 +813,7 @@ impl Project {
                 }
                 match self.node_edit {
                     Some(a) if self.nodes.len() > a => {
-                        self.nodes[a].edit_menu_render(ui, renderer);
+                        self.nodes[a].edit_menu_render(ui, renderer, &self.storage);
                     }
                     _ => ui.text("no node has been selected"),
                 }
@@ -1001,7 +1021,6 @@ impl Project {
             for out in outputs {
                 dfs(out, &mut colors, &mut order, &mut node_graph);
             }
-
             self.node_run_order = (connection_hash, order);
         }
 
@@ -1035,7 +1054,7 @@ impl Project {
         }
     }
 
-    pub fn new_node_menu(&mut self, ui: &Ui) -> bool {
+    pub fn new_node_menu(&mut self, ui: &Ui, user_settings: &UserSettings) -> bool {
         let mut group: HashMap<String, Option<TreeNodeToken>> = HashMap::new();
         let size_array = ui.io().display_size;
 
@@ -1122,6 +1141,11 @@ impl Project {
                     ui.set_window_font_scale(1.3);
                     ui.text(self.new_node_types[self.selected_node_to_add].name());
                     ui.set_window_font_scale(1.0);
+                    #[cfg(debug_assertions)] {
+                        let v = vec![0.0];
+                        let array = user_settings.node_speed.get(&self.new_node_types[self.selected_node_to_add].name()).unwrap_or(&v);
+                        ui.text(format!("{}",array.iter().sum::<f32>() / array.len() as f32 ));
+                    }
                     self.new_node_types[self.selected_node_to_add].description(ui);
                 } else {
                     ui.text("no node has been selected");

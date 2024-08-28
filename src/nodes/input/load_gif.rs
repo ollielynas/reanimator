@@ -11,7 +11,9 @@ use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, io::Read, path::PathBuf};
 
-use super::node_enum::NodeType;
+use crate::nodes::node_enum::NodeType;
+
+use super::apply_path_root;
 
 const VERSION: u32 = 0;
 
@@ -70,12 +72,12 @@ impl MyNode for LoadGifNode {
         ui.text_wrapped("load gif files");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.text(format!("path: {}", match &self.path {Some(a) => {
             a.as_path().to_str().unwrap()
-        }
+    }
         None => "no path selected"
-        }
+    }
 
 
     ));
@@ -83,7 +85,9 @@ impl MyNode for LoadGifNode {
     if ui.button("change path") {
         self.texture_cache = vec![];
         self.path = FileDialog::new().add_filter("", &["gif"]).pick_file();
-        
+        if let Some(ref mut path) = self.path {
+            apply_path_root::set_root(path, &storage);
+        }
     }
 
     ui.text(format!("length: {:.5}", self.length));
@@ -138,7 +142,7 @@ impl MyNode for LoadGifNode {
             if self.texture_cache.len() == 0
             {
                 self.length = 0.0;
-                let file = match fs::File::open(path) {
+                let file = match fs::File::open(apply_path_root::get_with_root(path,&storage)) {
                     Ok(a) => a,
                     Err(e) => {
                         println!("{e}");
@@ -186,7 +190,6 @@ impl MyNode for LoadGifNode {
             let index = (self.texture_cache.len() as f64 *(storage.time%self.length as f64)/(self.length as f64)).floor() as usize;
             storage.set_id_of_cached_texture(self.texture_cache[index], output_id);
         }
-        // storage.set_texture(output_id,  texture);
 
         return true;
     }

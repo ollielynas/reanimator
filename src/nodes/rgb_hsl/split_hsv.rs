@@ -5,29 +5,27 @@ use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
 use crate::{
-    node::{random_id, MyNode},
-    storage::Storage,
+    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
 };
 
-use super::node_enum::NodeType;
 
 #[derive(Savefile)]
-pub struct SplitRgbaNode {
+pub struct SplitHsvNode {
     x: f32,
     y: f32,
     id: String,
 }
 
-impl Default for SplitRgbaNode {
+impl Default for SplitHsvNode {
     fn default() -> Self {
-        SplitRgbaNode {
+        SplitHsvNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
         }
     }
 }
-impl MyNode for SplitRgbaNode {
+impl MyNode for SplitHsvNode {
     fn path(&self) -> Vec<&str> {
         vec!["Image","RGBA"]
     }
@@ -54,7 +52,7 @@ impl MyNode for SplitRgbaNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::SplitRgba
+        NodeType::SplitHsv
     }
 
     fn id(&self) -> String {
@@ -64,7 +62,7 @@ impl MyNode for SplitRgbaNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id() + ".bin"),
-            SplitRgbaNode::savefile_version(),
+            SplitHsvNode::savefile_version(),
             self,
         );
     }
@@ -75,9 +73,9 @@ impl MyNode for SplitRgbaNode {
 
     fn outputs(&self) -> Vec<String> {
         return vec![
-            "Red".to_string(),
-            "Green".to_string(),
-            "Blue".to_string(),
+            "Hue".to_string(),
+            "Saturation".to_string(),
+            "Brightness".to_string(),
             "Alpha".to_string(),
             ];
     }
@@ -102,33 +100,7 @@ impl MyNode for SplitRgbaNode {
             None => return false,
         };
         
-        let fragment_shader_src = r#"
-
-            #version 140
-
-            in vec2 v_tex_coords;
-            out vec4 color;
-
-            uniform sampler2D tex;
-            uniform int rgba_index;
-
-            void main() {
-                
-            float channel = 0.0;
-            vec4 px = texture(tex, v_tex_coords);
-            if (rgba_index == 0) {
-                channel = px.r;
-                }else if (rgba_index == 1) {
-                channel = px.g;
-                }else if (rgba_index == 2) {
-                channel = px.b;
-                }else if (rgba_index == 3) {
-                channel = px.a;
-            }
-
-            color = vec4(channel);
-            }
-            "#;
+        let fragment_shader_src = include_str!("split_hsv.glsl");
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
@@ -153,7 +125,7 @@ impl MyNode for SplitRgbaNode {
     for i in 0..4 {
             let uniforms = uniform! {
                 tex: input_texture,
-                rgba_index: i as i32,
+                hsva_index: i as i32,
             };
             let texture2 = storage.get_texture(&output_ids[i]).unwrap();
             texture2

@@ -1,39 +1,41 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{uniform, DrawParameters, Surface};
+use glium::{texture::RawImage2d, uniform, DrawParameters, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
+use lumo::tracer::Texture;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
-
-use super::node_enum::NodeType;
-
-
-
+use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
+use image::EncodableLayout;
 
 
 #[derive(Savefile)]
-pub struct RandomInputNode {
+pub struct WaterColorNode {
     x: f32,
     y: f32,
     id: String,
-    weights: Vec<f32>,
+    scale: f32,
+    size: (u32,u32),
+    #[savefile_ignore]
+    #[savefile_introspect_ignore]
+    paper_texture: Option<Texture2d>
 }
 
-impl Default for RandomInputNode {
+impl Default for WaterColorNode {
     fn default() -> Self {
-        RandomInputNode {
+        WaterColorNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
-            weights: vec![1.0,1.0],
+            scale: 1.0,
+            size: (1,1),
+            paper_texture: None,
         }
     }
 }
-
-impl MyNode for RandomInputNode {
+impl MyNode for WaterColorNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image", "msc"]
+        vec!["Image","Artistic"]
     }
 
     
@@ -47,7 +49,9 @@ impl MyNode for RandomInputNode {
     fn as_any(&self) -> &dyn Any {
         self
     }
-
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
     fn x(&self) -> f32 {
         self.x
     }
@@ -56,7 +60,7 @@ impl MyNode for RandomInputNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::RandomInput
+        NodeType::WaterColor
     }
 
 
@@ -67,18 +71,18 @@ impl MyNode for RandomInputNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            RandomInputNode::savefile_version(),
+            WaterColorNode::savefile_version(),
             self,
         );
     }
 
 
     fn inputs(&self) -> Vec<String> {
-        return self.weights.iter().enumerate().map(|(i,_)| format!("Input {}",i+1)).collect();
+        return vec!["In".to_string()];
     }
 
     fn outputs(&self) -> Vec<String> {
-        return vec!["Output".to_string()];
+        return vec!["Out".to_string()];
     }
 
     fn set_xy(&mut self, x: f32, y: f32) {
@@ -87,67 +91,31 @@ impl MyNode for RandomInputNode {
     }
 
 
-    fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("randomly picks an input based on a set of user defined weights");
-    }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
-        ui.text("inputs: ");
-        
-        for (i,value) in self.weights.iter_mut().enumerate() {
-            ui.input_float(format!("weight {}", i+1), value)
-            .build();
-        }
-        if ui.button("add weight") {
-            self.weights.push(1.0);
-        }
-        if self.weights.len() > 0 {
-            if ui.button("remove weight") {
-                self.weights.pop();
-            }
-        }
-    }
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
-
-        if self.weights.len() < 1 {
-            return false;
-        }
-        // let num: f32 = fastrand::f32();
-        let total1 = self.weights.iter().sum::<f32>() * fastrand::f32();
-        let mut total2 = 0.0;
-        let mut index = 0;
-        for (i,v) in self.weights.iter().enumerate() {
-            total2 += v;
-            if total2 > total1 {
-                index = i;
-                break
-            }
-        }
-
-        let input_id = self.input_id(self.inputs()[index].clone());
+    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+        let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
             None => {return false},
         };
 
-        
 
-        let fragment_shader_src = 
-            r#"
+    if self.paper_texture.is_none() {
+        let image = image::load_from_memory_with_format(
+            include_bytes!("textured-paper-background-tile-with-bluish-tint.jpg"),
+            image::ImageFormat::Jpeg,
+        )
+        .unwrap().flipv().into_rgba8();
 
-            #version 140
 
-            in vec2 v_tex_coords;
-            out vec4 color;
+        let not_texture = RawImage2d::from_raw_rgba(image.as_bytes().to_vec(), (image.width(), image.height()));
+        // let a: HashMap<Texture2d, String> = HashMap::new();
+        let texture: Texture2d = Texture2d::new(&storage.display, not_texture).unwrap();
+        self.paper_texture = Some(texture);
+    }
 
-            uniform sampler2D tex;
-            void main() {
-            color = texture(tex, v_tex_coords);
-            }
-            "#;
+    let fragment_shader_src = include_str!("watercolor.glsl");
 
     let texture_size:(u32, u32) = match storage.get_texture(get_output) {
         Some(a) => {(a.width(), a.height())},
@@ -167,7 +135,8 @@ impl MyNode for RandomInputNode {
 
             let uniforms = uniform! {
                 tex: texture,
-
+                u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
+                paper: (self.paper_texture.as_ref()).unwrap(),
             };
             let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
@@ -178,7 +147,8 @@ impl MyNode for RandomInputNode {
 
         return true;
     }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text_wrapped("basic node, for debugging purposes")
     }
 }

@@ -1277,6 +1277,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ffmpeg-sidecar"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bec830aba6cd3da7621c58e8f06727e3b750e8383bcd934d789f2b9c3c4ea595"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "fiat-crypto"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3192,12 +3201,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "project-root"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bccbff07d5ed689c4087d20d7307a52ab6141edeedf487c3876a55b86cf63df"
-
-[[package]]
 name = "protobuf"
 version = "2.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3313,14 +3316,16 @@ dependencies = [
 
 [[package]]
 name = "reanimator"
-version = "0.1.16"
+version = "0.1.18"
 dependencies = [
+ "anyhow",
  "blake2",
  "comprexor",
  "copypasta",
  "dtt",
  "escapi",
  "fastrand 2.1.0",
+ "ffmpeg-sidecar",
  "file-hashing",
  "font-kit",
  "glium",
@@ -3334,7 +3339,6 @@ dependencies = [
  "open",
  "pac2",
  "platform-dirs",
- "project-root",
  "regex",
  "rfd",
  "rusty-duplication",

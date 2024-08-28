@@ -4,7 +4,7 @@ use imgui::{sys::ImVec2, Ui};
 use rfd::FileDialog;
 
 use crate::{
-    nodes::default_image, project::Project, render_nodes::RenderNodesParams,
+project::Project, render_nodes::RenderNodesParams,
     user_info::UserSettings,
 };
 
@@ -91,6 +91,13 @@ impl Project {
                         }
                         ui.set_window_font_scale(1.0);
                     }
+                    crate::generic_io::EditTab::ProjectRes => {
+                        
+                        if ui.button("reload files") {
+                            self.project_settings.local_files.reload(&self.storage);
+                        }
+                        
+                    }
                 }
                 ui.separator();
 
@@ -129,7 +136,7 @@ impl Project {
                     i.end();
                 }
 
-                if self.new_node_menu(ui) {
+                if self.new_node_menu(ui,  &user_settings) {
                     params.moving = false;
                     params.scale_changed = false;
                 }

@@ -186,7 +186,7 @@ impl MyNode for OutputNode {
         );
     }
 
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer, storage: &Storage) {
         let items = OutputType::iter().collect::<Vec<_>>();
         ui.columns(3, "3 col", true);
         // ui.set_column_width(0, ui.window_size()[0] * 0.2);

@@ -5,7 +5,7 @@ use glium::{pixel_buffer::PixelBuffer, texture::{RawImage2d, Texture2dDataSource
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
+use crate::{node::{random_id, MyNode}, storage::Storage, widgets::link_widget};
 
 use super::node_enum::NodeType;
 
@@ -216,7 +216,7 @@ impl MyNode for LinearErrorDitherNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         let space = ui.content_region_avail();
         ui.columns(2, "dither col", true);
         ui.input_text_multiline("Pattern", &mut self.notation, [space[0], space[1]]).build();
@@ -320,7 +320,9 @@ impl MyNode for LinearErrorDitherNode {
     }
 
     fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("Applies dither effect")
+        ui.text_wrapped("Applies dither effect based on implementation in this post by tanner helland:");
+        ui.text_wrapped("");
+        link_widget(ui, "link to blog post".to_owned(), "https://tannerhelland.com/2012/12/28/dithering-eleven-algorithms-source-code.html".to_owned());
     }
 }
 
@@ -386,7 +388,7 @@ impl MyNode for BayerDitherNode {
         NodeType::BayerDither
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.text(format!("size: {}x{}", self.size, self.size));
         ui.separator();
         if ui.button("2x2") {

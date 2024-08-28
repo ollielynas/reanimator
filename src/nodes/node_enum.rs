@@ -1,40 +1,46 @@
 use std::path::PathBuf;
 
-use basic_shader_nodes::difference_of_gaussians::DifferenceofGaussiansNode;
+use basic_shader_nodes::*;
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
 use detect_motion::MotionNode;
+use difference_of_gaussians::DifferenceofGaussiansNode;
+use input::default_image::DefaultImage;
+use input::desktop_capture::CaptureWindowNode;
+use input::load_gif::LoadGifNode;
+use input::load_image::LoadImage;
+use input::load_video::LoadVideoNode;
+use input::render_3d::Render3DNode;
+use input::webcam::WebcamNode;
+use mask::layer_trail::LayerTrailNode;
 use mask::text_mask::TextMaskNode;
-use combine_hsv::CombineHsvNode;
-use combine_rgba::CombineRgbaNode;
+
 use cover_window::CoverWindowNode;
 use debug::DebugNode;
-use default_image::DefaultImage;
-use desktop_capture::CaptureWindowNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
 use glium::Display;
 use image_io::OutputNode;
 use layer::LayerNode;
-use load_gif::LoadGifNode;
-use load_image::LoadImage;
 use mask::color_noise::ColorNoiseNode;
 use mask::generic_mask::GenericMaskNode;
 use mask::multiply::MultiplyNode;
 use mask::white_noise::WhiteNoiseNode;
 use pick_random::RandomInputNode;
 use regex::Regex;
-use render_3d::Render3DNode;
 use restrict_pallet::RestrictPalletNode;
+use rgb_hsl::combine_hsv::*;
+use rgb_hsl::combine_rgba::CombineRgbaNode;
+use rgb_hsl::split_hsv::SplitHsvNode;
+use rgb_hsl::split_rgba::SplitRgbaNode;
 use savefile::{self, SavefileError};
 use scale::ScaleNode;
-use split_hsv::SplitHsvNode;
-use split_rgba::SplitRgbaNode;
+
 use strum_macros::EnumIter;
 use text::display_text::DisplayTextNode;
 use text::text_input::TextInputNode;
-use webcam::WebcamNode;
+use watercolor::watercolor::WaterColorNode;
 use win_screenshot::utils::{window_list, HwndName};
 
 use crate::node::MyNode;
@@ -81,6 +87,10 @@ pub enum NodeType {
     CoverWindow,
     DisplayText,
     Motion,
+    BlurSp,
+    LayerTrail,
+    WaterColor,
+    LoadVideo,
 }
 
 impl NodeType  {
@@ -99,8 +109,8 @@ impl NodeType  {
             NodeType::RandomInput => "Pick Random",
             NodeType::LoadGif => "Load Gif",
             NodeType::Delay => "Delay",
-            NodeType::SplitRgba => "Split RGBA Channels",
-            NodeType::CombineRgba => "Combine RGBA Channels",
+            NodeType::SplitRgba => "Split RGBA",
+            NodeType::CombineRgba => "Combine RGBA",
             NodeType::SolidColor => "Solid Color",
             NodeType::Multiply => "Multiply",
             NodeType::WhiteNoise => "White Noise",
@@ -122,6 +132,10 @@ impl NodeType  {
             NodeType::CoverWindow => "Cover Window",
             NodeType::DisplayText => "Display Text",
             NodeType::Motion => "Detect Motion",
+            NodeType::BlurSp => "blursp", 
+            NodeType::LayerTrail => "Layer Trail", 
+            NodeType::WaterColor => "WaterColor", 
+            NodeType::LoadVideo => "Load With ffmpeg", 
         }.to_owned()
     }
 
@@ -134,6 +148,24 @@ impl NodeType  {
                     println!("{e}");
                     None}}
             }
+            NodeType::LoadVideo => {
+                let a: Result<LoadVideoNode, SavefileError> = savefile::load_file(project_file, LoadVideoNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::WaterColor => {
+                let a: Result<WhiteNoiseNode, SavefileError> = savefile::load_file(project_file, WhiteNoiseNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
+            NodeType::LayerTrail => {
+                let a: Result<LayerTrailNode, SavefileError> = savefile::load_file(project_file, LayerTrailNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    println!("{e}");
+                    None}}
+            }
             NodeType::Motion => {
                 let a: Result<MotionNode, SavefileError> = savefile::load_file(project_file, MotionNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
@@ -141,7 +173,7 @@ impl NodeType  {
                     None}}
             }
             NodeType::DisplayText => {
-                let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                let a: Result<DisplayTextNode, SavefileError> = savefile::load_file(project_file, DisplayTextNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     println!("{e}");
                     None}}
@@ -313,6 +345,7 @@ impl NodeType  {
             | NodeType::Blur
             | NodeType::Dot
             | NodeType::Sharpness
+            | NodeType::BlurSp
              => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
                 match a {Ok(mut b) => {
@@ -341,6 +374,7 @@ impl NodeType  {
             | NodeType::Blur
             | NodeType::Dot
             | NodeType::Sharpness
+            | NodeType::BlurSp
              => 
             {Box::new(GenericShaderNode::new(self))},
             NodeType::BrightnessMask => 
@@ -372,6 +406,9 @@ impl NodeType  {
             NodeType::CoverWindow => Box::new(CoverWindowNode::default()),
             NodeType::DisplayText => Box::new(DisplayTextNode::default()),
             NodeType::Motion => Box::new(MotionNode::default()),
+            NodeType::LayerTrail => Box::new(LayerTrailNode::default()),
+            NodeType::WaterColor => Box::new(WaterColorNode::default()),
+            NodeType::LoadVideo => Box::new(LoadVideoNode::default()),
             }
     }
 
@@ -380,10 +417,12 @@ impl NodeType  {
         matches!(
             self,
             | NodeType::Debug
-            | NodeType::Webcam
+            | NodeType::Webcam  
+            | NodeType::BlurSp
             | NodeType::TextInput
             | NodeType::TextMask
             | NodeType::DisplayText
+            | NodeType::WaterColor
         )
     }
 

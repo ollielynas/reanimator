@@ -257,7 +257,7 @@ impl MyNode for LayerNode {
         self.id = id;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.columns(2, "", true);
         let mut remove = None;
         ui.text(format!("base size: {:?}", self.base_texture_size));
@@ -295,7 +295,7 @@ impl MyNode for LayerNode {
         }
 
         if ui.button("add layer") {
-            self.layers.push(([0.25, 0.25, 0.5, 0.5], true));
+            self.layers.push(([0.0, 0.0, 1.0, 1.0], true));
         }
 
         ui.next_column();

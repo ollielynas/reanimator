@@ -69,7 +69,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='A gif vfx tool'
+            Description='ReAnimator'
             Manufacturer='Ollie lynas'
             InstallerVersion='450'
             Languages='1033'

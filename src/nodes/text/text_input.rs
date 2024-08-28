@@ -84,7 +84,7 @@ impl MyNode for TextInputNode {
     }
 
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _: &Storage) {
         let region = ui.content_region_avail();
         ui.input_text_multiline("Text", &mut self.text, region).build();
     }

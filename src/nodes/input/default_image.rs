@@ -10,8 +10,7 @@ use image;
 use imgui::text_filter;
 use savefile::{save_file, SavefileError};
 
-use super::node_enum::NodeType;
-
+use crate::nodes::node_enum::NodeType;
 
 #[derive(Savefile)]
 pub struct DefaultImage {

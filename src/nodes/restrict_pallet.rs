@@ -83,7 +83,7 @@ impl MyNode for RestrictPalletNode {
         self.id.clone()
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui , renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui , renderer: &mut Renderer, storage: &Storage) {
         // ui.color_edit3_config(label, value)
         let mut color = [self.red, self.green, self.blue, self.alpha];
         ui.color_edit4_config("restrictions", &mut color)

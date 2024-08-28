@@ -4,28 +4,27 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
+use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
 
-use super::node_enum::NodeType;
 
 
 #[derive(Savefile)]
-pub struct CombineHsvNode {
+pub struct CombineRgbaNode {
     x: f32,
     y: f32,
     id: String,
 }
 
-impl Default for CombineHsvNode {
+impl Default for CombineRgbaNode {
     fn default() -> Self {
-        CombineHsvNode {
+        CombineRgbaNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
         }
     }
 }
-impl MyNode for CombineHsvNode {
+impl MyNode for CombineRgbaNode {
     fn path(&self) -> Vec<&str> {
         vec!["Image","RGBA"]
     }
@@ -50,7 +49,7 @@ impl MyNode for CombineHsvNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::CombineHsv
+        NodeType::CombineRgba
     }
 
 
@@ -65,7 +64,7 @@ impl MyNode for CombineHsvNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            CombineHsvNode::savefile_version(),
+            CombineRgbaNode::savefile_version(),
             self,
         );
     }
@@ -73,9 +72,9 @@ impl MyNode for CombineHsvNode {
 
     fn inputs(&self) -> Vec<String> {
         return vec![
-            "Hue".to_string(),
-            "Saturation".to_string(),
-            "Brightness".to_string(),
+            "Red".to_string(),
+            "Green".to_string(),
+            "Blue".to_string(),
             "Alpha".to_string(),
         ];
     }
@@ -102,7 +101,29 @@ impl MyNode for CombineHsvNode {
             return false;
         }
 
-        let fragment_shader_src = include_str!("combine_hsv.glsl");
+        let fragment_shader_src = 
+            r#"
+
+            #version 140
+
+            in vec2 v_tex_coords;
+            out vec4 color;
+
+            uniform sampler2D tex_red;
+            uniform sampler2D tex_green;
+            uniform sampler2D tex_blue;
+            uniform sampler2D tex_alpha;
+
+
+            void main() {
+            color = vec4(
+            texture(tex_red, v_tex_coords).r,
+            texture(tex_green, v_tex_coords).g,
+            texture(tex_blue, v_tex_coords).b,
+            texture(tex_alpha, v_tex_coords).a
+            );
+            }
+            "#;
 
     let texture_size:(u32, u32) = match storage.get_texture(&get_outputs[0]) {
         Some(a) => {(a.width(), a.height())},
@@ -112,19 +133,19 @@ impl MyNode for CombineHsvNode {
     storage.gen_frag_shader(fragment_shader_src.to_string()).unwrap();
     storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
     
-    let texture_h: &glium::Texture2d = match storage.get_texture(&get_outputs[0]) {
+    let texture_red: &glium::Texture2d = match storage.get_texture(&get_outputs[0]) {
         Some(a) => {a},
         None => {return false},
     };
-    let texture_s: &glium::Texture2d = match storage.get_texture(&get_outputs[1]) {
+    let texture_green: &glium::Texture2d = match storage.get_texture(&get_outputs[1]) {
         Some(a) => {a},
         None => {return false},
     };
-    let texture_v: &glium::Texture2d = match storage.get_texture(&get_outputs[2]) {
+    let texture_blue: &glium::Texture2d = match storage.get_texture(&get_outputs[2]) {
         Some(a) => {a},
         None => {return false},
     };
-    let texture_a: &glium::Texture2d = match storage.get_texture(&get_outputs[3]) {
+    let texture_alpha: &glium::Texture2d = match storage.get_texture(&get_outputs[3]) {
         Some(a) => {a},
         None => {return false},
     };
@@ -132,10 +153,10 @@ impl MyNode for CombineHsvNode {
     let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
 
             let uniforms = uniform! {
-                tex_h: texture_h,
-                tex_s: texture_s,
-                tex_v: texture_v,
-                tex_a: texture_a,
+                tex_red: texture_red,
+                tex_green: texture_green,
+                tex_blue: texture_blue,
+                tex_alpha: texture_alpha,
             };
             let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,

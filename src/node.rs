@@ -48,7 +48,7 @@ pub trait MyNode {
 
     fn set_xy(&mut self, x: f32, y: f32);
 
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.text("this node cannot be edited");
     }
     fn description(&mut self, ui: &Ui) {

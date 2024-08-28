@@ -35,7 +35,7 @@ void main(){
     for (float y = -range; y <= range; y += 1.0) {
         if (length(vec2(x,y)) <= range) {
             vec4 next_color = texture(tex, v_tex_coords + vec2(x,y)/u_resolution);
-            float s = (1.0 - length(last_color - next_color)) / 1.732 * 1.0 - length(vec2(x,y))/length(vec2(range,range));
+            float s = (1.0 - length(last_color - next_color)) / 1.732 - length(vec2(x,y))/length(vec2(range,range));
             if (s > score) {
                 score = s;
                 best =  vec2(x,y);

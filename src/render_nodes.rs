@@ -26,8 +26,6 @@ use std::{
 use strum::IntoEnumIterator;
 
 use crate::node::random_id;
-use crate::nodes::load_gif::LoadGifNode;
-use crate::nodes::load_image::LoadImage;
 use crate::project::{graph_to_screen_pos, screen_to_graph_pos, Project};
 use crate::{
     advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
@@ -288,7 +286,7 @@ impl Project {
                                 params.moving = false;
                             }
                             
-                            node.edit_menu_render(ui, renderer);
+                            node.edit_menu_render(ui, renderer, &self.storage);
                             if ui.is_window_focused() || ui.is_any_item_hovered() {
                                 focus_pop_out_window = true;
                             }

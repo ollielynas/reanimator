@@ -16,8 +16,8 @@ use imgui_glium_renderer::Renderer;
 
 #[derive(Savefile, Clone)]
 pub struct MyFile {
-    path: PathBuf,
-    size: u64, 
+    pub path: PathBuf,
+    pub size: u64, 
 }
 
 
@@ -69,7 +69,7 @@ impl MyFile {
 
 
 
-    fn new(path: PathBuf) -> Option<MyFile> {
+    pub fn new(path: PathBuf) -> Option<MyFile> {
 
         let meta = fs::metadata(&path);
         if let Ok(metadata) = meta {
@@ -158,10 +158,8 @@ impl Project {
             self.project_settings.batch_files.index = 0;
         }
     }
-    
 
     pub fn render_batch_edit(&mut self, ui: &Ui, sidebar_params: &mut SidebarParams, _user_settings: &mut UserSettings) {
-        
 
 
 

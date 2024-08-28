@@ -11,7 +11,7 @@ use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
 
-use super::node_enum::NodeType;
+use crate::nodes::node_enum::NodeType;
 
 use escapi;
 
@@ -94,7 +94,7 @@ impl MyNode for WebcamNode {
         ui.text_wrapped("Get webcam as input");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
 
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {

@@ -1,6 +1,7 @@
 use core::{hash, panic};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hasher};
+use std::path::PathBuf;
 
 use font_kit::sources::multi::MultiSource;
 use glium::index::NoIndices;
@@ -46,6 +47,7 @@ pub struct Storage {
     pub show_debug_window: bool,
     pub error_texture: Texture2d,
     pub fonts: MyFonts,
+    pub project_root: PathBuf,
 }
 
 
@@ -106,6 +108,7 @@ impl Storage {
             show_debug_window: false,
             error_texture,
             fonts: MyFonts::new(),
+            project_root: PathBuf::new(),
         };
         return s;
     }
