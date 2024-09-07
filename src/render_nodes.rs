@@ -96,7 +96,7 @@ impl Project {
                 .build(|| {
                     // let _ = ui.begin_disabled(out_of_bounds);
                     node_window_pos = ui.window_pos();
-                    // println!("{:?}", move_delta);
+                    // log::info!("{:?}", move_delta);
                     let mut move_this_node = false;
                     if ui.is_window_hovered() && params.moving {
                         params.moving = false;
@@ -163,7 +163,7 @@ impl Project {
                     let mut window_pos = ui.window_pos();
 
                     if move_this_node && !params.scale_changed {
-                        // println!("moving");
+                        // log::info!("moving");
                         window_pos[0] += params.move_delta[0];
                         window_pos[1] += params.move_delta[1];
                     }
@@ -233,7 +233,7 @@ impl Project {
                         if ui.menu_item("duplicate") {
                             let a = fs::create_dir_all(self.path.join("temp").join(node.name()));
                             if let Err(e) = a {
-                                println!("{e:?}")
+                                log::info!("{e:?}")
                             }
                             node.save(self.path.join("temp"));
                             let node_clone = node.type_().load_node(
@@ -314,7 +314,7 @@ impl Project {
                     // .filled(true)
                     .build();
 
-                // println!("x");
+                // log::info!("x");
             }
 
             if !del_window_not {

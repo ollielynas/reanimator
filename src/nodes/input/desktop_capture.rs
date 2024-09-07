@@ -193,7 +193,7 @@ let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap
                     image2d,
                 );
             }else {
-                println!("incorrect size {:?} {}", size, self.data.len())
+                log::info!("incorrect size {:?} {}", size, self.data.len())
             }
 
             

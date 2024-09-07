@@ -5,6 +5,23 @@
 in vec2 v_tex_coords;
 out vec4 color;
 
+highp float rand(vec2 co)
+{
+    highp float a = 12.9898;
+    highp float b = 78.233;
+    highp float c = 43758.5453;
+    highp float dt= dot(co.xy ,vec2(a,b));
+    highp float sn= mod(dt,3.14);
+    return fract(sin(sn) * c);
+}
+
+vec2 rand_pos(vec2 p, float size) {
+    if (rand(p * 100.0 * 2.321341) > 0.7) {
+        return vec2(0.0,0.0);
+    }  
+    return round(vec2(p.x + mod(17*size * rand(p), size*2.0), p.y + mod(12*size * rand(p * 3.141592), size * 2.0)));
+}
+
 uniform sampler2D tex;          // texture to blur
 
             uniform float u_time;
@@ -15,44 +32,24 @@ uniform sampler2D tex;          // texture to blur
 //---------------------------------------------------------------------------
 void main()
     {
-    float r = u_input;
-    vec2 pos = v_tex_coords;
-    float xs = (u_resolution.x);
-    float ys = (u_resolution.y);
-    float x,y,xx,yy,rr=r*r,dx,dy,w,w0;
-    w0=0.3780/pow(r,1.975);
-    float weight_total = 0.0;
-    vec2 p;
-    vec4 col=vec4(0.0, 0.0, 0.0, 0.0);
 
-    for (float x2=-45.0;x2<45.0;x2++) {
-        dx=1.0/xs;
-        p.x=(pos.x)+(x*dx);
-        x=(x2/45.0) * r;
-        xx=x*x;
-        for (float y2=-45.0;y2<45.0;y2++) {
-        dy=1.0/ys;
-        p.y=(pos.y)+(y*dy);
-        y=(y2/45.0) * r;
-        yy=y*y;
-        if (xx+yy<=rr)
-        {
-            w=w0*exp((-xx-yy)/(2.0*rr));
-            weight_total += w;
-            col+=texture2D(tex,p)*w;
+        color = vec4(0.4353, 1.0, 0.0, 1.0);
+
+        float size = ((u_resolution.x + u_resolution.y)/2.0) / round(sqrt(u_input));
+
+        vec2 pos =rand_pos(u_resolution * v_tex_coords - mod(u_resolution * v_tex_coords, size), size);
+        vec2 og = u_resolution * v_tex_coords;
+        for(int x=-3;x<=3;++x) {
+            for(int y=-3;y<=3;y++) {
+                vec2 new_pos = rand_pos(round(u_resolution * v_tex_coords - mod(u_resolution * v_tex_coords, size) +  vec2(float(x),float(y)) * size), size);
+                if (distance(og, pos) > distance(og, new_pos)) {
+                    pos = new_pos;
+                }
+            }
         }
-    }
-    }
-    color=col/weight_total;
 
-    // for (dx=1.0/xs,x=-r,p.x=(pos.x)+(x*dx);x<=r;x+=pow(sample_disperse, 0.5),p.x+=dx){ 
-    //     xx=x*x;
-    //  for (dy=1.0/ys,y=-r,p.y=(pos.y)+(y*dy);y<=r;y+=pow(sample_disperse, 0.5),p.y+=dy){ 
-    //     yy=y*y;
-    //   if (xx+yy<=rr)
-    //     {
-    //     w=w0*exp((-xx-yy)/(2.0*rr));
-    //     weight_total += w;
-    //     col+=texture2D(tex,p)*w;
-    //     }}}
+        color = texture2D(tex, pos/u_resolution);
+
+        
+
     }

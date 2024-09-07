@@ -59,7 +59,7 @@ impl TextMaskNode {
                     let mut fonts = vec![];
                     match h.load() {
                         Ok(a) => {
-                            // println!("{:?}",a.full_name());
+                            // log::info!("{:?}",a.full_name());
                             
                             fonts.push(a);
                         }
@@ -76,7 +76,7 @@ impl TextMaskNode {
                     if fonts.len() > 0 {
                         font = Some(fonts[0].clone());
                     }
-                    println!("{font:?}");
+                    log::info!("{font:?}");
                 }
                 if let Some(font) = font {
                     if let Some(data) =  &self.font_data {

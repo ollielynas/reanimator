@@ -98,7 +98,7 @@ impl Project {
                     for f in files {
                         
                             let a= fs::copy(f.clone(), self.storage.project_root.join((f.clone()).file_name().unwrap_or(OsStr::new("error"))));
-                            println!("{a:?}");
+                            log::info!("{a:?}");
                     }
                 }
                 self.project_settings.local_files.reload(&self.storage);
@@ -112,7 +112,7 @@ impl Project {
                     if let Ok(files) = files {
                         for f in files {
                             let a = fs::copy(f.clone(), self.storage.project_root.join((f.clone()).file_name().unwrap_or(OsStr::new("error"))));
-                            println!("{a:?}");
+                            log::info!("{a:?}");
                         }
                     }
                 }

@@ -149,7 +149,7 @@ impl Project {
                             self.path.parent().unwrap().as_os_str().to_str().unwrap(),
                         );
 
-                        println!("extractor {:?}", extractor.extract());
+                        log::info!("extractor {:?}", extractor.extract());
                         let new = Project::new(self.path.clone(), self.storage.display.clone());
 
                         self.nodes = new.nodes;

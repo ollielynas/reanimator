@@ -161,7 +161,7 @@ impl MyNode for LayerNode {
             }
             "#;
 
-        // println!("{}", fragment_shader_src);
+        // log::info!("{}", fragment_shader_src);
 
         let mut sizes: Vec<(u32, u32)> = vec![];
 
@@ -226,7 +226,7 @@ impl MyNode for LayerNode {
                     return false;
                 }
             };
-            // println!("{:?} {:?} {:?}", [layer[0], layer[1]],[layer[2], layer[3]],[texture.dimensions().0 as f32, texture.dimensions().1 as f32]);
+            // log::info!("{:?} {:?} {:?}", [layer[0], layer[1]],[layer[2], layer[3]],[texture.dimensions().0 as f32, texture.dimensions().1 as f32]);
             let uniforms = uniform! {
                 base_texture: texture2,
                 base_size: [self.base_texture_size.0 as f32, self.base_texture_size.1 as f32],
@@ -282,7 +282,7 @@ impl MyNode for LayerNode {
                 hover = i;
             }
             if ui.button("remove layer") {
-                println!("{remove:?}");
+                log::info!("{remove:?}");
                 remove = Some(i);
             };
             ui.spacing();
@@ -290,7 +290,7 @@ impl MyNode for LayerNode {
         }
 
         if let Some(remove2) = remove {
-            println!("{}", remove2);
+            log::info!("{}", remove2);
             self.layers.remove(remove2);
         }
 

@@ -25,14 +25,14 @@ fn try_load_as_image(path: PathBuf) -> Option<RawImage2d<'static, u8>> {
     let bytes = match fs::read(path) {
         Ok(a) => a,
         Err(e) => {
-            println!("{e}");
+            log::error!("{e}");
             return  None;
         }
     };
     let image = match image::load_from_memory(&bytes) {
         Ok(a) => a,
         Err(e) => {
-            println!("{e}");
+            log::error!("{e}");
             return None;
         }
     }
@@ -44,7 +44,7 @@ fn try_load_as_image(path: PathBuf) -> Option<RawImage2d<'static, u8>> {
         (image.width(), image.height()),
     );
 
-    println!("{:?}", raw_image.format);
+    log::info!("{:?}", raw_image.format);
 
     return Some(raw_image);
 
@@ -132,8 +132,8 @@ impl Project {
         let binding = self.project_settings.batch_files.files[self.project_settings.batch_files.index].clone();
         let raw_in: Vec<RawImage2d<u8>> = binding.get_raw();
         if raw_in.len() > 0 {
-        println!("{}", raw_in[0].width);
-        println!("Format {:?}", raw_in[0].format);
+        log::info!("{}", raw_in[0].width);
+        log::info!("Format {:?}", raw_in[0].format);
         let mut raw_out: RawImage2d<u8> = RawImage2d::from_raw_rgb(vec![], (0,0));
 
         let raw_in_file = raw_in[0].data.clone();
@@ -149,7 +149,7 @@ impl Project {
                         let img = DynamicImage::ImageRgba8(img).flipv();
         let a = img.save(output_path);
         if a.is_err() {
-            println!("{a:?}");
+            log::info!("{a:?}");
         }
     }
         self.project_settings.batch_files.index += 1;

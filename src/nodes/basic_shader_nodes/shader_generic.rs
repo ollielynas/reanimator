@@ -25,6 +25,7 @@ impl NodeType {
                 NodeType::Dot => 3,
                 NodeType::Sharpness => 4,
                 NodeType::BlurSp => 5,
+                NodeType::Crystal => 6,
                 _a => {
                     -1
                     // unreachable!("node type: {a:?} has no index")
@@ -60,7 +61,7 @@ impl GenericShaderNode {
 
     pub fn load_type(&mut self) {
         if self.type_index != self.type_.generic_shader_index() {
-            println!("{}", self.type_index);
+            log::info!("{}", self.type_index);
             for i in NodeType::iter() {
                 if i.generic_shader_index() == self.type_index {
                     // self.type_ = i;
@@ -68,7 +69,7 @@ impl GenericShaderNode {
                     self.type_ = new.type_;
                     self.input_max = new.input_max;
                     self.input_name = new.input_name;
-                    println!("{:?}", self.type_);
+                    log::info!("loaded {:?}", self.type_);
                     break
                 }
             }
@@ -76,7 +77,6 @@ impl GenericShaderNode {
     }
 
     pub fn new(type_: NodeType) -> GenericShaderNode {
-        println!("{:?}", type_);
         GenericShaderNode {
             x: 0.0,
             y: 0.0,
@@ -90,6 +90,7 @@ impl GenericShaderNode {
                 NodeType::Dot => 3.0,
                 NodeType::Sharpness => 1.0,
                 NodeType::BlurSp => 0.1,
+                NodeType::Crystal => 4000.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
                 }
@@ -100,12 +101,14 @@ impl GenericShaderNode {
                 NodeType::Dot => "Radius".to_owned(),
                 NodeType::Sharpness => "Sharpness".to_owned(),
                 NodeType::BlurSp => "Threshold".to_owned(),
+                NodeType::Crystal => "Crystal Count (eprox)".to_owned(),
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input name fully implemented")
                 }
             },
             input_min: match type_ {
                 NodeType::ChromaticAberration => f32::MIN,
+                NodeType::Crystal => 1.0,
                 NodeType::VHS => 0.0,
                 NodeType::Blur => 0.0,
                 NodeType::Dot => 0.001,
@@ -117,6 +120,7 @@ impl GenericShaderNode {
             },
             input_max: match type_ {
                 NodeType::ChromaticAberration => f32::MAX,
+                NodeType::Crystal => f32::MAX,
                 NodeType::VHS => 1.0,
                 NodeType::BlurSp => 1.0,
                 NodeType::Dot => 20.0,
@@ -210,6 +214,10 @@ impl MyNode for GenericShaderNode {
             NodeType::BlurSp => {
                 ui.text_wrapped("blursps");
             }
+            NodeType::Crystal => {
+                ui.text_wrapped("Creates a frosted glass/crystal effect");
+                ui.text_wrapped("This effect is based on a matlab assignment that I had to do for uni");
+            }
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
             }
@@ -251,7 +259,7 @@ impl MyNode for GenericShaderNode {
 
 
         if self.type_index != self.type_.generic_shader_index() {
-            println!("{}", self.type_index);
+            log::info!("{}", self.type_index);
             for i in NodeType::iter() {
                 if i.generic_shader_index() == self.type_index {
                     // self.type_ = i;
@@ -259,7 +267,7 @@ impl MyNode for GenericShaderNode {
                     self.type_ = new.type_;
                     self.input_max = new.input_max;
                     self.input_name = new.input_name;
-                    println!("{:?}", self.type_);
+                    log::info!("{:?}", self.type_);
                     break
                 }
             }
@@ -303,6 +311,7 @@ impl MyNode for GenericShaderNode {
             NodeType::Dot => include_str!("dot.glsl"),
             NodeType::Sharpness => include_str!("sharp.glsl"),
             NodeType::BlurSp => include_str!("blursp.glsl"),
+            NodeType::Crystal => include_str!("crystal.glsl"),
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
             }

@@ -10,6 +10,7 @@ use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::{Position, Size};
 use itertools::Itertools;
 use platform_dirs::{AppDirs, UserDirs};
+use textdistance::{Algorithm, Cosine, Hamming, Levenshtein};
 use std::collections::HashSet;
 use std::thread::{panicking, sleep};
 use std::{
@@ -96,6 +97,7 @@ pub struct Project {
     pub open_settings: bool,
     pub project_settings: ProjectSettings,
     pub edit_tab: EditTab,
+    pub node_search_string: String,
     pub backup_data: Vec<GenericNodeInfo>,
 }
 
@@ -107,7 +109,7 @@ impl Project {
     // }
 
     pub fn new(path: PathBuf, display: Display<WindowSurface>) -> Project {
-        // println!("{:?}", fs::create_dir_all(path.join("nodes")));
+        // log::info!("{:?}", fs::create_dir_all(path.join("nodes")));
 
         let new = Project {
             advanced_color_picker: AdvancedColorPicker::default(),
@@ -141,6 +143,7 @@ impl Project {
             open_settings: false,
             edit_tab: EditTab::BatchFileEdit,
             backup_data: vec![],
+            node_search_string: String::new(),
         };
         return new;
     }
@@ -265,7 +268,7 @@ impl Project {
                         .round()
                     ));
                     ui.set_window_font_scale(1.0);
-                    println!("loading step: {}", self.loading);
+                    log::info!("loading step: {}", self.loading);
 
                     if self.loading != 0 {
                         // sleep(Duration::from_secs_f32(0.25));
@@ -380,7 +383,7 @@ impl Project {
                                                     node_type.load_node(node.path())
                                                 {
                                                     self.nodes.push(new_node);
-                                                    println!("loaded node");
+                                                    log::info!("loaded node");
                                                 };
                                             }
                                         }
@@ -388,7 +391,7 @@ impl Project {
                                 }
                                 
                             } else {
-                                println!("project not found");
+                                log::info!("project not found");
                             }
 
                             self.storage.project_root = self.path.clone().join("root");
@@ -414,7 +417,7 @@ impl Project {
                         }
                         #[cfg(debug_assertion)] {
                             let a = savefile::save_file("src/node_speeds.bin", 0, &user_settings.node_speed);
-                            // println!("{a:?}");
+                            // log::info!("{a:?}");
                         
                         }
                         }
@@ -442,6 +445,7 @@ impl Project {
                             }
                         }
                         5 => {
+                            
                             ffmpeg_sidecar::download::auto_download().unwrap();
                         }
                         a => {
@@ -567,7 +571,7 @@ impl Project {
             self.storage.time = ui.time();
             self.run_nodes(renderer);
 
-            // println!("ran");
+            // log::info!("ran");
         }
         for node in &mut self.nodes {
             if node.type_() == NodeType::CoverWindow {
@@ -596,7 +600,7 @@ impl Project {
 
 
 
-        // println!("{:?}", ui.mouse_drag_delta());
+        // log::info!("{:?}", ui.mouse_drag_delta());
 
         if let Some(_popup_menu) = ui.begin_popup_context_window() {
             if ui.menu_item("new node") {
@@ -640,7 +644,7 @@ impl Project {
             && ui.is_mouse_dragging(imgui::MouseButton::Left)
         {
             params.moving = true;
-            // println!("")
+            // log::info!("")
         }
 
         self.render_node(ui, &mut params, renderer);
@@ -697,8 +701,8 @@ impl Project {
                     draw_list
                         .add_bezier_curve(
                             [pos.x, pos.y],
-                            [m[0] + diff * 0.3, m[1]],
                             [pos.x - diff * 0.3, pos.y],
+                            [m[0] + diff * 0.3, m[1]],
                             [m[0], m[1]],
                             ImColor32::BLACK,
                         )
@@ -767,7 +771,7 @@ impl Project {
         let mut first = true;
         // params.time_list = vec![0.0];
         for t in params.time_list {
-            // println!("t");
+            // log::info!("t");
             if first {
                 before = glium::debug::TimestampQuery::new(&self.storage.display);
             }
@@ -837,7 +841,7 @@ impl Project {
                 match (after, before) {
                     (Some(after), Some(before)) => {
                         let elapsed = after.get() - before.get();
-                        // println!("{}", elapsed);
+                        // log::info!("{}", elapsed);
                         if elapsed > 100000 {
                             self.total_gpu_frame_time = (elapsed as f64 / 10.0_f64.powi(9)) as f32;
                         }
@@ -938,7 +942,7 @@ impl Project {
             }, input);
         }
 
-        // println!("run");
+        // log::info!("run");
 
         let connection_hash = self.nodes.len() as u64
             + calculate_hash(
@@ -992,7 +996,7 @@ impl Project {
                         return;
                     }
                     1 => {
-                        println!("loop :/");
+                        log::info!("loop :/");
                         return;
                     }
                     2 => {
@@ -1065,10 +1069,28 @@ impl Project {
             .build(|| {
                 open = true;
                 ui.columns(2, "select new node col", true);
+                ui.input_text("search", &mut self.node_search_string).build();
+                let mut node_order =  (0..self.new_node_types.len()).collect::<Vec<usize>>();
+                if ui.is_item_edited() || true {
+                    let alg: Levenshtein = Levenshtein::default();
+                    node_order.retain(|n| (alg.for_str(&self.new_node_types[*n].name().to_lowercase(), &self.node_search_string.to_lowercase()).ndist())  < 0.9);
+                    node_order.sort_by_cached_key(|n| (alg.for_str(&self.new_node_types[*n].name().to_lowercase(), &self.node_search_string.to_lowercase()).ndist() * 10000.0) as i32);
+                }
+
                 let avil = ui.content_region_avail();
                 ui.child_window("child window")
                     .size([0.0, -ui.calc_text_size("|")[1] * 1.5])
                     .build(|| {
+                        if self.node_search_string != String::new() {
+                            for n in node_order {
+                                let mut name = self.new_node_types[n].name();
+                                if self.new_node_types[n].type_().disabled() {
+                                    name += " (Debug Only)"
+                                }
+                                ui.radio_button(name, &mut self.selected_node_to_add, n);
+
+                            }
+                        }else {
                         for n in 0..self.new_node_types.len() {
                             #[cfg(not(debug_assertions))]
                             {
@@ -1106,8 +1128,10 @@ impl Project {
                                     name += " (Debug Only)"
                                 }
                                 ui.radio_button(name, &mut self.selected_node_to_add, n);
+
                             }
                         }
+                    }
 
                         for i in group.drain() {
                             if let (_, Some(a)) = i {
@@ -1164,10 +1188,10 @@ impl Project {
         let [mut x, mut y] = ui.io().mouse_pos;
         x = 100.0;
         y = 100.0;
-        println!("droped {:?}", path);
+        log::info!("droped {:?}", path);
         match ext {
             "gif" => {
-                println!("gif");
+                log::info!("gif");
                 let mut node = NodeType::LoadGif.new_node();
                 let a: Option<&mut LoadGifNode> =
                     (*node).as_any_mut().downcast_mut::<LoadGifNode>();

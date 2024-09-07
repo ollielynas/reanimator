@@ -248,7 +248,7 @@ impl Storage {
         if !self.shaders.contains_key(&(vert.clone(), frag.clone())) {
             let program = match glium::Program::from_source(&self.display, &(vert), &frag, None) {
                 Ok(a) => a,
-                Err(a) => {println!("shader_comp_error:--------------- \n\n\n {a:#?}\n\n\n --------------"); return None;}
+                Err(a) => {log::info!("shader_comp_error:--------------- \n\n\n {a:#?}\n\n\n --------------"); return None;}
             };
             
             
@@ -276,7 +276,7 @@ impl Storage {
                 let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
                         .unwrap();
-                println!("{}",a.len());
+                log::info!("{}",a.len());
                 let not_texture: RawImage2d<u8> = RawImage2d::from_raw_rgba(
                     image.as_bytes().to_vec(),
                     (image.width(), image.height()),
@@ -285,7 +285,7 @@ impl Storage {
                 self.set_texture(k, texture);
             }
             _ => {
-                println!("new texture");
+                log::info!("new texture");
                 let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
                     ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
                         .unwrap();

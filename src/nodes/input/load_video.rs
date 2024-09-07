@@ -3,6 +3,7 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use ffmpeg_sidecar::{command::FfmpegCommand, event::FfmpegEvent};
 use glium::{texture::RawImage2d, uniform, DrawParameters, Rect, Surface};
 use imgui_glium_renderer::Renderer;
+use itertools::Itertools;
 use rfd::FileDialog;
 use savefile::{save_file, SavefileError};
 
@@ -39,6 +40,16 @@ pub struct LoadVideoNode {
     #[savefile_ignore]
     last_time: f64,
     do_loop: bool,
+    #[savefile_versions = "1.."]
+    custom_input: bool,
+    #[savefile_versions = "1.."]
+    custom_args: bool,
+
+    #[savefile_versions = "1.."]
+    custom_input_text: String,
+
+    #[savefile_versions = "1.."]
+    ffmpeg_args: String,
 }
 
 impl Default for LoadVideoNode {
@@ -58,6 +69,10 @@ impl Default for LoadVideoNode {
             width: 1,
             height: 1,
             do_loop: true,
+            custom_input: false,
+            custom_args: false,
+            custom_input_text: String::new(),
+            ffmpeg_args: String::new(),
         }
     }
 }
@@ -72,7 +87,7 @@ impl MyNode for LoadVideoNode {
     }
 
     fn savefile_version() -> u32 {
-        0
+        1
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -118,23 +133,89 @@ impl MyNode for LoadVideoNode {
     }
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
-        ui.text(format!(
-            "path: {}",
-            match &self.path {
-                Some(a) => {
-                    a.as_path().to_str().unwrap()
+        ui.disabled(self.custom_input, || {
+            ui.text(format!(
+                "path: {}",
+                match &self.path {
+                    Some(a) => {
+                        a.as_path().to_str().unwrap()
+                    }
+                    None => "no path selected",
                 }
-                None => "no path selected",
+            ));
+            if ui.button("change path") {
+                self.frames = vec![];
+                self.path = FileDialog::new().pick_file();
+                if let Some(ref mut path) = self.path {
+                    apply_path_root::set_root(path, &storage);
+                }
             }
-        ));
+        });
+        ui.checkbox("use custom input", &mut self.custom_input);
+        ui.checkbox("use custom args", &mut self.custom_args);
+        if self.custom_input {
+            ui.text("-i ");
+            ui.same_line();
+            ui.input_text("custom input", &mut self.custom_input_text)
+                .build();
+        }
+        if self.custom_args {
+            let h = 
+                 ui.calc_text_size_with_opts(
+                    "x".repeat(self.ffmpeg_args.split("\n").collect::<Vec<&str>>().len()),
+                    false,
+                    0.1
+                )[1] + 
+                ui.clone_style().frame_padding[1] * 2.0;
+            ui.input_text_multiline(
+                "args",
+                &mut self.ffmpeg_args,
+                [ui.content_region_avail()[0], h],
+            )
+            .build();
+        }
+
         ui.text(format!("frames: {}", self.frames.len(),));
         ui.text(format!("length: {}", self.length,));
-        
+
+        if ui.button("load file") {
+            self.frames = vec![];
+            match load_video_bytes(
+                &if self.custom_input {
+                    PathBuf::new()
+                } else {
+                    apply_path_root::get_with_root(&self.path.clone().unwrap_or_default(), &storage)
+                },
+                if self.custom_input {
+                    self.custom_input_text.clone()
+                } else {
+                    String::new()
+                },
+                if self.custom_args {
+                    self.ffmpeg_args.clone()
+                } else {
+                    String::new()
+                },
+            ) {
+                Ok((length, width, height, frame_data)) => {
+                    self.frames = frame_data;
+                    self.length = length;
+                    self.width = width;
+                    self.height = height;
+                }
+                Err(e) => {
+                    log::error!("{e}");
+                }
+            };
+        } else {
+            // return false;
+        }
+
         if self.paused {
             if ui.button("unpause") {
                 self.paused = false;
             }
-        }else {
+        } else {
             if ui.button("pause") {
                 self.paused = true;
             }
@@ -142,16 +223,12 @@ impl MyNode for LoadVideoNode {
 
         ui.checkbox("loop", &mut self.do_loop);
 
-        ui.text(format!("{}/{}", self.length * self.play_head as f32, self.length));
+        ui.text(format!(
+            "{}/{}",
+            self.length * self.play_head as f32,
+            self.length
+        ));
         ui.slider("Video %", 0.0, 1.0, &mut self.play_head);
-
-        if ui.button("change path") {
-            self.frames = vec![];
-            self.path = FileDialog::new().pick_file();
-            if let Some(ref mut path) = self.path {
-                apply_path_root::set_root(path, &storage);
-            }
-        }
     }
 
     fn run(
@@ -166,33 +243,47 @@ impl MyNode for LoadVideoNode {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-
-        if let Some(path) = &self.path {
-            if self.frames.len() == 0 {
-                match load_video_bytes(&apply_path_root::get_with_root(path, &storage)) {
-                    Ok((length, width, height, frame_data)) => {
-                        self.frames = frame_data;
-                        self.length = length;
-                        self.width = width;
-                        self.height = height;
-                    }
-                    Err(e) => {
-                        println!("{e}");
-                    }
-                };
-            } else {
-                // return false;
-            }
-        }
+        // if let Some(path) = &self.path {
+        //     if self.frames.len() == 0 {
+        //         match load_video_bytes(
+        //             &if self.custom_input {
+        //                 PathBuf::new()
+        //             } else {
+        //                 apply_path_root::get_with_root(path, &storage)
+        //             },
+        //             if self.custom_input {
+        //                 self.custom_input_text.clone()
+        //             } else {
+        //                 String::new()
+        //             },
+        //             if self.custom_args {
+        //                 self.ffmpeg_args.clone()
+        //             } else {
+        //                 String::new()
+        //             },
+        //         ) {
+        //             Ok((length, width, height, frame_data)) => {
+        //                 self.frames = frame_data;
+        //                 self.length = length;
+        //                 self.width = width;
+        //                 self.height = height;
+        //             }
+        //             Err(e) => {
+        //                 log::error!("{e}");
+        //             }
+        //         };
+        //     } else {
+        //         // return false;
+        //     }
+        // }
 
         storage.create_and_set_texture(self.width, self.height, output_id.clone());
 
-
-        if self.last_time > storage.time  {
+        if self.last_time > storage.time {
             self.last_time = 0.0;
-            if  !self.autoplay {
-            self.paused = false;
-        }
+            if !self.autoplay {
+                self.paused = false;
+            }
         }
 
         if !self.paused {
@@ -200,9 +291,9 @@ impl MyNode for LoadVideoNode {
             if self.play_head >= 1.0 {
                 if self.do_loop {
                     self.play_head = 0.0;
-                }else {
-                self.play_head = 1.0;
-                self.paused;
+                } else {
+                    self.play_head = 1.0;
+                    self.paused;
                 }
             }
         }
@@ -212,14 +303,19 @@ impl MyNode for LoadVideoNode {
         if self.frames.len() == 0 {
             return false;
         }
-        let data = &self.frames[(self.play_head * self.frames.len() as f64).floor().clamp(0.0, (self.frames.len() -1) as f64) as usize];
+        let data = &self.frames[(self.play_head * self.frames.len() as f64)
+            .floor()
+            .clamp(0.0, (self.frames.len() - 1) as f64) as usize];
         if let Some(texture) = storage.get_texture(&output_id) {
-            texture.write(Rect {
-                left: 0,
-                bottom:0,
-                width: self.width,
-                height: self.height,
-            }, RawImage2d::from_raw_rgba_reversed(data, (self.width, self.height)));
+            texture.write(
+                Rect {
+                    left: 0,
+                    bottom: 0,
+                    width: self.width,
+                    height: self.height,
+                },
+                RawImage2d::from_raw_rgba_reversed(data, (self.width, self.height)),
+            );
         }
 
         return true;
@@ -242,24 +338,45 @@ impl MyNode for LoadVideoNode {
     }
 }
 
-pub fn load_video_bytes(path: &PathBuf) -> anyhow::Result<(f32, u32, u32, Vec<Vec<u8>>)> {
+pub fn load_video_bytes(
+    path: &PathBuf,
+    custom_input: String,
+    custom_args: String,
+) -> anyhow::Result<(f32, u32, u32, Vec<Vec<u8>>)> {
     let mut height = 0;
     let mut width = 0;
     let mut inital_timestamp = -10.0;
     let mut final_timestamp = 0.0;
-    println!("loading video");
+    let mut finished = false;
+    log::info!("loading video");
     let mut bytes = Vec::new();
-    FfmpegCommand::new() // <- Builder API like `std::process::Command`
-        .input(path.display().to_string()) // <- Convenient argument presets
+    let mut binding = FfmpegCommand::new();
+    let args = custom_args.replace("\n", " ");
+    let command = binding // <- Builder API like `std::process::Command`
+        .input(if path == &PathBuf::new() {
+            custom_input
+        } else {
+            path.display().to_string()
+        }) // <- Convenient argument presets
+        
+        .args(if custom_args.len() == 0 {
+            vec![]
+        } else {
+            args.split(" ").collect::<Vec<&str>>()
+        })
         .create_no_window()
         .format("rawvideo")
-        .output("pipe:1")
+        .print_command()
+        .output("pipe:1");
+    log::info!("args: {:?}", command.get_args());
+    // command.get_args();
+    command
         .spawn()? // <- Uses an ordinary `std::process::Child`
         .iter()? // <- Iterator over all log messages and video output
         .for_each(|event: FfmpegEvent| {
             match event {
                 FfmpegEvent::OutputFrame(frame) => {
-                    println!("frame: {}x{}", frame.width, frame.height);
+                    log::info!("frame: {}x{}", frame.width, frame.height);
                     width = frame.width;
                     height = frame.height;
                     if inital_timestamp == -10.0 {
@@ -272,14 +389,22 @@ pub fn load_video_bytes(path: &PathBuf) -> anyhow::Result<(f32, u32, u32, Vec<Ve
                     bytes.push(pixels);
                 }
                 FfmpegEvent::Progress(progress) => {
-                    println!("Current speed: {}x", progress.speed); // <- parsed progress updates
+                    log::info!("Current speed: {}x", progress.speed); // <- parsed progress updates
                 }
                 FfmpegEvent::Log(_level, msg) => {
-                    println!("[ffmpeg] {}", msg); // <- granular log message from stderr
+                    log::info!("[ffmpeg] {}", msg); // <- granular log message from stderr
+                }
+                FfmpegEvent::Done => {
+                    log::info!("Done");
+                    finished = true;
                 }
                 _ => {}
             }
         });
+
+    if !finished {
+        return Err(anyhow::Error::msg("error in command"));
+    }
 
     Ok((final_timestamp - inital_timestamp, width, height, bytes))
 }

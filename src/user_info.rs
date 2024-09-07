@@ -88,7 +88,7 @@ impl Default for UserSettings {
         }
         .join("Reanimator");
 
-        println!("{:?}", fs::create_dir_all(project_folder_path.clone()));
+        log::info!("{:?}", fs::create_dir_all(project_folder_path.clone()));
 
         let new = UserSettings {
             new_project_name: "Unnamed Project".to_owned(),
@@ -117,13 +117,13 @@ impl UserSettings {
         let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
             Some(a) => {
                 let _ = fs::create_dir_all(a.config_dir.clone());
-                println!("{:#?}", a);
+                log::info!("{:#?}", a);
                 a.config_dir
             }
             None => current_exe().unwrap(),
         };
 
-        println!(
+        log::info!(
             "{:?}",
             savefile::save_file(
                 app_dirs.join("settings.bat"),
@@ -193,7 +193,7 @@ impl UserSettings {
             let mut fonts = vec![];
             match h.load() {
                 Ok(a) => {
-                    // println!("{:?}",a.full_name());
+                    // log::info!("{:?}",a.full_name());
                     fonts.push(a);
                 },
                 Err(_) => {},
@@ -205,12 +205,12 @@ impl UserSettings {
             if fonts.len() > 0 {
                 font = Some(fonts[0].clone());
             }
-            println!("{font:?}");
+            log::info!("{font:?}");
         }
         if let Some(font) = font {
         
         if let Some(data) = font.copy_font_data() {
-            println!("added font");
+            log::info!("added font");
         let id: imgui::FontId = ctx.fonts().add_font(
             &[
         FontSource::TtfData {
@@ -237,7 +237,7 @@ impl UserSettings {
 
 
         if !ctx.fonts().is_built() {
-            println!("font not build");
+            log::info!("font not build");
             ctx.fonts().build_rgba32_texture();
             ctx.fonts().build_alpha8_texture();
             if !ctx.fonts().is_built() {
@@ -298,7 +298,7 @@ impl UserSettings {
     }
 
     pub fn settings_window(&mut self, ui: &Ui, window_open: &mut bool, fonts: &MyFonts) {
-        // println!("settings1");
+        // log::info!("settings1");
         let screen_size_array = ui.io().display_size;
 
         
@@ -309,27 +309,36 @@ impl UserSettings {
         .position([0.0,0.0], imgui::Condition::Always)
         .size(screen_size_array, imgui::Condition::Always)
         .build(||{
+            ui.columns(2, "settinsg col", false);
+            
             ui.set_window_font_scale(1.7);
             ui.text("settings");
             ui.set_window_font_scale(1.0);
             ui.spacing();
             // ui.same_line();
             ui.spacing();
-            ui.same_line();
+            // ui.same_line();
             if ui.button("save and close") {
                 self.save();
                 *window_open = false;
             }
-            ui.same_line();
+            // ui.same_line();
             ui.spacing();
-            ui.same_line();
+            // ui.same_line();
             if ui.button("save and relaunch") {
                 self.save();
                 relaunch_windows(false);
             }
-            ui.spacing();
-            ui.spacing();
-            ui.spacing();
+            ui.set_column_width(0, ui.window_size()[0] * 0.25);
+
+
+            ui.next_column();
+
+
+            ui.child_window("settings child window")
+            .size([0.0,0.0])
+            .border(true)
+            .build(|| {
 
             if let Some(tab_bar)=ui.tab_bar("settings tab bar") {
                 ui.indent();
@@ -436,6 +445,7 @@ impl UserSettings {
             }
 
         });
+    });
     }
 }
 

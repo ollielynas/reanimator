@@ -216,14 +216,14 @@ impl Render3DNode {
         let bytes = match fs::read(img_path) {
             Ok(a) => a,
             Err(e) => {
-                println!("{e}");
+                log::error!("{e}");
                 return Ok(());
             }
         };
         let image = match image::load_from_memory(&bytes) {
             Ok(a) => a,
             Err(e) => {
-                println!("{e}");
+                log::error!("{e}");
                 return Ok(());
             }
         }
@@ -232,7 +232,7 @@ impl Render3DNode {
 
         self.render_data = image.into_vec();
 
-        println!("data len: {}", self.render_data.len());
+        log::info!("data len: {}", self.render_data.len());
 
         remove_dir_all(temp);
 
@@ -355,7 +355,7 @@ impl MyNode for Render3DNode {
             let a = self.render();
 
             if a.is_err() {
-                println!("{a:?}");
+                log::info!("{a:?}");
             }
         }
 
@@ -400,7 +400,7 @@ impl MyNode for Render3DNode {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-        // println!("{:?}", self.texture_cache);
+        // log::info!("{:?}", self.texture_cache);
 
         if self.render_data.len() > 0 {
             if self.texture_cache.is_none()

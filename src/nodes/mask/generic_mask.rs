@@ -170,7 +170,7 @@ impl MyNode for GenericMaskNode {
     fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
 
         if self.type_index != self.type_.generic_mask_index() {
-            println!("{}", self.type_index);
+            log::info!("{}", self.type_index);
             for i in NodeType::iter() {
                 if i.generic_mask_index() == self.type_index {
                     // self.type_ = i;
@@ -178,7 +178,7 @@ impl MyNode for GenericMaskNode {
                     self.type_ = new.type_;
                     self.input_max = new.input_max;
                     self.input_name = new.input_name;
-                    println!("{:?}", self.type_);
+                    log::info!("{:?}", self.type_);
                     break
                 }
             }

@@ -3,7 +3,7 @@ use image::EncodableLayout;
 use imgui_glium_renderer::Renderer;
 use crate::{
     node::{random_id,MyNode},
-    storage::Storage,
+    storage::Storage, widgets::link_widget,
 };
 use glium::{texture::RawImage2d, Texture2d};
 use image;
@@ -96,8 +96,22 @@ impl MyNode for DefaultImage {
 
         if self.texture_cache.is_none() || !storage.cached_texture_exists(self.texture_cache.unwrap()) {
         let image = image::load_from_memory_with_format(
-            include_bytes!("generic-image-placeholder.png"),
-            image::ImageFormat::Png,
+            &fastrand::choice([
+    include_bytes!("img/image-1.jpg").to_vec(),
+    include_bytes!("img/image-2.jpg").to_vec(),
+    include_bytes!("img/image-3.jpg").to_vec(),
+    include_bytes!("img/image-4.jpg").to_vec(),
+    include_bytes!("img/image-5.jpg").to_vec(),
+    include_bytes!("img/image-6.jpg").to_vec(),
+    include_bytes!("img/image-7.jpg").to_vec(),
+    include_bytes!("img/image-8.jpg").to_vec(),
+    include_bytes!("img/image-9.jpg").to_vec(),
+    include_bytes!("img/image-10.jpg").to_vec(),
+    include_bytes!("img/image-11.jpg").to_vec(),
+    include_bytes!("img/image-12.jpg").to_vec(),
+    include_bytes!("img/image-13.jpg").to_vec(),
+]).unwrap(),
+            image::ImageFormat::Jpeg,
         )
         .unwrap().flipv().into_rgba8();
 
@@ -113,6 +127,17 @@ impl MyNode for DefaultImage {
         
 
         return true;
+    }
+
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        if ui.button("new image") {
+            self.texture_cache = None;
+        }
+    }
+
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text_wrapped("A random royalty free test image.");
+        link_widget(ui, "source".to_owned(), "https://unsample.net/".to_owned());
     }
 
     fn as_any(&self) -> &dyn Any {

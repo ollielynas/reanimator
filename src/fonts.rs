@@ -33,7 +33,7 @@ impl MyFonts {
         // let fonts = font_kit::sources::multi::MultiSource::
         // all_fonts(&self)
         let sys = font_kit::source::SystemSource::new();
-        // println!("{:?}",sys.all_families());
+        // log::info!("{:?}",sys.all_families());
         // let sys = font_kit::source::SystemSource;
         
         self.font_names = sys.all_families().unwrap_or_default();
@@ -47,7 +47,7 @@ impl MyFonts {
         //     while let Ok(b) = a.all_fonts() {
         //         for c in b {
         //             if let Ok(font) = c.load() {
-        //                 println!("found font");
+        //                 log::info!("found font");
         //                 if let Some(name) = font.postscript_name() {
         //                     self.font_names.push(name);
         //                 }

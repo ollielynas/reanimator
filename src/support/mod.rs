@@ -68,7 +68,7 @@ where
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
     } else {
-        eprintln!("Failed to initialize clipboard");
+        log::info!("Failed to initialize clipboard");
     }
 
     
@@ -275,20 +275,20 @@ pub fn create_context() -> imgui::Context {
     imgui.fonts().build_rgba32_texture();
     imgui.fonts().build_alpha8_texture();
     
-    println!("is font built: {}",imgui.fonts().is_built());
+    log::info!("is font built: {}",imgui.fonts().is_built());
 
-    println!("fonts {:?}",imgui.fonts().fonts());
+    log::info!("fonts {:?}",imgui.fonts().fonts());
 
     let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
         Some(a) => {
             let _ = fs::create_dir_all(a.config_dir.clone());
-            println!("{:#?}", a);
+            log::info!("{:#?}", a);
             a.config_dir
         }
         None => current_exe().unwrap(),
     };
 
     imgui.set_ini_filename(Some(app_dirs.join("save.ini")));
-    println!("{:?}", imgui.ini_filename());
+    log::info!("{:?}", imgui.ini_filename());
     imgui
 }

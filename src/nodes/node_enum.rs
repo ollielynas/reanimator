@@ -6,6 +6,7 @@ use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
 use detect_motion::MotionNode;
 use difference_of_gaussians::DifferenceofGaussiansNode;
+use greyscale::GreyScaleNode;
 use input::default_image::DefaultImage;
 use input::desktop_capture::CaptureWindowNode;
 use input::load_gif::LoadGifNode;
@@ -91,6 +92,8 @@ pub enum NodeType {
     LayerTrail,
     WaterColor,
     LoadVideo,
+    Greyscale,
+    Crystal,
 }
 
 impl NodeType  {
@@ -100,7 +103,7 @@ impl NodeType  {
             NodeType::Layer => "Layer",
             NodeType::Debug => "Debug",
             NodeType::Output => "Output",
-            NodeType::DefaultImageOut => "Default Image",
+            NodeType::DefaultImageOut => "Random Test Image",
             NodeType::InvertTexture => "Invert Texture",
             NodeType::ChromaticAberration => "Chromatic Aberration",
             NodeType::VHS => "VHS",
@@ -136,6 +139,8 @@ impl NodeType  {
             NodeType::LayerTrail => "Layer Trail", 
             NodeType::WaterColor => "WaterColor", 
             NodeType::LoadVideo => "Load With ffmpeg", 
+            NodeType::Greyscale => "Greyscale", 
+            NodeType::Crystal => "Crystal", 
         }.to_owned()
     }
 
@@ -145,37 +150,43 @@ impl NodeType  {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
+                    None}}
+            }
+            NodeType::Greyscale => {
+                let a: Result<GreyScaleNode, SavefileError> = savefile::load_file(project_file, GreyScaleNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    log::error!("{e}");
                     None}}
             }
             NodeType::LoadVideo => {
                 let a: Result<LoadVideoNode, SavefileError> = savefile::load_file(project_file, LoadVideoNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::WaterColor => {
                 let a: Result<WhiteNoiseNode, SavefileError> = savefile::load_file(project_file, WhiteNoiseNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::LayerTrail => {
                 let a: Result<LayerTrailNode, SavefileError> = savefile::load_file(project_file, LayerTrailNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Motion => {
                 let a: Result<MotionNode, SavefileError> = savefile::load_file(project_file, MotionNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::DisplayText => {
                 let a: Result<DisplayTextNode, SavefileError> = savefile::load_file(project_file, DisplayTextNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::CaptureDesktop => {
@@ -192,7 +203,7 @@ impl NodeType  {
             b.hwnd = hwnd;
                     Some(Box::new(b))
                 }, Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
                 
             }
@@ -211,73 +222,73 @@ impl NodeType  {
             b.hwnd = hwnd;
                     Some(Box::new(b))
                 }, Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::BayerDither => {
                 let a: Result<BayerDitherNode, SavefileError> = savefile::load_file(project_file, BayerDitherNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::LinearErrorDither => {
                 let a: Result<LinearErrorDitherNode, SavefileError> = savefile::load_file(project_file, LinearErrorDitherNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Scale => {
                 let a: Result<ScaleNode, SavefileError> = savefile::load_file(project_file, ScaleNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::CombineHsv => {
                 let a: Result<CombineHsvNode, SavefileError> = savefile::load_file(project_file,  CombineHsvNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::SplitHsv => {
                 let a: Result<SplitHsvNode, SavefileError> = savefile::load_file(project_file, SplitHsvNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::TextMask => {
                 let a: Result<TextMaskNode, SavefileError> = savefile::load_file(project_file, TextMaskNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Render3D => {
                 let a: Result<Render3DNode, SavefileError> = savefile::load_file(project_file, Render3DNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Webcam => {
                 let a: Result<WebcamNode, SavefileError> = savefile::load_file(project_file, WebcamNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::DifferenceOfGaussians => {
                 let a: Result<DifferenceofGaussiansNode, SavefileError> = savefile::load_file(project_file, DifferenceofGaussiansNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Layer => {
                 let a: Result<LayerNode, SavefileError> = savefile::load_file(project_file, LayerNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::ColorNoise => {
                 let a: Result<ColorNoiseNode, SavefileError> = savefile::load_file(project_file, ColorNoiseNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
 
@@ -285,7 +296,7 @@ impl NodeType  {
             NodeType::WhiteNoise => {
                 let a: Result<WhiteNoiseNode, SavefileError> = savefile::load_file(project_file, WhiteNoiseNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     None}}
             }
             NodeType::Multiply => {
@@ -346,6 +357,7 @@ impl NodeType  {
             | NodeType::Dot
             | NodeType::Sharpness
             | NodeType::BlurSp
+            | NodeType::Crystal
              => {
                 let a: Result<GenericShaderNode, SavefileError> = savefile::load_file(project_file, GenericShaderNode::savefile_version());
                 match a {Ok(mut b) => {
@@ -375,6 +387,7 @@ impl NodeType  {
             | NodeType::Dot
             | NodeType::Sharpness
             | NodeType::BlurSp
+            | NodeType::Crystal
              => 
             {Box::new(GenericShaderNode::new(self))},
             NodeType::BrightnessMask => 
@@ -409,6 +422,7 @@ impl NodeType  {
             NodeType::LayerTrail => Box::new(LayerTrailNode::default()),
             NodeType::WaterColor => Box::new(WaterColorNode::default()),
             NodeType::LoadVideo => Box::new(LoadVideoNode::default()),
+            NodeType::Greyscale => Box::new(GreyScaleNode::default()),
             }
     }
 

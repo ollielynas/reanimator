@@ -33,6 +33,9 @@ fn default_image() -> Vec<u8> {
     // Image::from_file_with_format(include_bytes!("./generic-image-placeholder.png"), Some(ImageFormat::Png))
 }
 
+
+
+
 #[derive(EnumIter, Savefile, PartialEq, Clone)]
 pub enum OutputType {
     LiveDisplay { run: bool, fps: i32, 
@@ -252,7 +255,7 @@ impl MyNode for OutputNode {
 
 
                     let a = img.save(path);
-                    println!("{:?}",a);
+                    log::info!("{:?}",a);
                 }
                 }
                 }
@@ -291,7 +294,7 @@ impl MyNode for OutputNode {
                         // let buffer = match fs::read(path) {
                         //     Ok(p) => p,
                         //     Err(e) => {
-                        //         println!("{e}");
+                        //         log::error!("{e}");
                         //         return;
                         //     },
                         // };
@@ -309,11 +312,11 @@ impl MyNode for OutputNode {
                             let frame = image::Frame::from_parts(buffer.unwrap(), 0, 0, Delay::from_numer_denom_ms(1000, *fps as u32));
 
                             gif_encoder.encode_frame(frame);
-                            // println!("a");
+                            // log::info!("a");
                         }
                         gif_encoder.set_repeat(image::gif::Repeat::Infinite).unwrap();
                         
-                        // println!("{:?}", buffer);
+                        // log::info!("{:?}", buffer);
                     }
                     }else {
                         self.run_with_time.push((*start_time + ((*frames).len() + 1) as f32/ *fps) as f64);

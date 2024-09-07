@@ -136,7 +136,7 @@ impl MyNode for LoadGifNode {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-        // println!("{:?}", self.texture_cache);
+        // log::info!("{:?}", self.texture_cache);
 
         if let Some(path) = &self.path {
             if self.texture_cache.len() == 0
@@ -145,7 +145,7 @@ impl MyNode for LoadGifNode {
                 let file = match fs::File::open(apply_path_root::get_with_root(path,&storage)) {
                     Ok(a) => a,
                     Err(e) => {
-                        println!("{e}");
+                        log::error!("{e}");
                         return false;
                     }
                 };
@@ -153,7 +153,7 @@ impl MyNode for LoadGifNode {
                 let gif = match GifDecoder::new(file) {
                     Ok(a) => a,
                     Err(e) => {
-                        println!("{e}");
+                        log::error!("{e}");
                         return false;
                     }
                 };

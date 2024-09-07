@@ -124,7 +124,7 @@ impl LinearErrorDitherNode {
         let mut x = 0;
 
         for b in bit {
-            // println!("{b},{}", b.contains("\n"));
+            // log::info!("{b},{}", b.contains("\n"));
             match b {
                 "0" if !hit_x => {
                     offset -= 1;
@@ -153,7 +153,7 @@ impl LinearErrorDitherNode {
         }
 
         // for a in &self.pattern {
-        //     println!("{a:?}");
+        //     log::info!("{a:?}");
         // }
 
     }
@@ -285,7 +285,7 @@ impl MyNode for LinearErrorDitherNode {
             let black = data[i].0 < 127;
             
             error = data[i].0 as i32 - if black {0} else {255};
-            // println!("{error}");
+            // log::info!("{error}");
             // if error == 0 {
             //     data[i].0 = if black {0} else {255};
             //     continue;
@@ -308,7 +308,7 @@ impl MyNode for LinearErrorDitherNode {
         let image2d = RawImage2d::from_raw_rgba(data.iter().flat_map(|(b,a)| [*b as f32 / 255.0,*b as f32 / 255.0,*b as f32 / 255.0,*a as f32 / 255.0]).collect(), texture.dimensions());
 
 
-            // println!("{:?} {}", texture2.dimensions(), texture2.width());
+            // log::info!("{:?} {}", texture2.dimensions(), texture2.width());
             texture2.write(Rect {
                 left: 0,
                 bottom: 0,

@@ -20,6 +20,10 @@ use support::{create_context, init_with_startup};
 use system_extensions::dialogues::messagebox::{IconType, MessageBox, WindowType};
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
 use win_msgbox::{raw::w, Okay};
+use winapi::um::winbase::CREATE_NO_WINDOW;
+use log::{info, trace, error};
+use std::sync::RwLock;
+
 
 #[macro_use]
 extern crate savefile_derive;
@@ -43,7 +47,6 @@ pub mod batch_edit;
 pub mod import_export;
 pub mod generic_node_info;
 pub mod project_files;
-pub mod ffmpeg_console;
 
 
 // in theoiry this is just a temp solution, but im never going to 
@@ -53,9 +56,10 @@ pub mod ffmpeg_console;
 pub fn set_as_default_for_filetype(popup_message: bool) {
 
     let command = format!("ftype \"ReAnimator Project\"=\"{}\"  \"%1\" && assoc .repj=\"ReAnimator Project\"", current_exe().unwrap().as_os_str().to_str().unwrap());
-    println!("{command}");
+    info!("{command}");
     let res = Command::new("cmd")
     .raw_arg("/C ".to_owned() + &command)
+    .creation_flags(CREATE_NO_WINDOW)
     .output();
     if popup_message {
         win_msgbox::show::<Okay>(&format!("{} \n\n\n {:?}", command, res));
@@ -64,7 +68,7 @@ pub fn set_as_default_for_filetype(popup_message: bool) {
 
 
 fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
-    println!("updating");
+    info!("updating");
 
     
     let relase_builds = self_update::backends::github::ReleaseList::configure()
@@ -96,20 +100,54 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
         exit(0);
     }
     // self_update
-    println!("Update status: `{}`!", status.version());
+    info!("Update status: `{}`!", status.version());
     
     Ok(())
 }
 
-fn main() {
-    // env::set_var("RUST_BACKTRACE", "1");
+fn main() -> anyhow::Result<()> {
+    // env::set_var("MY_LOG_STYLE", "info");
+    // env_logger::init();
 
+    // todo: achuallly do something with this
+    // color_eyre::install().unwrap();
+
+    // let shared_data = RwLock::new(Vec::<i32>::new());
+
+    let shared_dispatch = fern::Dispatch::new().into_shared();
     
+    fern::Dispatch::new()
+    // Perform allocation-free log formatting
+    .format(|out, message, record| {
+    
+        out.finish(format_args!(
+            "[{} {}:{}:0] {}",
+            record.level(),
+            record.file().unwrap_or_default(),
+            record.line().unwrap_or(999999).to_string().replace("999999", ""),
+            message
+        ))
+    })
+    // Add blanket level filter -
+    .level(log::LevelFilter::Debug)
+    // - and per-module overrides
+    
+    // Output to stdout, files, and other Dispatch configurations
+    .chain(std::io::stdout())
+    .chain(fern::log_file("output.log")?)
+    // Apply globally
+    .chain(shared_dispatch.clone())
+    .apply()?;
+
+
+    // env_logger::
+
     #[cfg(all(target_os="windows", not(debug_assertions)))]{
     std::panic::set_hook(Box::new(|a| {
         win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
     }));
         let a = update();
+        fs::remove_file("output.log");
 
         if let Err(a2) = a {
 
@@ -128,15 +166,18 @@ fn main() {
     }
     // panic!("test");
 
+
+
     let args: Vec<String> = env::args().collect();
 
-    println!("{args:?}");
+    trace!("{args:?}");
 
     set_as_default_for_filetype(false);
 
 
     let res = Command::new("cmd")
     .raw_arg("/C ".to_owned()+ "assoc .repj")
+    .creation_flags(CREATE_NO_WINDOW)
     .output();
 
     
@@ -195,11 +236,10 @@ fn main() {
 
     let fullscreen = user_settings.fullscreen; 
 
-    let mut added_window = false;
     let mut loaded_project = false;
 
 
-    init_with_startup("ReAnimator", |_, _, display| {
+    init_with_startup("ReAnimator", |_, _, _display| {
     }, move |_, ui, display, renderer, drop_file, window| {
 
 
@@ -237,7 +277,6 @@ fn main() {
             if let Some(path) = drop_file {
                 project.drop_file(path, ui);
             } 
-            
             project.render(ui, &mut user_settings, renderer, window);
             return_to_home = project.return_to_home_menu;
             // ui.show_default_style_editor();
@@ -248,7 +287,7 @@ fn main() {
                 match r {
                     Ok(_) => {},
                     Err(e) => {
-                        println!("{e}")},
+                        info!("{e}")},
                 }
                 }else {
                     
@@ -301,6 +340,8 @@ fn main() {
         sleep( Duration::from_secs_f32((1.0/(user_settings.max_fps as f32) - (Instant::now() - frame_start).as_secs_f32()).max(0.0)));
 
     }, if fullscreen {Some(Fullscreen::Borderless(None))} else {None},  &mut ctx);
+
+    return Ok(());
 }
 
 
@@ -311,12 +352,15 @@ pub fn relaunch_windows(admin: bool) {
     }else {
         format!("Start-Process \"{}\"", current_exe().unwrap().as_os_str().to_str().unwrap())
     };
-    println!("{command}");
+    info!("{command}");
 
     // win_msgbox::show::<Okay>(&format!("command: {}", command));
 
     std::process::Command::new("powershell")
     .arg(command)
-    .spawn().expect("cannot spawn command");
+    .creation_flags(CREATE_NO_WINDOW)
+    .spawn()
+    
+    .expect("cannot spawn command");
     exit(0);
 }

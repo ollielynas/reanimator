@@ -148,7 +148,7 @@ impl MyNode for LoadImage {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-        // println!("{:?}", self.texture_cache);
+        // log::info!("{:?}", self.texture_cache);
 
         if let Some(path) = &self.path {
             if self.texture_cache.is_none()
@@ -157,14 +157,14 @@ impl MyNode for LoadImage {
                 let bytes = match fs::read(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
                     Err(e) => {
-                        println!("{e}");
+                        log::error!("{e}");
                         return false;
                     }
                 };
                 let image = match image::load_from_memory(&bytes) {
                     Ok(a) => a,
                     Err(e) => {
-                        println!("{e}");
+                        log::error!("{e}");
                         return false;
                     }
                 }

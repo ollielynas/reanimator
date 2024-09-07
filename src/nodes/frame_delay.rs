@@ -130,7 +130,7 @@ impl MyNode for DelayNode {
             let texture2 = match Texture2d::new(&storage.display, frame) {
                 Ok(a) => a,
                 Err(e) => {
-                    println!("{e:?}");
+                    log::info!("{e:?}");
                     return false;
                 },
             };
@@ -157,7 +157,7 @@ impl MyNode for DelayNode {
                 let texture3 = match storage.get_texture(&output_id) {
                     Some(a) => a,
                     None => {
-                        println!("no texture found: {}", output_id);
+                        log::info!("no texture found: {}", output_id);
                         return  false;
                     },
                 };

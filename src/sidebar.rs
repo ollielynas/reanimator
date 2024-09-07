@@ -112,7 +112,7 @@ impl Project {
                     self.open_settings = true;
                 }
                 if ui.button("save") {
-                    println!("save button, {:?}", self.save());
+                    log::info!("save button, {:?}", self.save());
                 }
 
                 ui.separator();

@@ -79,7 +79,7 @@ impl CoverWindowNode {
                 let a = GetClientRect(HWND(self.hwnd as *mut _), &mut rect);
                 if a.is_err() {
                     self.render = false;
-                    // println!("{a:?}");
+                    // log::info!("{a:?}");
                     return false;
                 }
                 let mut point = POINT {

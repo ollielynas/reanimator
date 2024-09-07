@@ -160,7 +160,7 @@ impl MyNode for WebcamNode {
         return false;
         let output_id = self.output_id(self.outputs()[0].clone());
 
-        // println!("{:?}", self.texture_cache);
+        // log::info!("{:?}", self.texture_cache);
 
 
             if let Some(cam) = &self.camera {
@@ -173,11 +173,11 @@ impl MyNode for WebcamNode {
                 }.to_vec();
             };
 
-            println!("size {:?}", self.size);
+            log::info!("size {:?}", self.size);
 
             storage.create_and_set_texture(self.size.0, self.size.1, output_id.clone());
             
-            // println!("created texture");
+            // log::info!("created texture");
             
             let texture: &glium::Texture2d = match storage.get_texture(&output_id) {
                 Some(a) => a,
@@ -187,8 +187,8 @@ impl MyNode for WebcamNode {
             // Texture2d::
             
             let raw_image: RawImage2d<u8> = RawImage2d::from_raw_rgba(self.data.clone(), self.size);
-            // println!("created texture2");
-            println!("{:?}",raw_image.data.len());
+            // log::info!("created texture2");
+            log::info!("{:?}",raw_image.data.len());
 
             if raw_image.data.len() == 0 {
                 return false;
@@ -197,7 +197,7 @@ impl MyNode for WebcamNode {
             let texture2 = match Texture2d::new(&storage.display, raw_image) {
                 Ok(a) => a,
                 Err(e) => {
-                    println!("{e}");
+                    log::error!("{e}");
                     return false;
                 },
             };
@@ -250,7 +250,7 @@ impl WebcamNode {
         for i in 0..num_of_devices {
             let cam = escapi::init(i, self.size.0, self.size.0, self.desired_fps);
             if let Ok(cam) = cam {
-                println!("cam name: {}", cam.name());
+                log::info!("cam name: {}", cam.name());
             if self.selected_cam == 999 && cam.name() == self.main_webcam {
                 self.selected_cam = i;
             }
@@ -262,7 +262,7 @@ impl WebcamNode {
 
             }else if let Err(e) = cam {
                 self.available.push(format!("Error Loading {i}"));
-                println!("{e}");
+                log::error!("{e}");
             }
 
         }
