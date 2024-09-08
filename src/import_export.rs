@@ -10,9 +10,9 @@ use rfd::FileDialog;
 use system_extensions::dialogues::messagebox::{self, IconType, MessageBox, WindowType};
 
 impl Project {
-    pub fn export(&mut self) {
+    pub fn export(&mut self) -> Option<PathBuf> {
         if self.save().is_err() {
-            return;
+            return None;
         };
 
         let downloads = UserDirs::new().unwrap().download_dir;
@@ -24,12 +24,14 @@ impl Project {
             .set_can_create_directories(true)
             .save_file();
 
-        if let Some(output_path) = output_path {
+        if let Some(output_path) = output_path.clone() {
             let out = output_path.display().to_string();
             let input = self.path.display().to_string();
             let compressor = Compressor::new(&input, &out);
             let compress_info = compressor.compress(CompressionLevel::Default);
+            log::info!("exported project: {:?}", compress_info);
         }
+        return output_path;
     }
 }
 

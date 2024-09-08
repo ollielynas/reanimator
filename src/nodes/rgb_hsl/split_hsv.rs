@@ -14,6 +14,8 @@ pub struct SplitHsvNode {
     x: f32,
     y: f32,
     id: String,
+    #[savefile_versions="1.."]
+    raw: bool,
 }
 
 impl Default for SplitHsvNode {
@@ -22,12 +24,13 @@ impl Default for SplitHsvNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
+            raw: false,
         }
     }
 }
 impl MyNode for SplitHsvNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","RGBA"]
+        vec!["Image","Color"]
     }
 
     
@@ -37,7 +40,7 @@ impl MyNode for SplitHsvNode {
 
 
     fn savefile_version() -> u32 {
-        0
+        1
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -78,6 +81,14 @@ impl MyNode for SplitHsvNode {
             "Brightness".to_string(),
             "Alpha".to_string(),
             ];
+    }
+
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text_wrapped("Splits an image into Hue, Saturation, and Value (brightness)")
+    }
+
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        ui.checkbox("use raw/greyscale output", &mut self.raw);
     }
 
     fn set_xy(&mut self, x: f32, y: f32) {
@@ -126,6 +137,7 @@ impl MyNode for SplitHsvNode {
             let uniforms = uniform! {
                 tex: input_texture,
                 hsva_index: i as i32,
+                raw: self.raw,
             };
             let texture2 = storage.get_texture(&output_ids[i]).unwrap();
             texture2
@@ -135,6 +147,7 @@ impl MyNode for SplitHsvNode {
                     &storage.indices,
                     shader,
                     &uniforms,
+                    
                     &DrawParameters {
                         ..Default::default()
                     },

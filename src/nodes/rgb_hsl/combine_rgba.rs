@@ -26,7 +26,7 @@ impl Default for CombineRgbaNode {
 }
 impl MyNode for CombineRgbaNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","RGBA"]
+        vec!["Image","Color"]
     }
 
     

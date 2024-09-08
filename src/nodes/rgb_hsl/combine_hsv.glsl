@@ -27,6 +27,7 @@ uniform sampler2D tex_h;
 uniform sampler2D tex_s;
 uniform sampler2D tex_v;
 uniform sampler2D tex_a;
+uniform bool raw;
 
 void main(){
 
@@ -36,6 +37,13 @@ void main(){
 
     vec3 c = hsv2rgb(vec3(h.r, s.g, v.b));
 
+    if (raw) {
+        c = hsv2rgb(vec3(
+            texture(tex_h, v_tex_coords).r,
+            texture(tex_s, v_tex_coords).g,
+            texture(tex_v, v_tex_coords).b
+        ));
+    }
 
     color = vec4(c, texture(tex_a, v_tex_coords).a);
 

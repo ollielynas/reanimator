@@ -13,6 +13,8 @@ pub struct CombineHsvNode {
     x: f32,
     y: f32,
     id: String,
+    #[savefile_versions="1.."]
+    raw: bool,
 }
 
 impl Default for CombineHsvNode {
@@ -21,21 +23,22 @@ impl Default for CombineHsvNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
+            raw: false,
         }
     }
 }
 impl MyNode for CombineHsvNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","RGBA"]
+        vec!["Image","Color"]
     }
 
-    
+
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
 
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {1}
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -67,6 +70,14 @@ impl MyNode for CombineHsvNode {
             CombineHsvNode::savefile_version(),
             self,
         );
+    }
+
+    fn description(&mut self, ui: &imgui::Ui) {
+        ui.text_wrapped("Creates an image by combining Hue, Saturation, and Value (brightness)")
+    }
+
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        ui.checkbox("use raw/greyscale inputs", &mut self.raw);
     }
 
 
@@ -135,6 +146,7 @@ impl MyNode for CombineHsvNode {
                 tex_s: texture_s,
                 tex_v: texture_v,
                 tex_a: texture_a,
+                raw: self.raw,
             };
             let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,

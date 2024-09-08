@@ -6,7 +6,7 @@
     windows_subsystem = "windows"
   )]
 
-use std::{borrow::BorrowMut, env::{self, current_exe}, fs, os::windows::process::CommandExt, process::{exit, Command}, thread::{sleep, sleep_ms}, time::{Duration, Instant}};
+use std::{borrow::BorrowMut, env::{self, current_exe}, fs, ops::DerefMut, os::windows::process::CommandExt, process::{exit, Command}, sync::Mutex, thread::{sleep, sleep_ms}, time::{Duration, Instant, SystemTime}};
 
 
 use fonts::MyFonts;
@@ -23,6 +23,14 @@ use win_msgbox::{raw::w, Okay};
 use winapi::um::winbase::CREATE_NO_WINDOW;
 use log::{info, trace, error};
 use std::sync::RwLock;
+use lazy_static::lazy_static;
+use fast_smaz::Smaz;
+
+lazy_static! {
+    pub static ref LOG_TEXT: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
+}
+
+
 
 
 #[macro_use]
@@ -115,16 +123,37 @@ fn main() -> anyhow::Result<()> {
     // let shared_data = RwLock::new(Vec::<i32>::new());
 
     let shared_dispatch = fern::Dispatch::new().into_shared();
+
     
     fern::Dispatch::new()
     // Perform allocation-free log formatting
     .format(|out, message, record| {
-    
+        
+        if let Ok(ref mut log) = LOG_TEXT.lock() {
+            let text = format!(
+                "\n[{} {}:{}:0 {}] {}",
+                record.level(),
+                record.file().unwrap_or_default(),
+                record.line().unwrap_or(999999).to_string().replace("999999", ""),
+                humantime::format_rfc3339(SystemTime::now()),
+                message
+            );
+            match log.last_mut() {
+                Some(a) if a.len() < 500 => {
+                    *a = [a.smaz_decompress().unwrap_or_default(), text.as_bytes().to_vec()].concat().smaz_compress();
+                },
+                _ => {
+                    log.push(text.smaz_compress())
+                },
+            }
+        }
+
         out.finish(format_args!(
-            "[{} {}:{}:0] {}",
+            "[{} {}:{}:0 {}] {}",
             record.level(),
             record.file().unwrap_or_default(),
             record.line().unwrap_or(999999).to_string().replace("999999", ""),
+            humantime::format_rfc3339(SystemTime::now()),
             message
         ))
     })

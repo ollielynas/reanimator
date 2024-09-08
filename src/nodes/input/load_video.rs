@@ -243,39 +243,6 @@ impl MyNode for LoadVideoNode {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-        // if let Some(path) = &self.path {
-        //     if self.frames.len() == 0 {
-        //         match load_video_bytes(
-        //             &if self.custom_input {
-        //                 PathBuf::new()
-        //             } else {
-        //                 apply_path_root::get_with_root(path, &storage)
-        //             },
-        //             if self.custom_input {
-        //                 self.custom_input_text.clone()
-        //             } else {
-        //                 String::new()
-        //             },
-        //             if self.custom_args {
-        //                 self.ffmpeg_args.clone()
-        //             } else {
-        //                 String::new()
-        //             },
-        //         ) {
-        //             Ok((length, width, height, frame_data)) => {
-        //                 self.frames = frame_data;
-        //                 self.length = length;
-        //                 self.width = width;
-        //                 self.height = height;
-        //             }
-        //             Err(e) => {
-        //                 log::error!("{e}");
-        //             }
-        //         };
-        //     } else {
-        //         // return false;
-        //     }
-        // }
 
         storage.create_and_set_texture(self.width, self.height, output_id.clone());
 
@@ -306,6 +273,7 @@ impl MyNode for LoadVideoNode {
         let data = &self.frames[(self.play_head * self.frames.len() as f64)
             .floor()
             .clamp(0.0, (self.frames.len() - 1) as f64) as usize];
+        if data.len() as u32 == self.height * self.width * 4 {
         if let Some(texture) = storage.get_texture(&output_id) {
             texture.write(
                 Rect {
@@ -316,7 +284,7 @@ impl MyNode for LoadVideoNode {
                 },
                 RawImage2d::from_raw_rgba_reversed(data, (self.width, self.height)),
             );
-        }
+        }}
 
         return true;
     }

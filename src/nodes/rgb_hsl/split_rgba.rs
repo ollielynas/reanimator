@@ -27,7 +27,7 @@ impl Default for SplitRgbaNode {
 }
 impl MyNode for SplitRgbaNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","RGBA"]
+        vec!["Image","Color"]
     }
 
     

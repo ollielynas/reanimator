@@ -105,6 +105,7 @@ impl Project {
                     self.metrics = !self.metrics;
                 }
                 if ui.button("debug mem") {
+                    self.storage.max_lines_of_text = 1;
                     self.storage.show_debug_window = !self.storage.show_debug_window;
                 }
 
@@ -122,6 +123,7 @@ impl Project {
                 }
                 if ui.button("return home") {
                     self.save();
+                    user_settings.update_projects();
                     self.return_to_home_menu = true;
                 }
                 if self.display_history {

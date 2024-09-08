@@ -11,12 +11,14 @@ use strum_macros::{EnumIter, EnumString};
 
 use glium::Display;
 
+use log::*;
+
 
 use glium::glutin::surface::WindowSurface;
 use win_msgbox::Okay;
 use std::thread;
 
-use crate::{fonts::MyFonts, nodes::node_enum::NodeType, project::Project, relaunch_windows, set_as_default_for_filetype, support::{create_context, FONT_SIZE}};
+use crate::{fonts::MyFonts, nodes::node_enum::NodeType, project::{self, Project}, project_settings, relaunch_windows, set_as_default_for_filetype, support::{create_context, FONT_SIZE}};
 
 
 pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 4;
@@ -72,6 +74,9 @@ pub struct UserSettings {
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     loading: bool,
+    #[savefile_ignore]
+    #[savefile_introspect_ignore]
+    selected_project: Option<PathBuf>,
 
 }
 
@@ -106,6 +111,7 @@ impl Default for UserSettings {
             dots: true,
 
             node_speed: savefile::load_from_mem::<HashMap<String, Vec<f32>>>(include_bytes!("node_speeds.bin"), 0).unwrap_or_default(),
+            selected_project: None,
         };
 
         return new;
@@ -467,8 +473,7 @@ impl Project {
 
 
 
-
-
+        
         // let size = ui.siz
         ui.window("project selector")
             .collapsible(false)
@@ -559,17 +564,97 @@ impl Project {
                                 new_project = Some(new_project_1);
                             }
 
+                            
 
+                            let item_size = ui.item_rect_size();
+                            
+                            if (ui.is_window_hovered() && (0.0..item_size[1]).contains(&(ui.cursor_screen_pos()[1] - ui.io().mouse_pos[1]))) 
+                            || user_settings.selected_project.as_ref() == Some(project)   {
+                                ui.same_line();
+                                
+                                if ui.button("...") {
+                                    user_settings.selected_project = Some(project.clone());
+                                }
+                                if ui.is_item_clicked() {
+                                    user_settings.selected_project = Some(project.clone());
+                                }
+
+                                
+                            };
+                            
                         }
+                        
                     });
+                    
 
                 ui.dummy(ui.content_region_avail());
+
+
+                if ui.is_window_hovered() {
+                    ui.close_current_popup();
+                }
+                
             });
+
 
         // if new_project.is_some() {
 
         // }
 
+        let mut deleted_project = false;
+        let mut closed_popup = false;
+
+        if let Some(project_path) = &user_settings.selected_project {
+        ui.open_popup("project_options");
+        
+        ui.popup("project_options", || {
+            if ui.button("trash") {
+                log::info!("deleted project {:?}", trash::delete(project_path));
+                deleted_project = true;
+            }
+
+            
+            if !ui.is_window_hovered()
+            && ui.is_any_mouse_down()
+            && (ui.mouse_pos_on_opening_current_popup()[0] - ui.io().mouse_pos[0]).abs() > 1.0
+            && (ui.mouse_pos_on_opening_current_popup()[1] - ui.io().mouse_pos[1]).abs() > 1.0
+             {
+                closed_popup = true;
+            }
+
+            
+
+            if ui.button("export") {
+                log::info!("exporting project");
+
+                let mut new_project_1 =
+                                    Project::new(project_path.to_path_buf(), display.clone());
+
+                let export_path = new_project_1.export();
+
+                if let Some(export_path) = export_path {
+                    if let Some(parent_path) = export_path.parent() {
+                        open::that_detached(parent_path);
+                    }
+                };
+                closed_popup = true;
+        
+            }
+        });
+
+        if deleted_project {
+            user_settings.update_projects();
+        }
+
+        if deleted_project || closed_popup {
+            user_settings.selected_project = None;
+        }
+
+        
+        }
+
+        
+        
         return new_project;
     }
 

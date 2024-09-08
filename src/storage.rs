@@ -14,9 +14,13 @@ use image::{DynamicImage, ImageBuffer, Rgba};
 use imgui::{TreeNodeFlags, Ui};
 use std::hash::Hash;
 use image::EncodableLayout;
+use fast_smaz::Smaz;
+
 
 use crate::fonts::MyFonts;
-use crate::relaunch_windows;
+use crate::render_nodes::RenderNodesParams;
+use crate::{relaunch_windows, LOG_TEXT};
+use crate::widgets::link_widget;
 
 const VERTEX_SHADER:  &'static str = r#"
         #version 140
@@ -48,13 +52,15 @@ pub struct Storage {
     pub error_texture: Texture2d,
     pub fonts: MyFonts,
     pub project_root: PathBuf,
+    lock_output_pos: bool,
+    pub max_lines_of_text: usize,
+    full_messages: bool,
 }
 
 
 
 
 impl Storage {
-
 
     pub fn new(display: Display<WindowSurface>) -> Storage {
 
@@ -109,6 +115,10 @@ impl Storage {
             error_texture,
             fonts: MyFonts::new(),
             project_root: PathBuf::new(),
+            max_lines_of_text: 1,
+            lock_output_pos: true,
+            full_messages: false,
+
         };
         return s;
     }
@@ -186,13 +196,20 @@ impl Storage {
     }
 
 
-    pub fn debug_window(&mut self, ui: &Ui) {
+    pub fn debug_window(&mut self, ui: &Ui, params: &mut RenderNodesParams) {
+    
         if !self.show_debug_window {return}
-
+        
         let window: Option<imgui::WindowToken> = ui.window("debug window")
         .opened(&mut self.show_debug_window)
         .begin();
 
+    if ui.is_window_hovered() {
+        params.moving = false;
+        params.scale_changed = false;
+    }
+    
+    ui.columns(2, "debug", true);
     ui.text_wrapped(format!("Project name: {}", self.project_name));
     ui.text_wrapped(format!("shaders: {}", self.shaders.len()));
     ui.text_wrapped(format!("time: {}", self.time));
@@ -227,6 +244,70 @@ impl Storage {
             }
         }
 
+
+
+        ui.next_column();
+
+        ui.text("debug log");
+        link_widget(ui, "output.log", "output.log");
+        ui.checkbox("include log headers", &mut self.full_messages);
+
+        ui.child_window("log")
+        .border(true)
+        .scroll_bar(true)
+        .build(|| {
+            if ui.is_window_hovered() {
+                params.moving = false;
+                params.scale_changed = false;
+            }
+            match LOG_TEXT.lock() {
+                Ok(a2) => {
+                    let a = a2.clone();
+                    drop(a2);
+
+
+                    let total = a.len();
+
+                    let mut increased = false;
+
+                    if total > self.max_lines_of_text {
+                    ui.text_disabled("loading more logs..  ({}/{} chunks loaded) ");
+                    if ui.scroll_y() == 0.0 {
+                        self.max_lines_of_text += 1;
+                        increased = true;
+                    }
+                }
+
+                    let mut index = 0;
+                    for text in a.iter().rev().take(self.max_lines_of_text) {
+                        if increased && index == self.max_lines_of_text - 1  {
+                            ui.set_scroll_here_y();
+                        }
+                        let s = String::from_utf8(
+                            text.smaz_decompress().unwrap_or_default()
+                        ).unwrap_or_default();
+                        if !self.full_messages {
+                            for line in s.lines() {
+                                if line.starts_with("[") {
+                                ui.text_wrapped(line.split_once("]").unwrap_or(("","")).1);
+                            }else {
+                                ui.text_wrapped(line);
+                            }
+                            }
+                        }else {
+                            ui.text_wrapped(s);
+                            
+                        }
+                        
+                        index += 1;
+                    }
+                },
+                Err(e) => {
+                    ui.text_wrapped("cannot get output");
+                },
+            }
+        });
+
     }
 
     /// shaders are cached
@@ -246,18 +327,16 @@ impl Storage {
 
     pub fn gen_shader(&mut self, vert: String, frag: String) -> Option<&Program> {
         if !self.shaders.contains_key(&(vert.clone(), frag.clone())) {
+            log::info!("created shader: (vert/frag) {} / {} bytes", vert.bytes().len(), frag.bytes().len());
             let program = match glium::Program::from_source(&self.display, &(vert), &frag, None) {
                 Ok(a) => a,
                 Err(a) => {log::info!("shader_comp_error:--------------- \n\n\n {a:#?}\n\n\n --------------"); return None;}
             };
-            
-            
-
             self.shaders.insert((vert.clone(), frag.clone()), program);
         }
-
         return self.shaders.get(&(vert, frag));
     }
+
 
     pub fn create_and_set_texture(
         &mut self,
@@ -285,10 +364,10 @@ impl Storage {
                 self.set_texture(k, texture);
             }
             _ => {
-                log::info!("new texture");
                 let image: image::ImageBuffer<Rgba<u8>, Vec<u8>> =
-                    ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
-                        .unwrap();
+                ImageBuffer::from_raw(width, height, [0_u8].repeat((height * width * 4) as usize))
+                .unwrap();
+                log::info!("allocated texture: {}x{}", image.width(), image.height());
                 let not_texture: RawImage2d<u8> = RawImage2d::from_raw_rgba(
                     image.as_bytes().to_vec(),
                     (image.width(), image.height()),

@@ -316,8 +316,11 @@ impl Project {
                                 new_node_types.push(node);
                             }
 
-                            nodes[0].set_xy(150.0, 0.0);
+                            nodes[0].set_xy(350.0, 0.0);
                             nodes[1].set_xy(0.0, 0.0);
+
+
+                            self.connections.insert(nodes[0].input_id(nodes[0].inputs()[0].clone()), nodes[1].output_id(nodes[1].outputs()[0].clone()));
 
                             self.nodes = nodes;
                             self.new_node_types = new_node_types;
@@ -463,9 +466,7 @@ impl Project {
             .position_pivot([0.5,0.5])
             .size([window_size.x * 0.5, window_size.y * 0.5], imgui::Condition::Always)
             .build(|| {
-                
                 ui.text(format!("{}",self.project_settings.batch_files.files[self.project_settings.batch_files.index].name()));
-                
                 ui.text(format!("{}",self.project_settings.batch_files.save_path.join(self.project_settings.batch_files.files[self.project_settings.batch_files.index].name()).with_extension(self.project_settings.batch_files.files[self.project_settings.batch_files.index].type_()).display()));
                 ui.text(format!("{}/{}",self.project_settings.batch_files.index,self.project_settings.batch_files.files.len()));
             });
@@ -475,6 +476,7 @@ impl Project {
 
         ui.main_menu_bar(|| {
             ui.text(self.path.as_os_str().to_str().unwrap());
+            // ui.menu_item("item");
             // ui.set_window_font_scale(0.9);
             // ui.checkbox(";", &mut self.render_ticker);
         });
@@ -537,6 +539,7 @@ impl Project {
 
 
         self.render_sidebar(&mut params, ui, &mut sidebar_params, user_settings);
+        self.storage.debug_window(ui, &mut params);
 
         match self.edit_tab {
             EditTab::Nodes => {},
@@ -788,7 +791,6 @@ impl Project {
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
 
         
-        self.storage.debug_window(ui);
         self.advanced_color_picker.render(ui);
 
         if self.open_settings {
@@ -801,13 +803,14 @@ impl Project {
             .collapsible(false)
             .position_pivot([0.0, 1.0])
             .position(
-                [sidebar_params.left_sidebar_width - 1.0, size_array[1]],
+                [sidebar_params.left_sidebar_width - 1.0, size_array[1] + 3.0],
                 imgui::Condition::Always,
             )
             .size_constraints(
-                [size_array[0] - sidebar_params.left_sidebar_width, 0.0],
-                [size_array[0] - sidebar_params.left_sidebar_width, size_array[1]],
+                [size_array[0] - sidebar_params.left_sidebar_width + 3.0, 0.0],
+                [size_array[0] - sidebar_params.left_sidebar_width + 3.0, size_array[1]],
             )
+        
             .build(|| {
                 if ui.is_window_hovered() && ui.is_mouse_down(imgui::MouseButton::Left) {
                     params.moving = false;
