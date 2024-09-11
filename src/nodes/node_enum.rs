@@ -4,6 +4,7 @@ use basic_shader_nodes::*;
 use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
+use color::k_mean::PalletGenNode;
 use detect_motion::MotionNode;
 use difference_of_gaussians::DifferenceofGaussiansNode;
 use greyscale::GreyScaleNode;
@@ -14,6 +15,7 @@ use input::load_image::LoadImage;
 use input::load_video::LoadVideoNode;
 use input::render_3d::Render3DNode;
 use input::webcam::WebcamNode;
+use mask::brightness_range::BrightnessRangeMaskNode;
 use mask::layer_trail::LayerTrailNode;
 use mask::text_mask::TextMaskNode;
 
@@ -94,11 +96,13 @@ pub enum NodeType {
     LoadVideo,
     Greyscale,
     Crystal,
+    BrightnessRangeMask,
+    PalletGen,
 }
 
 impl NodeType  {
     pub fn name(&self) -> String {
-        match self {
+        let mut name = match self {
             NodeType::Render3D => "3D Render (Ray Traced)",
             NodeType::Layer => "Layer",
             NodeType::Debug => "Debug",
@@ -141,7 +145,14 @@ impl NodeType  {
             NodeType::LoadVideo => "Load With ffmpeg", 
             NodeType::Greyscale => "Greyscale", 
             NodeType::Crystal => "Crystal", 
-        }.to_owned()
+            NodeType::BrightnessRangeMask => "Mask Brightness",
+            NodeType::PalletGen => "Generate Pallet",
+        }.to_owned();
+
+        if self.deprecated() {
+            name += " (Deprecated)";
+        }
+        return name;
     }
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>>  {
@@ -149,6 +160,18 @@ impl NodeType  {
         match self {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    log::error!("{e}");
+                    None}}
+            }
+            NodeType::PalletGen => {
+                let a: Result<PalletGenNode, SavefileError> = savefile::load_file(project_file, PalletGenNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    log::error!("{e}");
+                    None}}
+            }
+            NodeType::BrightnessRangeMask => {
+                let a: Result<BrightnessRangeMaskNode, SavefileError> = savefile::load_file(project_file, BrightnessRangeMaskNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     log::error!("{e}");
                     None}}
@@ -374,6 +397,8 @@ impl NodeType  {
         }
     }
 
+    
+
     pub fn new_node(self) -> Box<dyn MyNode>  where Self: Sized {
         match self {
             NodeType::SolidColor => Box::new(ColorNode::default()),
@@ -423,6 +448,8 @@ impl NodeType  {
             NodeType::WaterColor => Box::new(WaterColorNode::default()),
             NodeType::LoadVideo => Box::new(LoadVideoNode::default()),
             NodeType::Greyscale => Box::new(GreyScaleNode::default()),
+            NodeType::BrightnessRangeMask => Box::new(BrightnessRangeMaskNode::default()),
+            NodeType::PalletGen => Box::new(PalletGenNode::default()),
             }
     }
 
@@ -437,6 +464,12 @@ impl NodeType  {
             | NodeType::TextMask
             | NodeType::DisplayText
             | NodeType::WaterColor
+        )
+    }
+    pub fn deprecated(&self) -> bool {
+        matches!(
+            self,
+            | NodeType::BrightnessMask
         )
     }
 

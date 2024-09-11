@@ -10,6 +10,7 @@ pub struct GenericNodeInfo {
     pub id: String,
 }
 
+
 impl GenericNodeInfo {
     pub fn savefile_version() -> u32 {0}
 

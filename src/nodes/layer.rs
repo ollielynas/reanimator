@@ -294,6 +294,8 @@ impl MyNode for LayerNode {
             self.layers.remove(remove2);
         }
 
+        
+
         if ui.button("add layer") {
             self.layers.push(([0.0, 0.0, 1.0, 1.0], true));
         }

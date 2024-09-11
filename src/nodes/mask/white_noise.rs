@@ -94,9 +94,9 @@ impl MyNode for WhiteNoiseNode {
 
 
     fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
-        
+
         let output_id = self.output_id(self.outputs()[0].clone());
-        
+
 
         let fragment_shader_src = 
             r#"
@@ -109,20 +109,29 @@ impl MyNode for WhiteNoiseNode {
             uniform sampler2D tex;
             uniform float time;
             uniform float seed;
+            uniform bool alpha;
             
-            float random (vec2 st) {
-            return fract(sin(dot(st.xy,
-                                vec2(12.9898,78.233)))*
-                43758.5453123);
+            highp float rand(vec2 co)
+            {
+                highp float a=12.9898;
+                highp float b=78.233;
+                highp float c=43758.5453;
+                highp float dt=dot(co.xy,vec2(a,b));
+                highp float sn=mod(dt,3.14);
+                return fract(sin(sn)*c);
             }
+
 
 
             void main() {
 
-            /* float rnd = gold_noise( v_tex_coords, time ); */
-            float rnd = random( v_tex_coords * (time + seed) * seed);
 
-            color = vec4(rnd);
+            color = vec4(rand(v_tex_coords * seed + mod(time, 3.0) + mod(time, 5.0) + mod(time, 7.0)));
+
+            if (alpha) {
+                color.a = 1.0;
+            }
+
             }
             "#;
 

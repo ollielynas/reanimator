@@ -49,7 +49,7 @@ void main()
 
             vec2 new_pos=rand_pos(og_pos + ivec2(x,y), size);
 
-            if (distance(og,pos)>distance(og,new_pos)){
+            if (clamp(new_pos, vec2(0.0), u_resolution) == new_pos && distance(og,pos)>distance(og,new_pos)){
                 pos=new_pos;
             }
         }

@@ -614,14 +614,7 @@ impl Project {
             }
 
             
-            if !ui.is_window_hovered()
-            && ui.is_any_mouse_down()
-            && (ui.mouse_pos_on_opening_current_popup()[0] - ui.io().mouse_pos[0]).abs() > 1.0
-            && (ui.mouse_pos_on_opening_current_popup()[1] - ui.io().mouse_pos[1]).abs() > 1.0
-             {
-                closed_popup = true;
-            }
-
+            
             
 
             if ui.button("export") {
@@ -640,6 +633,16 @@ impl Project {
                 closed_popup = true;
         
             }
+
+            if !ui.is_window_hovered()
+            && ui.is_any_mouse_down()
+            && !ui.is_any_item_active()
+            && (ui.mouse_pos_on_opening_current_popup()[0] - ui.io().mouse_pos[0]).abs() > 1.0
+            && (ui.mouse_pos_on_opening_current_popup()[1] - ui.io().mouse_pos[1]).abs() > 1.0
+             {
+                closed_popup = true;
+            }
+
         });
 
         if deleted_project {

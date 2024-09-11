@@ -13,10 +13,13 @@ pub struct LayerTrailNode {
     x: f32,
     y: f32,
     id: String,
+    #[savefile_versions="1.."]
+    fade: f32,
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     last_frame: Option<Texture2d>
 }
+
 
 impl Default for LayerTrailNode {
     fn default() -> Self {
@@ -25,6 +28,7 @@ impl Default for LayerTrailNode {
             y: 0.0,
             id: random_id(),
             last_frame: None,
+            fade: 0.9,
         }
     }
 }
@@ -38,7 +42,7 @@ impl MyNode for LayerTrailNode {
     }
 
 
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {1}
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -136,6 +140,7 @@ impl MyNode for LayerTrailNode {
     let uniforms = uniform! {
         tex: texture,
         last_tex: last_frame,
+        fade: self.fade,
     };
     let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
@@ -166,6 +171,8 @@ impl MyNode for LayerTrailNode {
         if ui.button("reset") {
             self.last_frame = None;
         }
+
+        ui.slider("fade", 0.0, 1.0, &mut self.fade);
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

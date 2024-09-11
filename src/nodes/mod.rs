@@ -17,3 +17,4 @@ pub mod lbm;
 pub mod rgb_hsl;
 pub mod watercolor;
 pub mod input;
+pub mod color;

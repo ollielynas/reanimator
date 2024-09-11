@@ -1,6 +1,6 @@
-use std::{any::Any, collections::HashMap, path::PathBuf};
+use std::{any::Any, collections::HashMap, io::Read, path::PathBuf};
 
-use ffmpeg_sidecar::{command::FfmpegCommand, event::FfmpegEvent};
+use ffmpeg_sidecar::{command::FfmpegCommand, event::{FfmpegEvent, FfmpegInput}};
 use glium::{texture::RawImage2d, uniform, DrawParameters, Rect, Surface};
 use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
@@ -16,7 +16,7 @@ use crate::{
 use crate::nodes::node_enum::NodeType;
 
 use super::apply_path_root;
-
+/// It would be good if this node transferred less data to and from the gpu
 #[derive(Savefile)]
 pub struct LoadVideoNode {
     x: f32,
@@ -133,6 +133,7 @@ impl MyNode for LoadVideoNode {
     }
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        let mut changed_path = false;
         ui.disabled(self.custom_input, || {
             ui.text(format!(
                 "path: {}",
@@ -148,6 +149,7 @@ impl MyNode for LoadVideoNode {
                 self.path = FileDialog::new().pick_file();
                 if let Some(ref mut path) = self.path {
                     apply_path_root::set_root(path, &storage);
+                    changed_path = true;
                 }
             }
         });
@@ -178,7 +180,7 @@ impl MyNode for LoadVideoNode {
         ui.text(format!("frames: {}", self.frames.len(),));
         ui.text(format!("length: {}", self.length,));
 
-        if ui.button("load file") {
+        if ui.button("load file") || changed_path {
             self.frames = vec![];
             match load_video_bytes(
                 &if self.custom_input {
@@ -211,6 +213,10 @@ impl MyNode for LoadVideoNode {
             // return false;
         }
 
+        if ui.is_item_hovered() {
+            ui.tooltip_text("(this could take a sec)");
+        }
+
         if self.paused {
             if ui.button("unpause") {
                 self.paused = false;
@@ -228,6 +234,9 @@ impl MyNode for LoadVideoNode {
             self.length * self.play_head as f32,
             self.length
         ));
+        // if !(0.0..=1.0).contains(&self.play_head) {
+        //     self.play_head = 0.0;
+        // }
         ui.slider("Video %", 0.0, 1.0, &mut self.play_head);
     }
 
@@ -306,6 +315,7 @@ impl MyNode for LoadVideoNode {
     }
 }
 
+/// ## returns: (length, width, height, frames)
 pub fn load_video_bytes(
     path: &PathBuf,
     custom_input: String,
@@ -321,30 +331,23 @@ pub fn load_video_bytes(
     let mut binding = FfmpegCommand::new();
     let args = custom_args.replace("\n", " ");
     let command = binding // <- Builder API like `std::process::Command`
+        .hide_banner()
+        
         .input(if path == &PathBuf::new() {
             custom_input
         } else {
-            path.display().to_string()
+            // format!("\"{}\"",path.display().to_string().replace("\\", "/"))
+            format!("{}",path.display().to_string().replace("\\", "/"))
         }) // <- Convenient argument presets
-        
-        .args(if custom_args.len() == 0 {
-            vec![]
-        } else {
-            args.split(" ").collect::<Vec<&str>>()
-        })
-        .create_no_window()
-        .format("rawvideo")
-        .print_command()
-        .output("pipe:1");
-    log::info!("args: {:?}", command.get_args());
-    // command.get_args();
-    command
-        .spawn()? // <- Uses an ordinary `std::process::Child`
-        .iter()? // <- Iterator over all log messages and video output
-        .for_each(|event: FfmpegEvent| {
-            match event {
-                FfmpegEvent::OutputFrame(frame) => {
-                    log::info!("frame: {}x{}", frame.width, frame.height);
+        .rawvideo()
+        .spawn();
+        let frames = command.unwrap().iter().unwrap().filter_frames();
+
+        // println!("frames {}", frames.collect::<Vec<_>>().len());
+        let mut frame_index = 0;
+        for frame in frames {
+            println!("frame_index");
+            // log::info!("frame: {}x{}", frame.width, frame.height);
                     width = frame.width;
                     height = frame.height;
                     if inital_timestamp == -10.0 {
@@ -353,26 +356,69 @@ pub fn load_video_bytes(
                     if final_timestamp < frame.timestamp {
                         final_timestamp = frame.timestamp;
                     };
-                    let pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
+                    let mut pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
+                    if pixels.len() as u32 == width * height * 3 {
+                        println!("converting size");
+                        pixels = pixels.chunks_exact(3).flat_map(|x| {
+                            [x[0],x[1],x[2], 255]
+                        }).collect::<Vec<u8>>();
+                    }
+                    // println!("{} - {} {}", pixels.len(), width * height * 4, width * height * 3);
                     bytes.push(pixels);
-                }
-                FfmpegEvent::Progress(progress) => {
-                    log::info!("Current speed: {}x", progress.speed); // <- parsed progress updates
-                }
-                FfmpegEvent::Log(_level, msg) => {
-                    log::info!("[ffmpeg] {}", msg); // <- granular log message from stderr
-                }
-                FfmpegEvent::Done => {
-                    log::info!("Done");
-                    finished = true;
-                }
-                _ => {}
-            }
-        });
+                    frame_index += 1;
+        }
 
-    if !finished {
-        return Err(anyhow::Error::msg("error in command"));
+        // .output("pipe:1");
+        
+    // log::info!("args: {:?}", command.get_args());
+    // // command.get_args();
+    // let mut child = command
+    //     .spawn()?; // <- Uses an ordinary `std::process::Child`;
+    
+    // child
+    //     .iter()? // <- Iterator over all log messages and video output
+    //     .for_each(|event: FfmpegEvent| {
+    //         match event {
+    //             FfmpegEvent::OutputFrame(frame) => {
+    //                 log::info!("frame: {}x{}", frame.width, frame.height);
+    //                 width = frame.width;
+    //                 height = frame.height;
+    //                 if inital_timestamp == -10.0 {
+    //                     inital_timestamp = frame.timestamp;
+    //                 };
+    //                 if final_timestamp < frame.timestamp {
+    //                     final_timestamp = frame.timestamp;
+    //                 };
+    //                 let pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
+    //                 println!("{} - {}", pixels.len(), width * height * 4);
+    //                 bytes.push(pixels);
+    //             }
+    //             // FfmpegEvent::Progress(progress) => {
+    //             //     log::info!("Current speed: {}x", progress.speed); // <- parsed progress updates
+    //             // }
+    //             // FfmpegEvent::Log(_level, msg) => {
+    //             //     log::info!("[ffmpeg] {}", msg); // <- granular log message from stderr
+    //             // }
+                
+    //             // FfmpegEvent::ParsedInput(ffmpeg_input) => {
+    //             //     ffmpeg_input.raw_log_message;
+    //             // }
+    //             FfmpegEvent::Error(e) => {
+    //                 log::error!("{:?}",e);
+    //             }
+    //             FfmpegEvent::Done => {
+    //                 log::info!("Done");
+    //                 finished = true;
+    //             }
+    //             _ => {}
+    //         }
+    //     });
+
+    if inital_timestamp == -10.0 {
+        return Err(anyhow::Error::msg("no frames found"));
     }
+
+    println!("{:?}", ((final_timestamp - inital_timestamp, width, height, bytes.len())));
 
     Ok((final_timestamp - inital_timestamp, width, height, bytes))
 }

@@ -1,34 +1,35 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{texture::RawImage2d, uniform, DrawParameters, Surface};
+use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
-
-use super::node_enum::NodeType;
-
+use crate::{node::{random_id, MyNode}, nodes::node_enum::{self, NodeType}, storage::Storage};
 
 
 #[derive(Savefile)]
-pub struct DebugNode {
+pub struct BrightnessRangeMaskNode {
     x: f32,
     y: f32,
     id: String,
+    low: f32,
+    high: f32,
 }
 
-impl Default for DebugNode {
+impl Default for BrightnessRangeMaskNode {
     fn default() -> Self {
-        DebugNode {
+        BrightnessRangeMaskNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
+            low: 0.25,
+            high: 0.75,
         }
     }
 }
-impl MyNode for DebugNode {
+impl MyNode for BrightnessRangeMaskNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","msc"]
+        vec!["Image","Mask"]
     }
 
     
@@ -53,7 +54,7 @@ impl MyNode for DebugNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::Debug
+        NodeType::BrightnessRangeMask
     }
 
 
@@ -61,10 +62,25 @@ impl MyNode for DebugNode {
         self.id.clone()
     }
 
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+        ui.slider("low", 0.0, 1.0, &mut self.low);
+        ui.slider("high", 0.0, 1.0, &mut self.high);
+        let width = ui.item_rect_size()[1];
+
+        for i in 0..100 {
+            let a = (i as f32)/100.0;
+            let b = (1.0 + i as f32)/100.0;
+            ui.get_window_draw_list().add_line(
+                [ui.cursor_pos()[0] + a*width, ui.cursor_pos()[0] * 5.0],
+                 [ui.cursor_pos()[0] + b*width, ui.cursor_pos()[0] * 5.0],
+                  [a,a,a,1.0]).build();
+        }
+    }
+
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            DebugNode::savefile_version(),
+            BrightnessRangeMaskNode::savefile_version(),
             self,
         );
     }
@@ -93,19 +109,7 @@ impl MyNode for DebugNode {
             None => {return false},
         };
 
-        let fragment_shader_src = 
-            r#"
-
-            #version 140
-
-            in vec2 v_tex_coords;
-            out vec4 color;
-
-            uniform sampler2D tex;
-            void main() {
-            color = texture(tex, v_tex_coords);
-            }
-            "#;
+        let fragment_shader_src = include_str!("brightness_range.glsl");
 
     let texture_size:(u32, u32) = match storage.get_texture(get_output) {
         Some(a) => {(a.width(), a.height())},
@@ -125,7 +129,8 @@ impl MyNode for DebugNode {
 
             let uniforms = uniform! {
                 tex: texture,
-
+                low: self.low,
+                high: self.high,
             };
             let texture2 = storage.get_texture(&output_id).unwrap();
             texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
@@ -134,19 +139,12 @@ impl MyNode for DebugNode {
                             }
                             ).unwrap();
 
-
-                            let mut a = vec![1,2,3];
-                            a.extend_from_slice(&[1,3,4]);
-
-                            texture2.write(glium::Rect{left:0, bottom:0, width:10, height:1}, RawImage2d::<u8>::from_raw_rgb(vec![], (10,1)));
-
         return true;
     }
 
-
-
+    
 
     fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("basic node, for debugging purposes")
+        ui.text_wrapped("Create a mask based on the brightness value of a pixel. Returns true if the brightness is higher than low and lower than high. If low is higher than high they are swapped and they are inverted.")
     }
 }

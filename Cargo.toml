@@ -66,6 +66,7 @@ trash = "5.1.1"
 lazy_static = "1.5.0"
 compressed_string = "1.0.0"
 fast-smaz = "0.1.0"
+okolors = {version = "0.8.1", features=["threads"]}
 # color-eyre = "0.6.3"
 
 [build-dependencies]
