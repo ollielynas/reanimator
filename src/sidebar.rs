@@ -99,22 +99,7 @@ impl Project {
                         
                     }
                 }
-                ui.separator();
-
-                if ui.button("debug") {
-                    self.metrics = !self.metrics;
-                }
-                if ui.button("debug mem") {
-                    self.storage.max_lines_of_text = 1;
-                    self.storage.show_debug_window = !self.storage.show_debug_window;
-                }
-
-                if ui.button("settings") {
-                    self.open_settings = true;
-                }
-                if ui.button("save") {
-                    log::info!("save button, {:?}", self.save());
-                }
+                
 
                 ui.separator();
 

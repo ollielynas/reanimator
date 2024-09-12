@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::{batch_edit::RunBatch, generic_io::GenericIO, project_files::LocalFiles};
 
 
+pub const PROJECT_SETTINGS_VERSION: u32 = 0;
 
 #[derive(Savefile)]
 pub struct ProjectSettings {

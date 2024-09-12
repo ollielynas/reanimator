@@ -10,6 +10,7 @@ use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::{Position, Size};
 use itertools::Itertools;
 use platform_dirs::{AppDirs, UserDirs};
+use self_update::cargo_crate_version;
 use textdistance::{Algorithm, Cosine, Hamming, Levenshtein};
 use std::collections::HashSet;
 use std::thread::{panicking, sleep};
@@ -40,7 +41,7 @@ use crate::nodes::debug;
 
 use crate::nodes::input::load_gif::LoadGifNode;
 use crate::nodes::input::load_image::LoadImage;
-use crate::project_settings::ProjectSettings;
+use crate::project_settings::{ProjectSettings, PROJECT_SETTINGS_VERSION};
 use crate::render_nodes::RenderNodesParams;
 use crate::sidebar::SidebarParams;
 use crate::{
@@ -49,9 +50,8 @@ use crate::{
 };
 use crate::{
     node::MyNode,
-    nodes::{self, image_io::*},
     storage::Storage,
-    user_info::{self, UserSettings},
+    user_info::UserSettings,
 };
 use crate::{project, project_settings};
 use rfd::FileDialog;
@@ -162,22 +162,34 @@ impl Project {
         let mut input_ok = false;
         let mut output_ok = false;
 
+        // don't save if the project hasn't finished loading
         if self.loading <= MAX_LOADING {
             return Ok(());
         }
 
+
         self.backup_data = vec![];
 
+        // create the save folder if it doesn't already exist
         fs::create_dir_all(self.path.clone())?;
-
+        
+        // save the connections
         savefile::save_file(self.path.join("connections.bin"), 0, &self.connections)?;
+
+        // save the settings
         savefile::save_file(
             self.path.join("project_settings.bin"),
-            0,
+            PROJECT_SETTINGS_VERSION,
             &self.project_settings,
         )?;
+
+        // remove any node files that may be left over from the last save
         let _ = fs::remove_dir_all(self.path.join("nodes"));
+
+        // create the nodes directory cos we just deleted it
         fs::create_dir_all(self.path.join("nodes"))?;
+        
+        // iter over nodes
         for node in &self.nodes {
             if Some(node.id()) == self.project_settings.generic_io.input_id {
                 input_ok = true;
@@ -190,6 +202,8 @@ impl Project {
             node.save(self.path.join("nodes"))?;
         }
 
+        // save the fact that the input id/ output id are valid
+        // why am i doing this here?, I should move this
         if !input_ok {
             self.project_settings.generic_io.input_id = None;
         }
@@ -197,7 +211,7 @@ impl Project {
             self.project_settings.generic_io.output_id = None;
         }
 
-
+        // back up 
         savefile::save_file(self.path.join("backup_data.bin"), GenericNodeInfo::savefile_version(), &self.backup_data);
 
         return Ok(());
@@ -241,12 +255,14 @@ impl Project {
         window: &imgui_winit_support::winit::window::Window,
     ) {
 
+        // get window size
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
 
 
         
-
+        // This code is responsible for loading the project in chunks so that a loading
+        // screen can be sown.
         if self.loading <= MAX_LOADING + 1 {
             ui.window("loading")
                 .draw_background(false)
@@ -273,7 +289,7 @@ impl Project {
                     if self.loading != 0 {
                         // sleep(Duration::from_secs_f32(0.25));
                     }
-
+                    // the text id displayed before each state starts loading
                     match self.loading {
                         0 => {
                             ui.text("loading node types into memory and checking assertions");
@@ -296,6 +312,7 @@ impl Project {
                         _ => {}
                     }
 
+                    // start loading each node with a 1 tick delay
                     match self.loading - 1 {
                         -1 => {
                             // do nothing
@@ -460,6 +477,8 @@ impl Project {
             return;
         }
 
+        // if the user is running a batch file edit
+        // this should probably be moved into its own function
         if self.project_settings.batch_files.run {
             ui.window("running batch")
             .position([window_size.x*0.5,window_size.y*0.5], imgui::Condition::Always)
@@ -474,18 +493,70 @@ impl Project {
             return;
         }
 
-        ui.main_menu_bar(|| {
-            ui.text(self.path.as_os_str().to_str().unwrap());
-            // ui.menu_item("item");
-            // ui.set_window_font_scale(0.9);
-            // ui.checkbox(";", &mut self.render_ticker);
-        });
-
-
         let mut sidebar_params = SidebarParams {
             menu_bar_size:  ui.item_rect_size(),
             ..Default::default()
         };
+
+
+        // start by rendering the menu bar. 
+        ui.main_menu_bar(|| {
+            
+            ui.menu("project", || {
+                if ui.menu_item("open folder") {
+                    open::that_detached(&self.path);
+                }
+                if ui.menu_item("open resource root") {
+                    open::that_detached(&self.path.join("root"));
+                }
+                if ui.menu_item("manual save") {
+                    self.save();
+                }
+                if ui.menu_item("reload project") {
+                    self.loading = 0;
+                }
+            });
+            
+            ui.menu("settings", || {
+            if ui.menu_item("user settings") {
+                self.open_settings = true;
+            }
+            });
+
+            ui.menu("debug", || {
+                if ui.menu_item("debug imgui") {
+                    self.metrics = !self.metrics;
+                }
+                if ui.menu_item("debug memory") {
+                    self.storage.max_lines_of_text = 1;
+                    self.storage.show_debug_window = !self.storage.show_debug_window;
+                }
+            });
+            ui.menu("feedback", || {
+                if ui.menu_item("star on github") {
+                    open::that("https://github.com/ollielynas/reanimator");
+                }
+                if ui.menu_item("bug report") {
+                    let bug_body = "Try to include info like:%0A- how to replicate the issue%0A- what the issue was%0A-screenshots%0A- error messages%0A- an exported version of the project%A0%0Adon't forget a title".replace(" ", "%20");
+                    open::that(format!("https://github.com/ollielynas/reanimator/issues/new?labels=bug&title=[bug]%20v{}-&body=\"{}\"", cargo_crate_version!(), bug_body));
+                }
+                if ui.menu_item("request feature") {
+                    open::that("https://github.com/ollielynas/reanimator/issues/new?title=[feature%20request]&body=don't%20forget%20a%20title");
+                }
+                if ui.menu_item("spelling mistake") {
+                    open::that("https://github.com/ollielynas/reanimator/issues/new?title=[important]&body=please%20be%20thorough%20in%20your%20description%20of%20the%20error");
+                }
+                if ui.menu_item("google form") {
+                    open::that("https://docs.google.com/forms/d/e/1FAIpQLSfBSZZc8oqVrxUUfmNsEjvmKtE3RKdPIok7WvWQWk5S3mW4XQ/viewform?usp=sf_link");
+                }
+                if ui.is_item_hovered() {
+                    ui.tooltip_text("if you don't have/don't want to create a github account you can use this google form");
+                }
+            });
+        });
+
+
+        
         let wheel_delta = ui.io().mouse_wheel;
 
         let mut params: RenderNodesParams = RenderNodesParams {

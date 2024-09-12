@@ -526,14 +526,17 @@ impl Project {
                         )
                         .build(|| {
                             for project in &user_settings.projects {
+
                                 if ui.button(project.file_name().unwrap().to_str().unwrap()) {
                                     let mut new_project_1 =
                                     Project::new(project.to_path_buf(), display.clone());
                                 // let _ = new_project_1.save();
                                 
-                                let mut save_dir = match AppDirs::new(Some("Reanimator"), false) {
+                                // I have no idea what this code does. 
+                                let save_dir = match AppDirs::new(Some("Reanimator"), false) {
                                     Some(a) => {
                                         fs::create_dir_all(a.cache_dir.clone());
+                                        log::info!("cache_dir{:?}", a.cache_dir.clone());
                                         a.cache_dir
                                     }
                                     None => current_exe().unwrap(),
@@ -543,7 +546,7 @@ impl Project {
                                 
                                 let _ = fs::create_dir_all(&p);
 
-                                for i in fs::read_dir(p).unwrap() {
+                                for i in fs::read_dir(&p).unwrap() {
                                     if let Ok(i) = i {
                                         if i.metadata()
                                             .unwrap()
@@ -558,6 +561,8 @@ impl Project {
                                         }
                                     }
                                 }
+
+                                fs::remove_dir_all(&p);
                                 
                                 new_project_1.recenter_nodes(ui);
                                 

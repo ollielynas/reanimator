@@ -1241,6 +1241,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3d8a32ae18130a3c84dd492d4215c3d913c3b07c6b63c2eb3eb7ff1101ab7bf"
 
 [[package]]
+name = "enum_to_string"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca140e78ccc49b7fdc72ebb5ae478788ee22aa6e1cee63b5d4bcdda5b5a9cac7"
+dependencies = [
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.66",
+]
+
+[[package]]
 name = "enumflags2"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3548,7 +3560,7 @@ dependencies = [
 
 [[package]]
 name = "reanimator"
-version = "0.1.19"
+version = "0.1.20"
 dependencies = [
  "anyhow",
  "blake2",
@@ -3556,6 +3568,7 @@ dependencies = [
  "comprexor",
  "copypasta",
  "dtt",
+ "enum_to_string",
  "escapi",
  "fast-smaz",
  "fastrand 2.1.0",
@@ -3584,6 +3597,8 @@ dependencies = [
  "savefile",
  "savefile-derive",
  "self_update",
+ "serde",
+ "serde_json",
  "strum 0.26.2",
  "strum_macros 0.26.4",
  "system-extensions",
@@ -4008,18 +4023,18 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.203"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.203"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4028,11 +4043,12 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.120"
+version = "1.0.128"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
+checksum = "6ff5456707a1de34e7e37f2a6fd3d3f808c318259cbd01ab6377795054b483d8"
 dependencies = [
  "itoa",
+ "memchr",
  "ryu",
  "serde",
 ]

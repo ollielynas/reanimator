@@ -1,6 +1,7 @@
 
 
 
+
 function httpGet(theUrl)
 {
     var xmlHttp = new XMLHttpRequest();
@@ -31,3 +32,14 @@ window.download_link = download_link;
 document.querySelector(".version").innerHTML = "version: " + data["tag_name"];
 
 document.querySelector(".download-button").href = download_link;
+
+
+const urlParams = new URLSearchParams(window.location.search);
+const myParam = urlParams.get('download_latest');
+
+
+if (!(myParam==null)) {
+    window.location.replace(download_link);
+    window.location.href = download_link;
+
+}

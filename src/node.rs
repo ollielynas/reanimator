@@ -1,13 +1,13 @@
 use std::{any::Any, collections::HashMap, iter::Filter, path::{self, PathBuf}, process::Output};
 use std::hash::Hash;
 use fastrand;
-use glium::{uniform, BlitTarget, DrawParameters, Surface, Texture2d};
+
 use imgui::Ui;
 use imgui_glium_renderer::Renderer;
 use savefile::prelude::*;
 
 use crate::{
-    generic_node_info::GenericNodeInfo, nodes::{image_io::OutputNode, node_enum::NodeType}, storage::Storage
+    generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage
 };
 
 
@@ -20,7 +20,7 @@ pub trait MyNode {
         GenericNodeInfo {
             x: self.x(),
             y: self.y(),
-            type_: self.type_(),
+            type_: self.type_().to_string(),
             id: self.id(),
         }
     }
@@ -84,3 +84,4 @@ pub trait MyNode {
 pub fn random_id() -> String {
     fastrand::i32(1000..=9999).to_string()
 }
+

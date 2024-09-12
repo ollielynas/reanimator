@@ -7,6 +7,7 @@ use basic_shader_nodes::solid_color::ColorNode;
 use color::k_mean::PalletGenNode;
 use detect_motion::MotionNode;
 use difference_of_gaussians::DifferenceofGaussiansNode;
+use enum_to_string::ToJsonString;
 use greyscale::GreyScaleNode;
 use input::default_image::DefaultImage;
 use input::desktop_capture::CaptureWindowNode;
@@ -24,12 +25,13 @@ use debug::DebugNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
 use glium::Display;
-use image_io::OutputNode;
 use layer::LayerNode;
 use mask::color_noise::ColorNoiseNode;
 use mask::generic_mask::GenericMaskNode;
 use mask::multiply::MultiplyNode;
 use mask::white_noise::WhiteNoiseNode;
+use node_error::ErrorNode;
+use output::image_io::OutputNode;
 use pick_random::RandomInputNode;
 use regex::Regex;
 use restrict_pallet::RestrictPalletNode;
@@ -40,19 +42,19 @@ use rgb_hsl::split_rgba::SplitRgbaNode;
 use savefile::{self, SavefileError};
 use scale::ScaleNode;
 
+use serde::Serialize;
 use strum_macros::EnumIter;
 use text::display_text::DisplayTextNode;
 use text::text_input::TextInputNode;
 use watercolor::watercolor::WaterColorNode;
 use win_screenshot::utils::{window_list, HwndName};
-
 use crate::node::MyNode;
 
 use crate::nodes::*;
 
 
 
-#[derive(Savefile, EnumIter, PartialEq, Eq, Copy, Clone, Debug, Hash)]
+#[derive(Savefile, EnumIter, PartialEq, Eq, Copy, Clone, Debug, Hash, Serialize,  ToJsonString)]
 pub enum NodeType {
     Debug,
     Output,
@@ -98,6 +100,7 @@ pub enum NodeType {
     Crystal,
     BrightnessRangeMask,
     PalletGen,
+    Error,
 }
 
 impl NodeType  {
@@ -147,6 +150,7 @@ impl NodeType  {
             NodeType::Crystal => "Crystal", 
             NodeType::BrightnessRangeMask => "Mask Brightness",
             NodeType::PalletGen => "Generate Pallet",
+            NodeType::Error => "Error Node",
         }.to_owned();
 
         if self.deprecated() {
@@ -374,6 +378,10 @@ impl NodeType  {
                 let a: Result<InvertTextureNode, SavefileError> = savefile::load_file(project_file, InvertTextureNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
             },
+            NodeType::Error => {
+                let a: Result<ErrorNode, SavefileError> = savefile::load_file(project_file, ErrorNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(_) => None}
+            },
             NodeType::ChromaticAberration 
             | NodeType::VHS 
             | NodeType::Blur
@@ -450,6 +458,7 @@ impl NodeType  {
             NodeType::Greyscale => Box::new(GreyScaleNode::default()),
             NodeType::BrightnessRangeMask => Box::new(BrightnessRangeMaskNode::default()),
             NodeType::PalletGen => Box::new(PalletGenNode::default()),
+            NodeType::Error => Box::new(ErrorNode::default()),
             }
     }
 
@@ -464,6 +473,7 @@ impl NodeType  {
             | NodeType::TextMask
             | NodeType::DisplayText
             | NodeType::WaterColor
+            | NodeType::Error
         )
     }
     pub fn deprecated(&self) -> bool {
@@ -473,4 +483,10 @@ impl NodeType  {
         )
     }
 
+}
+
+impl Default for NodeType {
+    fn default() -> Self {
+        NodeType::Error
+    }
 }

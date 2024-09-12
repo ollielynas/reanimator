@@ -26,6 +26,7 @@ use std::{
 use strum::IntoEnumIterator;
 
 use crate::node::random_id;
+use crate::nodes::output::image_io::OutputNode;
 use crate::project::{graph_to_screen_pos, screen_to_graph_pos, Project};
 use crate::{
     advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
@@ -33,7 +34,6 @@ use crate::{
 };
 use crate::{
     node::MyNode,
-    nodes::{self, image_io::*},
     storage::Storage,
     user_info::{self, UserSettings},
 };

@@ -261,6 +261,10 @@ impl MyNode for LayerNode {
         ui.columns(2, "", true);
         let mut remove = None;
         ui.text(format!("base size: {:?}", self.base_texture_size));
+        if self.base_texture_size.0 == 0 ||self.base_texture_size.1 == 0 {
+            ui.text("input texture is too small");
+            return;
+        } 
         let mut focus = 999_usize;
         let mut hover = 999_usize;
         for (i, l) in self.layers.iter_mut().enumerate() {

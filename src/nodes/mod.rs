@@ -1,4 +1,4 @@
-pub mod image_io;
+pub mod output;
 pub mod node_enum;
 pub mod basic_shader_nodes;
 pub mod restrict_pallet;
@@ -18,3 +18,4 @@ pub mod rgb_hsl;
 pub mod watercolor;
 pub mod input;
 pub mod color;
+pub mod node_error;
