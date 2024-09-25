@@ -1,6 +1,9 @@
 use std::{any::Any, collections::HashMap, io::Read, path::PathBuf};
 
-use ffmpeg_sidecar::{command::FfmpegCommand, event::{FfmpegEvent, FfmpegInput}};
+use ffmpeg_sidecar::{
+    command::FfmpegCommand,
+    event::{FfmpegEvent, FfmpegInput},
+};
 use glium::{texture::RawImage2d, uniform, DrawParameters, Rect, Surface};
 use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
@@ -162,13 +165,11 @@ impl MyNode for LoadVideoNode {
                 .build();
         }
         if self.custom_args {
-            let h = 
-                 ui.calc_text_size_with_opts(
-                    "x".repeat(self.ffmpeg_args.split("\n").collect::<Vec<&str>>().len()),
-                    false,
-                    0.1
-                )[1] + 
-                ui.clone_style().frame_padding[1] * 2.0;
+            let h = ui.calc_text_size_with_opts(
+                "x".repeat(self.ffmpeg_args.split("\n").collect::<Vec<&str>>().len()),
+                false,
+                0.1,
+            )[1] + ui.clone_style().frame_padding[1] * 2.0;
             ui.input_text_multiline(
                 "args",
                 &mut self.ffmpeg_args,
@@ -252,7 +253,6 @@ impl MyNode for LoadVideoNode {
 
         let output_id = self.output_id(self.outputs()[0].clone());
 
-
         storage.create_and_set_texture(self.width, self.height, output_id.clone());
 
         if self.last_time > storage.time {
@@ -283,17 +283,18 @@ impl MyNode for LoadVideoNode {
             .floor()
             .clamp(0.0, (self.frames.len() - 1) as f64) as usize];
         if data.len() as u32 == self.height * self.width * 4 {
-        if let Some(texture) = storage.get_texture(&output_id) {
-            texture.write(
-                Rect {
-                    left: 0,
-                    bottom: 0,
-                    width: self.width,
-                    height: self.height,
-                },
-                RawImage2d::from_raw_rgba_reversed(data, (self.width, self.height)),
-            );
-        }}
+            if let Some(texture) = storage.get_texture(&output_id) {
+                texture.write(
+                    Rect {
+                        left: 0,
+                        bottom: 0,
+                        width: self.width,
+                        height: self.height,
+                    },
+                    RawImage2d::from_raw_rgba_reversed(data, (self.width, self.height)),
+                );
+            }
+        }
 
         return true;
     }
@@ -332,49 +333,49 @@ pub fn load_video_bytes(
     let args = custom_args.replace("\n", " ");
     let command = binding // <- Builder API like `std::process::Command`
         .hide_banner()
-        
         .input(if path == &PathBuf::new() {
             custom_input
         } else {
             // format!("\"{}\"",path.display().to_string().replace("\\", "/"))
-            format!("{}",path.display().to_string().replace("\\", "/"))
+            format!("{}", path.display().to_string().replace("\\", "/"))
         }) // <- Convenient argument presets
         .rawvideo()
         .spawn();
-        let frames = command.unwrap().iter().unwrap().filter_frames();
+    let frames = command.unwrap().iter().unwrap().filter_frames();
 
-        // println!("frames {}", frames.collect::<Vec<_>>().len());
-        let mut frame_index = 0;
-        for frame in frames {
-            println!("frame_index");
-            // log::info!("frame: {}x{}", frame.width, frame.height);
-                    width = frame.width;
-                    height = frame.height;
-                    if inital_timestamp == -10.0 {
-                        inital_timestamp = frame.timestamp;
-                    };
-                    if final_timestamp < frame.timestamp {
-                        final_timestamp = frame.timestamp;
-                    };
-                    let mut pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
-                    if pixels.len() as u32 == width * height * 3 {
-                        println!("converting size");
-                        pixels = pixels.chunks_exact(3).flat_map(|x| {
-                            [x[0],x[1],x[2], 255]
-                        }).collect::<Vec<u8>>();
-                    }
-                    // println!("{} - {} {}", pixels.len(), width * height * 4, width * height * 3);
-                    bytes.push(pixels);
-                    frame_index += 1;
+    // println!("frames {}", frames.collect::<Vec<_>>().len());
+    let mut frame_index = 0;
+    for frame in frames {
+        println!("frame_index");
+        // log::info!("frame: {}x{}", frame.width, frame.height);
+        width = frame.width;
+        height = frame.height;
+        if inital_timestamp == -10.0 {
+            inital_timestamp = frame.timestamp;
+        };
+        if final_timestamp < frame.timestamp {
+            final_timestamp = frame.timestamp;
+        };
+        let mut pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
+        if pixels.len() as u32 == width * height * 3 {
+            println!("converting size");
+            pixels = pixels
+                .chunks_exact(3)
+                .flat_map(|x| [x[0], x[1], x[2], 255])
+                .collect::<Vec<u8>>();
         }
+        // println!("{} - {} {}", pixels.len(), width * height * 4, width * height * 3);
+        bytes.push(pixels);
+        frame_index += 1;
+    }
 
-        // .output("pipe:1");
-        
+    // .output("pipe:1");
+
     // log::info!("args: {:?}", command.get_args());
     // // command.get_args();
     // let mut child = command
     //     .spawn()?; // <- Uses an ordinary `std::process::Child`;
-    
+
     // child
     //     .iter()? // <- Iterator over all log messages and video output
     //     .for_each(|event: FfmpegEvent| {
@@ -399,7 +400,7 @@ pub fn load_video_bytes(
     //             // FfmpegEvent::Log(_level, msg) => {
     //             //     log::info!("[ffmpeg] {}", msg); // <- granular log message from stderr
     //             // }
-                
+
     //             // FfmpegEvent::ParsedInput(ffmpeg_input) => {
     //             //     ffmpeg_input.raw_log_message;
     //             // }
@@ -418,7 +419,15 @@ pub fn load_video_bytes(
         return Err(anyhow::Error::msg("no frames found"));
     }
 
-    println!("{:?}", ((final_timestamp - inital_timestamp, width, height, bytes.len())));
+    println!(
+        "{:?}",
+        ((
+            final_timestamp - inital_timestamp,
+            width,
+            height,
+            bytes.len()
+        ))
+    );
 
     Ok((final_timestamp - inital_timestamp, width, height, bytes))
 }

@@ -18,7 +18,6 @@ use std::path::PathBuf;
 
 use blake2::{Blake2s256, Digest};
 
-
 #[derive(Savefile, PartialEq)]
 pub struct Snapshot {
     description: String,
@@ -44,7 +43,7 @@ impl Project {
         if self.nodes.len() != old.nodes.len() {
             if self.nodes.len() > old.nodes.len() {
                 description = format!("added {} node/s", self.nodes.len() - old.nodes.len());
-            }else {
+            } else {
                 description = format!("removed {} node/s", old.nodes.len() - self.nodes.len());
             }
         } else {

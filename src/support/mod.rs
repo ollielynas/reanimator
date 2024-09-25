@@ -15,7 +15,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-
 mod clipboard;
 
 pub const FONT_SIZE: f32 = 13.0;
@@ -29,13 +28,17 @@ pub const FONT_SIZE: f32 = 13.0;
 //     init_with_startup(title, |_, _, _| {}, run_ui, Some(Fullscreen::Borderless(None)),  imgui);
 // }
 
-pub fn init_with_startup<FInit, FUi>(title: &str, mut startup: FInit, mut run_ui: FUi, fullscreen: Option<Fullscreen>, imgui: &mut Context)
-where
+pub fn init_with_startup<FInit, FUi>(
+    title: &str,
+    mut startup: FInit,
+    mut run_ui: FUi,
+    fullscreen: Option<Fullscreen>,
+    imgui: &mut Context,
+) where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
-    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>,&Window) + 'static,
+    FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>, &Window)
+        + 'static,
 {
-
-
     let title = match Path::new(&title).file_name() {
         Some(file_name) => file_name.to_str().unwrap(),
         None => title,
@@ -43,14 +46,15 @@ where
     let event_loop = EventLoop::new().expect("Failed to create EventLoop");
     // Program::
 
-    let icon = load_from_memory_with_format(include_bytes!("./res/icon2.ico"), image::ImageFormat::Ico).unwrap();
+    let icon =
+        load_from_memory_with_format(include_bytes!("./res/icon2.ico"), image::ImageFormat::Ico)
+            .unwrap();
 
     let builder = WindowBuilder::new()
         .with_title(title)
         .with_maximized(fullscreen.is_some())
-        
         .with_window_icon(Some(
-            Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap()
+            Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap(),
         ))
         // .with_fullscreen(fullscreen)
         .with_inner_size(LogicalSize::new(1024, 512));
@@ -58,13 +62,9 @@ where
         .set_window_builder(builder.clone())
         .build(&event_loop);
 
-
     let mut renderer = Renderer::init(imgui, &display).expect("Failed to initialize renderer");
-    
-    
 
     // let mut display_texture = Texture2d::empty(&display, 512, 512).unwrap();
-
 
     if let Some(backend) = clipboard::init() {
         imgui.set_clipboard_backend(backend);
@@ -72,11 +72,8 @@ where
         log::info!("Failed to initialize clipboard");
     }
 
-    
-
     let mut platform = WinitPlatform::init(imgui);
     {
-        
         let dpi_mode = if let Ok(factor) = std::env::var("IMGUI_EXAMPLE_FORCE_DPI_FACTOR") {
             // Allow forcing of HiDPI factor for debugging purposes
             match factor.parse::<f64>() {
@@ -89,7 +86,6 @@ where
         // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
         // platform.attach_window(imgui.io_mut(), &window2, dpi_mode);
-        
     }
     // window.set_cursor_hittest(false);
     let mut last_frame = Instant::now();
@@ -105,13 +101,10 @@ where
                 // imgui.io_mut().font_global_scale = 0.5;
             }
             Event::AboutToWait => {
-                
                 platform
-                .prepare_frame(imgui.io_mut(), &window)
-                .expect("Failed to prepare frame");
+                    .prepare_frame(imgui.io_mut(), &window)
+                    .expect("Failed to prepare frame");
 
-                
-                
                 // window.set_maximized(true);
                 window.request_redraw();
             }
@@ -122,11 +115,11 @@ where
                 let ui = imgui.new_frame();
 
                 let mut run = true;
-                run_ui(&mut run, ui, &display, &mut renderer, Some(a),&window);
+                run_ui(&mut run, ui, &display, &mut renderer, Some(a), &window);
                 if !run {
                     window_target.exit();
                 }
-                
+
                 let mut target = display.draw();
                 let mut col = ui.style_color(imgui::StyleColor::WindowBg);
 
@@ -135,13 +128,12 @@ where
                     *c += 1.0;
                     *c /= 5.0;
                 }
-                
+
                 target.clear_color_srgb(col[0], col[1], col[2], 1.0);
                 platform.prepare_render(ui, &window);
-                
+
                 let draw_data = imgui.render();
-                
-            
+
                 renderer
                     .render(&mut target, draw_data)
                     .expect("Rendering failed");
@@ -157,7 +149,7 @@ where
                 if !run {
                     window_target.exit();
                 }
-                
+
                 let mut target = display.draw();
                 let mut col = ui.style_color(imgui::StyleColor::WindowBg);
 
@@ -166,12 +158,11 @@ where
                     *c += 1.0;
                     *c /= 5.0;
                 }
-                
+
                 target.clear_color_srgb(col[0], col[1], col[2], 1.0);
                 platform.prepare_render(ui, &window);
-                
+
                 let draw_data = imgui.render();
-                
 
                 renderer
                     .render(&mut target, draw_data)
@@ -182,7 +173,6 @@ where
                 event: WindowEvent::Resized(new_size),
                 ..
             } => {
-
                 if new_size.width > 0 && new_size.height > 0 {
                     display.resize((new_size.width, new_size.height));
                 }
@@ -193,7 +183,6 @@ where
                 ..
             } => window_target.exit(),
             event => {
-
                 platform.handle_event(imgui.io_mut(), &window, &event);
             }
         })
@@ -225,7 +214,6 @@ pub fn create_context() -> imgui::Context {
                 ..FontConfig::default()
             }),
         },
-        
         FontSource::TtfData {
             data: include_bytes!("resources/Dokdo-Regular.ttf"),
             size_pixels: FONT_SIZE,
@@ -277,10 +265,10 @@ pub fn create_context() -> imgui::Context {
     imgui.fonts().build_alpha8_texture();
 
     // MipmapsOption::NoMipmap;
-    
-    log::info!("is font built: {}",imgui.fonts().is_built());
 
-    log::info!("fonts {:?}",imgui.fonts().fonts());
+    log::info!("is font built: {}", imgui.fonts().is_built());
+
+    log::info!("fonts {:?}", imgui.fonts().fonts());
 
     let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
         Some(a) => {

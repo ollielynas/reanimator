@@ -5,7 +5,6 @@ pub enum EditTab {
     ProjectRes,
 }
 
-
 #[derive(Savefile)]
 pub struct GenericIO {
     pub input_id: Option<String>,
@@ -20,5 +19,3 @@ impl Default for GenericIO {
         }
     }
 }
-
-

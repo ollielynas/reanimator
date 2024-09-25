@@ -9,9 +9,10 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::{
-    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
+    node::{random_id, MyNode},
+    nodes::node_enum::NodeType,
+    storage::Storage,
 };
-
 
 #[derive(Savefile, EnumIter, PartialEq, Copy, Clone)]
 enum MyFilterType {
@@ -35,7 +36,6 @@ impl MyFilterType {
         }
     }
 }
-
 
 #[derive(Savefile)]
 pub struct ScaleNode {
@@ -124,16 +124,20 @@ impl MyNode for ScaleNode {
 
         let filter_types = MyFilterType::iter().collect::<Vec<MyFilterType>>();
 
-        let (mut index, _) = MyFilterType::iter().enumerate().find(|x| x.1 == self.filter).unwrap_or((0,MyFilterType::Linear));
+        let (mut index, _) = MyFilterType::iter()
+            .enumerate()
+            .find(|x| x.1 == self.filter)
+            .unwrap_or((0, MyFilterType::Linear));
 
-        ui.combo("##", &mut index,  &filter_types, |x| {x.name().into()});
+        ui.combo("##", &mut index, &filter_types, |x| x.name().into());
 
         self.filter = filter_types[index];
 
         ui.disabled(!self.use_percent, || {
-            ui.input_float("resize percent", &mut self.target_percent).build();
+            ui.input_float("resize percent", &mut self.target_percent)
+                .build();
             if self.use_percent {
-                // round evan to annoy anatol 
+                // round evan to annoy anatol
                 self.target_size = (
                     (self.og_size.0 as f32 * self.target_percent / 100.0)
                         .round_ties_even()
@@ -158,9 +162,8 @@ impl MyNode for ScaleNode {
         map: HashMap<String, String>,
         renderer: &mut Renderer,
     ) -> bool {
-
         if self.use_percent {
-            // round evan to annoy anatol 
+            // round evan to annoy anatol
             self.target_size = (
                 (self.og_size.0 as f32 * self.target_percent / 100.0)
                     .round_ties_even()

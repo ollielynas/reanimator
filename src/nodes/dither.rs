@@ -1,11 +1,19 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use blake2::digest::typenum::Pow;
-use glium::{pixel_buffer::PixelBuffer, texture::{RawImage2d, Texture2dDataSource}, uniform, DrawParameters, Rect, Surface};
+use glium::{
+    pixel_buffer::PixelBuffer,
+    texture::{RawImage2d, Texture2dDataSource},
+    uniform, DrawParameters, Rect, Surface,
+};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage, widgets::link_widget};
+use crate::{
+    node::{random_id, MyNode},
+    storage::Storage,
+    widgets::link_widget,
+};
 
 use super::node_enum::NodeType;
 
@@ -17,72 +25,68 @@ struct DitherPatternPos {
     multiplier: u8,
 }
 
-
 const PATTERN: [(&str, &str, u8); 8] = [
-(
-"Floyd-Steinberg",
-r#"0 x 7
+    (
+        "Floyd-Steinberg",
+        r#"0 x 7
 3 5 1
 "#,
-16_u8
-),
-(
-"Jarvis, Judice, and Ninke",
-r#"0 0 X 7 5 
+        16_u8,
+    ),
+    (
+        "Jarvis, Judice, and Ninke",
+        r#"0 0 X 7 5 
 3 5 7 5 3
 1 3 5 3 1
 "#,
-48_u8
-),
-(
-"Stucki",
-r#"0 0 X 8 4
+        48_u8,
+    ),
+    (
+        "Stucki",
+        r#"0 0 X 8 4
 2 4 8 4 2
 1 2 4 2 1
 "#,
-42_u8
-),
-(
-"Atkinson",
-r#"0 X 1 1 
+        42_u8,
+    ),
+    (
+        "Atkinson",
+        r#"0 X 1 1 
 1 1 1
 0 1
 "#,
-8_u8
-),
-(
-"Burkes",
-r#"0 0 X 8 4 
+        8_u8,
+    ),
+    (
+        "Burkes",
+        r#"0 0 X 8 4 
 2 4 8 4 2
 "#,
-32_u8
-),
-
-(
-"Two-Row Sierra",
-r#"0 0 X 4 3
+        32_u8,
+    ),
+    (
+        "Two-Row Sierra",
+        r#"0 0 X 4 3
 1 2 3 2 1
 "#,
-16_u8
-),
-(
-"Sierra Lite",
-r#"0 x 2
+        16_u8,
+    ),
+    (
+        "Sierra Lite",
+        r#"0 x 2
 1 1
 "#,
-16_u8
-),
-(
-"Sierra ",
-r#"0 0 X 5 3
+        16_u8,
+    ),
+    (
+        "Sierra ",
+        r#"0 0 X 5 3
 2 4 5 4 2
 0 2 3 2
 "#,
-32_u8
-),
-
+        32_u8,
+    ),
 ];
-
 
 #[derive(Savefile)]
 pub struct LinearErrorDitherNode {
@@ -92,7 +96,7 @@ pub struct LinearErrorDitherNode {
     notation: String,
     pattern: Vec<DitherPatternPos>,
     devisor: i32,
-    // image_vec: 
+    // image_vec:
 }
 
 impl Default for LinearErrorDitherNode {
@@ -155,22 +159,21 @@ impl LinearErrorDitherNode {
         // for a in &self.pattern {
         //     log::info!("{a:?}");
         // }
-
     }
 }
 
 impl MyNode for LinearErrorDitherNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","Advanced Shader"]
+        vec!["Image", "Advanced Shader"]
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {
+        0
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -189,19 +192,17 @@ impl MyNode for LinearErrorDitherNode {
         NodeType::LinearErrorDither
     }
 
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             LinearErrorDitherNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         return vec!["In".to_string()];
@@ -219,20 +220,21 @@ impl MyNode for LinearErrorDitherNode {
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         let space = ui.content_region_avail();
         ui.columns(2, "dither col", true);
-        ui.input_text_multiline("Pattern", &mut self.notation, [space[0], space[1]]).build();
+        ui.input_text_multiline("Pattern", &mut self.notation, [space[0], space[1]])
+            .build();
         if ui.is_item_edited() {
             self.load_notation();
         }
         ui.next_column();
         ui.input_int("devisor", &mut self.devisor).build();
-        self.devisor  = self.devisor.clamp(1, 255);
+        self.devisor = self.devisor.clamp(1, 255);
         // if ui.button("build") {
         //     self.load_notation();
         // }
         if ui.button("pick from preset") {
             ui.open_popup("dither preset")
         }
-        ui.popup("dither preset", ||{
+        ui.popup("dither preset", || {
             for (name, notation, devisor) in PATTERN.iter().rev() {
                 if ui.button(name) {
                     self.devisor = *devisor as i32;
@@ -243,48 +245,55 @@ impl MyNode for LinearErrorDitherNode {
         });
     }
 
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => {return false},
+            None => return false,
         };
 
+        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+            Some(a) => (a.width(), a.height()),
+            None => return false,
+        };
 
-    let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.width(), a.height())},
-        None => {return false},
-    };
-    
+        storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
-    storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
-    
-    let texture: &glium::Texture2d = match storage.get_texture(get_output) {
-        Some(a) => {a},
-        None => {return false},
-    };
+        let texture: &glium::Texture2d = match storage.get_texture(get_output) {
+            Some(a) => a,
+            None => return false,
+        };
 
-    let mut data = texture.read_to_pixel_buffer().as_slice().read().unwrap_or_default().iter().map(|(r,g,b,a)| {
-        // (((*r.max(g).max(b) as u16 + *r.min(g).min(b) as u16)/2) as i16,*a)
-        (((*r as u16 + *g as u16 + *b as u16)/3) as i16,*a)
-    }).collect::<Vec<(i16, u8)>>();
+        let mut data = texture
+            .read_to_pixel_buffer()
+            .as_slice()
+            .read()
+            .unwrap_or_default()
+            .iter()
+            .map(|(r, g, b, a)| {
+                // (((*r.max(g).max(b) as u16 + *r.min(g).min(b) as u16)/2) as i16,*a)
+                (((*r as u16 + *g as u16 + *b as u16) / 3) as i16, *a)
+            })
+            .collect::<Vec<(i16, u8)>>();
 
-    // let can_bit_shift = (self.devisor as u32).is_power_of_two();
+        // let can_bit_shift = (self.devisor as u32).is_power_of_two();
 
-    // let bit_shifts = (self.devisor as f32).powf(0.5) as i32;
+        // let bit_shifts = (self.devisor as f32).powf(0.5) as i32;
 
-
-    let mut error;
+        let mut error;
 
         let width = texture_size.0;
         for i in 0..data.len() {
-
             let x = i as i32 % width as i32;
             let black = data[i].0 < 127;
-            
-            error = data[i].0 as i32 - if black {0} else {255};
+
+            error = data[i].0 as i32 - if black { 0 } else { 255 };
             // log::info!("{error}");
             // if error == 0 {
             //     data[i].0 = if black {0} else {255};
@@ -295,49 +304,70 @@ impl MyNode for LinearErrorDitherNode {
                 if x >= p.x as i32 && x + (p.x as i32) < width as i32 {
                     let index = i as i32 + p.x as i32 + p.y as i32 * width as i32;
                     if index >= 0 && index < data.len() as i32 {
-                        data[index as usize].0 = (data[index as usize].0 as i32 + ((( error) * p.multiplier as i32) / self.devisor)).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+                        data[index as usize].0 = (data[index as usize].0 as i32
+                            + (((error) * p.multiplier as i32) / self.devisor))
+                            .clamp(i16::MIN as i32, i16::MAX as i32)
+                            as i16;
                     }
                 }
             }
-            data[i].0 = if black {0} else {255};
+            data[i].0 = if black { 0 } else { 255 };
             // error = 0;
         }
 
-        
         let texture2 = storage.get_texture(&output_id).unwrap();
-        let image2d = RawImage2d::from_raw_rgba(data.iter().flat_map(|(b,a)| [*b as f32 / 255.0,*b as f32 / 255.0,*b as f32 / 255.0,*a as f32 / 255.0]).collect(), texture.dimensions());
+        let image2d = RawImage2d::from_raw_rgba(
+            data.iter()
+                .flat_map(|(b, a)| {
+                    [
+                        *b as f32 / 255.0,
+                        *b as f32 / 255.0,
+                        *b as f32 / 255.0,
+                        *a as f32 / 255.0,
+                    ]
+                })
+                .collect(),
+            texture.dimensions(),
+        );
 
-
-            // log::info!("{:?} {}", texture2.dimensions(), texture2.width());
-            texture2.write(Rect {
+        // log::info!("{:?} {}", texture2.dimensions(), texture2.width());
+        texture2.write(
+            Rect {
                 left: 0,
                 bottom: 0,
                 width: texture2.width(),
                 height: texture2.height(),
-            }, image2d);
+            },
+            image2d,
+        );
 
         return true;
     }
 
     fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("Applies dither effect based on implementation in this post by tanner helland:");
+        ui.text_wrapped(
+            "Applies dither effect based on implementation in this post by tanner helland:",
+        );
         ui.text_wrapped("");
-        link_widget(ui, "link to blog post".to_owned(), "https://tannerhelland.com/2012/12/28/dithering-eleven-algorithms-source-code.html".to_owned());
+        link_widget(
+            ui,
+            "link to blog post".to_owned(),
+            "https://tannerhelland.com/2012/12/28/dithering-eleven-algorithms-source-code.html"
+                .to_owned(),
+        );
     }
 }
 
-
-
 /*
-oooooooooo.                                                oooooooooo.    o8o      .   oooo                           
-`888'   `Y8b                                               `888'   `Y8b   `"'    .o8   `888                           
- 888     888  .oooo.   oooo    ooo  .ooooo.  oooo d8b       888      888 oooo  .o888oo  888 .oo.    .ooooo.  oooo d8b 
- 888oooo888' `P  )88b   `88.  .8'  d88' `88b `888""8P       888      888 `888    888    888P"Y88b  d88' `88b `888""8P 
- 888    `88b  .oP"888    `88..8'   888ooo888  888           888      888  888    888    888   888  888ooo888  888     
- 888    .88P d8(  888     `888'    888    .o  888           888     d88'  888    888 .  888   888  888    .o  888     
-o888b0od8P'  `Y888""8o     .8'     `Y8bod8P' d888b         o888bo0d8P'   o888o   "888" o888o o888o `Y8bod8P' d888b    
-x                      .o..P'                                                                                         
-x                      `Y8P'                                                                                          
+oooooooooo.                                                oooooooooo.    o8o      .   oooo
+`888'   `Y8b                                               `888'   `Y8b   `"'    .o8   `888
+ 888     888  .oooo.   oooo    ooo  .ooooo.  oooo d8b       888      888 oooo  .o888oo  888 .oo.    .ooooo.  oooo d8b
+ 888oooo888' `P  )88b   `88.  .8'  d88' `88b `888""8P       888      888 `888    888    888P"Y88b  d88' `88b `888""8P
+ 888    `88b  .oP"888    `88..8'   888ooo888  888           888      888  888    888    888   888  888ooo888  888
+ 888    .88P d8(  888     `888'    888    .o  888           888     d88'  888    888 .  888   888  888    .o  888
+o888b0od8P'  `Y888""8o     .8'     `Y8bod8P' d888b         o888bo0d8P'   o888o   "888" o888o o888o `Y8bod8P' d888b
+x                      .o..P'
+x                      `Y8P'
 */
 
 #[derive(Savefile)]
@@ -360,16 +390,16 @@ impl Default for BayerDitherNode {
 }
 impl MyNode for BayerDitherNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","Advanced Shader"]
+        vec!["Image", "Advanced Shader"]
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {
+        0
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -402,21 +432,17 @@ impl MyNode for BayerDitherNode {
         }
     }
 
-
-
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             LinearErrorDitherNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         return vec!["In".to_string()];
@@ -431,48 +457,59 @@ impl MyNode for BayerDitherNode {
         self.y = y;
     }
 
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => {return false},
+            None => return false,
         };
-
-
 
         let fragment_shader_src = include_str!("dither.glsl");
 
-    let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.width(), a.height())},
-        None => {return false},
-    };
-    
+        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+            Some(a) => (a.width(), a.height()),
+            None => return false,
+        };
 
-    storage.gen_frag_shader(fragment_shader_src.to_string()).unwrap();
-    storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
-    
-    let texture: &glium::Texture2d = match storage.get_texture(get_output) {
-        Some(a) => {a},
-        None => {return false},
-    };
+        storage
+            .gen_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+        storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
-    let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
+        let texture: &glium::Texture2d = match storage.get_texture(get_output) {
+            Some(a) => a,
+            None => return false,
+        };
 
-            let uniforms = uniform! {
-                tex: texture,
-                u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
-                size: self.size,
-            };
-            let texture2 = storage.get_texture(&output_id).unwrap();
-            texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
-                            &DrawParameters {
-                                dithering: true,
-                                ..Default::default()
-                            }
-                            ).unwrap();
+        let shader = storage
+            .get_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+
+        let uniforms = uniform! {
+            tex: texture,
+            u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
+            size: self.size,
+        };
+        let texture2 = storage.get_texture(&output_id).unwrap();
+        texture2
+            .as_surface()
+            .draw(
+                &storage.vertex_buffer,
+                &storage.indices,
+                shader,
+                &uniforms,
+                &DrawParameters {
+                    dithering: true,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
 
         return true;
     }

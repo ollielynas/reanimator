@@ -77,8 +77,7 @@ impl MyNode for LoadImage {
     }
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
-        ui.text(
-            format!(
+        ui.text(format!(
             "path: {}",
             match &self.path {
                 Some(a) => {
@@ -86,8 +85,7 @@ impl MyNode for LoadImage {
                 }
                 None => "no path selected",
             }
-        )
-        );
+        ));
 
         if ui.button("change path") {
             self.texture_cache = None;

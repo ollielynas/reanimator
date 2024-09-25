@@ -3,10 +3,7 @@ use std::{ffi::OsString, fs};
 use imgui::{sys::ImVec2, Ui};
 use rfd::FileDialog;
 
-use crate::{
-project::Project, render_nodes::RenderNodesParams,
-    user_info::UserSettings,
-};
+use crate::{project::Project, render_nodes::RenderNodesParams, user_info::UserSettings};
 
 pub struct SidebarParams {
     pub new_node_popup: bool,
@@ -23,7 +20,6 @@ impl Default for SidebarParams {
         }
     }
 }
-
 
 impl Project {
     pub fn render_sidebar(
@@ -92,14 +88,11 @@ impl Project {
                         ui.set_window_font_scale(1.0);
                     }
                     crate::generic_io::EditTab::ProjectRes => {
-                        
                         if ui.button("reload files") {
                             self.project_settings.local_files.reload(&self.storage);
                         }
-                        
                     }
                 }
-                
 
                 ui.separator();
 
@@ -123,7 +116,7 @@ impl Project {
                     i.end();
                 }
 
-                if self.new_node_menu(ui,  &user_settings) {
+                if self.new_node_menu(ui, &user_settings) {
                     params.moving = false;
                     params.scale_changed = false;
                 }

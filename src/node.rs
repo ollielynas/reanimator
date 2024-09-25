@@ -1,20 +1,23 @@
-use std::{any::Any, collections::HashMap, iter::Filter, path::{self, PathBuf}, process::Output};
-use std::hash::Hash;
 use fastrand;
+use std::hash::Hash;
+use std::{
+    any::Any,
+    collections::HashMap,
+    iter::Filter,
+    path::{self, PathBuf},
+    process::Output,
+};
 
 use imgui::Ui;
 use imgui_glium_renderer::Renderer;
 use savefile::prelude::*;
 
-use crate::{
-    generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage
-};
-
-
+use crate::{generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage};
 
 pub trait MyNode {
-
-    fn savefile_version() -> u32 where Self: Sized;
+    fn savefile_version() -> u32
+    where
+        Self: Sized;
 
     fn generic_info(&self) -> GenericNodeInfo {
         GenericNodeInfo {
@@ -26,7 +29,7 @@ pub trait MyNode {
     }
 
     fn as_any(&self) -> &dyn Any;
-    
+
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
     fn path(&self) -> Vec<&str>;
@@ -76,12 +79,14 @@ pub trait MyNode {
 
     fn set_id(&mut self, id: String);
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap<String, String>, renderer: &mut Renderer) -> bool;
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool;
 }
-
-
 
 pub fn random_id() -> String {
     fastrand::i32(1000..=9999).to_string()
 }
-

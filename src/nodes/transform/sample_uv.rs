@@ -4,18 +4,16 @@ use glium::{
     uniform, uniforms::MagnifySamplerFilter, Blend, BlitTarget, DrawParameters, Rect, Surface,
 };
 
-
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::{
-    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
+    node::{random_id, MyNode},
+    nodes::node_enum::NodeType,
+    storage::Storage,
 };
-
-
-
 
 #[derive(Savefile)]
 pub struct SampleUvNode {
@@ -88,15 +86,12 @@ impl MyNode for SampleUvNode {
         self.y = y;
     }
 
-
     fn run(
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
     ) -> bool {
-
-
         let input_id = self.input_id(self.inputs()[0].clone());
         let input_id2 = self.input_id(self.inputs()[1].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
@@ -114,8 +109,7 @@ impl MyNode for SampleUvNode {
             None => return false,
         };
 
-        let fragment_shader_src = 
-        r#"
+        let fragment_shader_src = r#"
 
         #version 140
 
@@ -129,7 +123,9 @@ impl MyNode for SampleUvNode {
         color = texture2DLod(tex, vec2(uv.r, uv.g), 0.0);
         }
         "#;
-            storage.gen_frag_shader(fragment_shader_src.to_string()).unwrap();
+        storage
+            .gen_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
 
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
@@ -142,21 +138,28 @@ impl MyNode for SampleUvNode {
             None => return false,
         };
 
+        let shader = storage
+            .get_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
 
-    
-    let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
+        let uniforms = uniform! {
+            tex: texture,
+            uvc: texture3,
 
-    let uniforms = uniform! {
-        tex: texture,
-        uvc: texture3,
-
-    };
-    let texture2 = storage.get_texture(&output_id).unwrap();
-    texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
-                    &DrawParameters {
-                        ..Default::default()
-                    }
-                    ).unwrap();
+        };
+        let texture2 = storage.get_texture(&output_id).unwrap();
+        texture2
+            .as_surface()
+            .draw(
+                &storage.vertex_buffer,
+                &storage.indices,
+                shader,
+                &uniforms,
+                &DrawParameters {
+                    ..Default::default()
+                },
+            )
+            .unwrap();
         return true;
     }
 

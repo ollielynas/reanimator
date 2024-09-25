@@ -2,12 +2,14 @@ use std::{any::Any, collections::HashMap, os::raw::c_void, path::PathBuf, rc::Rc
 
 use glium::{
     uniforms::{MagnifySamplerFilter, SamplerBehavior},
-    BlitTarget, Rect, Texture2d,
-    Surface
+    BlitTarget, Rect, Surface, Texture2d,
 };
 use imgui::{TextureId, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
-use imgui_winit_support::winit::{dpi::{Position, Size}, raw_window_handle::{HasDisplayHandle, HasWindowHandle}};
+use imgui_winit_support::winit::{
+    dpi::{Position, Size},
+    raw_window_handle::{HasDisplayHandle, HasWindowHandle},
+};
 use savefile::{save_file, SavefileError};
 use windows::Win32::{
     Foundation::{HWND, POINT, RECT},
@@ -16,7 +18,9 @@ use windows::Win32::{
 };
 // use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 use crate::{
-    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
+    node::{random_id, MyNode},
+    nodes::node_enum::NodeType,
+    storage::Storage,
 };
 
 use regex::Regex;
@@ -65,7 +69,6 @@ impl CoverWindowNode {
         storage: &mut Storage,
         renderer: &mut Renderer,
     ) -> bool {
-
         if self.hwnd == 0 {
             return false;
         }
@@ -73,7 +76,6 @@ impl CoverWindowNode {
         if self.render {
             let mut rect = RECT::default();
             unsafe {
-                
                 let a = GetClientRect(HWND(self.hwnd as *mut _), &mut rect);
                 if a.is_err() {
                     self.render = false;
@@ -103,7 +105,7 @@ impl CoverWindowNode {
                 window.set_decorations(false);
                 window.set_resizable(false);
                 window.set_transparent(true);
-                
+
                 window
                     .set_window_level(imgui_winit_support::winit::window::WindowLevel::AlwaysOnTop);
                 window.set_outer_position(Position::Physical((rect.left, rect.top).into()));
@@ -132,15 +134,24 @@ impl CoverWindowNode {
                                     .unwrap(),
                                 );
                             }
-                            
-                // let simple_frame_buffer = SimpleFrameBuffer::new(&storage.display, ColorA);
-                frame.as_surface().blit_color(
-                    &Rect { left: 0, bottom: 0, width: frame.width(), height: frame.height() }, 
-                    &texture.texture.as_surface(), 
-                    
-                    &BlitTarget { left: 0, bottom: texture.texture.height(), width: texture.texture.width() as i32, height: -(texture.texture.height() as i32)}, 
-                    MagnifySamplerFilter::Nearest
-                        );
+
+                            // let simple_frame_buffer = SimpleFrameBuffer::new(&storage.display, ColorA);
+                            frame.as_surface().blit_color(
+                                &Rect {
+                                    left: 0,
+                                    bottom: 0,
+                                    width: frame.width(),
+                                    height: frame.height(),
+                                },
+                                &texture.texture.as_surface(),
+                                &BlitTarget {
+                                    left: 0,
+                                    bottom: texture.texture.height(),
+                                    width: texture.texture.width() as i32,
+                                    height: -(texture.texture.height() as i32),
+                                },
+                                MagnifySamplerFilter::Nearest,
+                            );
 
                             ui.get_foreground_draw_list()
                                 .add_image(texture_id, [0.0, 0.0], ui.io().display_size)
@@ -157,7 +168,7 @@ impl CoverWindowNode {
             } else {
                 return false;
             }
-        }else {
+        } else {
             return false;
         }
     }
@@ -232,15 +243,15 @@ impl MyNode for CoverWindowNode {
             let hwnd = window_list()
                 .unwrap()
                 .iter()
-                .find(|i|re.is_match(&i.window_name) && !i.window_name.contains("ReAnimator"))
+                .find(|i| re.is_match(&i.window_name) && !i.window_name.contains("ReAnimator"))
                 .unwrap_or(&HwndName {
                     hwnd: 0,
                     window_name: "error".to_owned(),
                 })
                 .hwnd;
             if self.app_name.len() >= 2 {
-            self.hwnd = hwnd;
-            }else {
+                self.hwnd = hwnd;
+            } else {
                 self.hwnd = 0;
             }
         }
@@ -273,7 +284,9 @@ impl MyNode for CoverWindowNode {
         };
 
         if self.texture.is_none() {
-            self.texture = Some(Texture2d::empty(&storage.display, texture.width(), texture.height()).unwrap());
+            self.texture = Some(
+                Texture2d::empty(&storage.display, texture.width(), texture.height()).unwrap(),
+            );
         }
 
         if let Some(texture2) = &self.texture {
@@ -293,7 +306,7 @@ impl MyNode for CoverWindowNode {
                 },
                 glium::uniforms::MagnifySamplerFilter::Linear,
             );
-        }else {
+        } else {
             // self.texture = Texture2d::empty(, width, height)
         }
 

@@ -16,9 +16,8 @@ use crate::{
 
 use super::node_enum::NodeType;
 
-
-fn convert(old:Vec<[f32;4]>) -> Vec<([f32;4], bool)> {
-    old.iter().map(|x| (x.clone(),false)).collect()
+fn convert(old: Vec<[f32; 4]>) -> Vec<([f32; 4], bool)> {
+    old.iter().map(|x| (x.clone(), false)).collect()
 }
 
 #[derive(Savefile)]
@@ -27,7 +26,7 @@ pub struct LayerNode {
     y: f32,
     id: String,
     // #[savefile_versions_as="0..0:convert:Vec<[f32;4]>"]
-    #[savefile_versions="1.."]
+    #[savefile_versions = "1.."]
     layers: Vec<([f32; 4], bool)>,
     base_texture_size: (u32, u32),
 }
@@ -261,10 +260,10 @@ impl MyNode for LayerNode {
         ui.columns(2, "", true);
         let mut remove = None;
         ui.text(format!("base size: {:?}", self.base_texture_size));
-        if self.base_texture_size.0 == 0 ||self.base_texture_size.1 == 0 {
+        if self.base_texture_size.0 == 0 || self.base_texture_size.1 == 0 {
             ui.text("input texture is too small");
             return;
-        } 
+        }
         let mut focus = 999_usize;
         let mut hover = 999_usize;
         for (i, l) in self.layers.iter_mut().enumerate() {
@@ -297,8 +296,6 @@ impl MyNode for LayerNode {
             log::info!("{}", remove2);
             self.layers.remove(remove2);
         }
-
-        
 
         if ui.button("add layer") {
             self.layers.push(([0.0, 0.0, 1.0, 1.0], true));

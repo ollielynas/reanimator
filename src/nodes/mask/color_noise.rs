@@ -4,9 +4,11 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage};
-
-
+use crate::{
+    node::{random_id, MyNode},
+    nodes::node_enum::NodeType,
+    storage::Storage,
+};
 
 #[derive(Savefile)]
 pub struct ColorNoiseNode {
@@ -14,9 +16,9 @@ pub struct ColorNoiseNode {
     y: f32,
     id: String,
     input: bool,
-    size: (u32,u32),
-    #[savefile_versions="1.."]
-    #[savefile_default_val="1"]
+    size: (u32, u32),
+    #[savefile_versions = "1.."]
+    #[savefile_default_val = "1"]
     seed: i32,
 }
 
@@ -27,21 +29,23 @@ impl Default for ColorNoiseNode {
             y: 0.0,
             id: random_id(),
             input: false,
-            size: (1,1),
+            size: (1, 1),
             seed: 1,
         }
     }
 }
 impl MyNode for ColorNoiseNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","Mask"]
+        vec!["Image", "Mask"]
     }
 
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-    fn savefile_version() -> u32 {1}
+    fn savefile_version() -> u32 {
+        1
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -58,19 +62,17 @@ impl MyNode for ColorNoiseNode {
         NodeType::ColorNoise
     }
 
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             ColorNoiseNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         if self.input {
@@ -89,15 +91,15 @@ impl MyNode for ColorNoiseNode {
         self.y = y;
     }
 
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, _renderer: &mut Renderer) -> bool {
-        
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        _renderer: &mut Renderer,
+    ) -> bool {
         let output_id = self.output_id(self.outputs()[0].clone());
-        
 
-        let fragment_shader_src = 
-            r#"
+        let fragment_shader_src = r#"
 
             #version 140
 
@@ -126,45 +128,54 @@ impl MyNode for ColorNoiseNode {
             }
             "#;
 
-    
-    if self.input && self.inputs().len() > 0 {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let get_output = match map.get(&input_id) {
-            Some(a) => a,
-            None => {return false},
-        };
-    self.size = match storage.get_texture(get_output) {
-        Some(a) => {(a.width(), a.height())},
-        None => {return false},
-    };
-    }
-    
-
-    storage.gen_frag_shader(fragment_shader_src.to_string()).unwrap();
-    storage.create_and_set_texture(self.size.0, self.size.1, output_id.clone());
-    
-    
-    let texture: &glium::Texture2d = match storage.get_texture(&output_id) {
-        Some(a) => a,
-        None => {return false;},
-    };
-
-    let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
-
-            let uniforms = uniform! {
-                tex: texture,
-                time: storage.time as f32,
-                seed: (10.0/( self.seed % 100) as f32),
-
+        if self.input && self.inputs().len() > 0 {
+            let input_id = self.input_id(self.inputs()[0].clone());
+            let get_output = match map.get(&input_id) {
+                Some(a) => a,
+                None => return false,
             };
+            self.size = match storage.get_texture(get_output) {
+                Some(a) => (a.width(), a.height()),
+                None => return false,
+            };
+        }
 
-            
-            let texture2 = storage.get_texture(&output_id).unwrap();
-            texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
-                            &DrawParameters {
-                                ..Default::default()
-                            }
-                            ).unwrap();
+        storage
+            .gen_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+        storage.create_and_set_texture(self.size.0, self.size.1, output_id.clone());
+
+        let texture: &glium::Texture2d = match storage.get_texture(&output_id) {
+            Some(a) => a,
+            None => {
+                return false;
+            }
+        };
+
+        let shader = storage
+            .get_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+
+        let uniforms = uniform! {
+            tex: texture,
+            time: storage.time as f32,
+            seed: (10.0/( self.seed % 100) as f32),
+
+        };
+
+        let texture2 = storage.get_texture(&output_id).unwrap();
+        texture2
+            .as_surface()
+            .draw(
+                &storage.vertex_buffer,
+                &storage.indices,
+                shader,
+                &uniforms,
+                &DrawParameters {
+                    ..Default::default()
+                },
+            )
+            .unwrap();
 
         return true;
     }
@@ -176,7 +187,7 @@ impl MyNode for ColorNoiseNode {
     fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {
-            let mut input_val = [self.size.0 as i32,self.size.1 as i32];
+            let mut input_val = [self.size.0 as i32, self.size.1 as i32];
             ui.input_int2("dimensions (w,h)", &mut input_val).build();
             self.size = (input_val[0].max(1) as u32, input_val[1].max(1) as u32);
         });

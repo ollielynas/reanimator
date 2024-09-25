@@ -47,11 +47,11 @@ pub fn load_project(path: String, mut user_settings: UserSettings) -> Option<Pat
     user_settings.update_projects();
 
     let mut new_projects = user_settings.projects;
-    
+
     new_projects.retain(|x| !projects.contains(x));
 
     if extract_info.is_ok() && new_projects.len() > 0 {
-            return Some(new_projects[0].clone());
+        return Some(new_projects[0].clone());
     }
     return None;
 }

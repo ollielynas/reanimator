@@ -4,10 +4,12 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
+use crate::{
+    node::{random_id, MyNode},
+    storage::Storage,
+};
 
 use super::node_enum::NodeType;
-
 
 #[derive(Savefile)]
 pub struct VCamNode {
@@ -30,13 +32,13 @@ impl MyNode for VCamNode {
         vec!["IO"]
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {
+        0
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -55,19 +57,17 @@ impl MyNode for VCamNode {
         NodeType::Debug
     }
 
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             VCamNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         return vec!["In".to_string()];
@@ -82,30 +82,29 @@ impl MyNode for VCamNode {
         self.y = y;
     }
 
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => {return false},
+            None => return false,
         };
 
-    let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.width(), a.height())},
-        None => {return false},
-    };
-    
+        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+            Some(a) => (a.width(), a.height()),
+            None => return false,
+        };
 
+        let texture: &glium::Texture2d = match storage.get_texture(get_output) {
+            Some(a) => a,
+            None => return false,
+        };
 
-    let texture: &glium::Texture2d = match storage.get_texture(get_output) {
-        Some(a) => {a},
-        None => {return false},
-    };
-
-    let px: glium::pixel_buffer::PixelBuffer<(u8, u8, u8, u8)> = texture.read_to_pixel_buffer();
-
-    
+        let px: glium::pixel_buffer::PixelBuffer<(u8, u8, u8, u8)> = texture.read_to_pixel_buffer();
 
         return true;
     }

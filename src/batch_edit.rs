@@ -1,32 +1,38 @@
-use std::{error::Error, ffi::OsStr, fmt::Debug, fs::{self, read_dir}, path::{Path, PathBuf}};
+use std::{
+    error::Error,
+    ffi::OsStr,
+    fmt::Debug,
+    fs::{self, read_dir},
+    path::{Path, PathBuf},
+};
 
+use crate::{
+    project::Project, sidebar::SidebarParams, user_info::UserSettings, widgets::link_widget,
+};
 use glium::texture::{RawImage1d, RawImage2d};
+use image::EncodableLayout;
+use image::{self, ImageFormat};
+use image::{DynamicImage, ImageBuffer, ImageDecoder, Rgba};
+use imgui::text_filter;
 use imgui::{sys::ImVec2, Ui};
+use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::error::OsError;
+use itertools::Itertools;
 use numfmt::{Formatter, Precision, Scales};
 use rfd::FileDialog;
-use itertools::Itertools;
-use crate::{project::Project, sidebar::SidebarParams, user_info::UserSettings, widgets::link_widget};
-use image::{DynamicImage, ImageBuffer, ImageDecoder, Rgba};
-use image::{self, ImageFormat};
-use image::EncodableLayout;
-use imgui::text_filter;
-use imgui_glium_renderer::Renderer;
-
 
 #[derive(Savefile, Clone)]
 pub struct MyFile {
     pub path: PathBuf,
-    pub size: u64, 
+    pub size: u64,
 }
-
 
 fn try_load_as_image(path: PathBuf) -> Option<RawImage2d<'static, u8>> {
     let bytes = match fs::read(path) {
         Ok(a) => a,
         Err(e) => {
             log::error!("{e}");
-            return  None;
+            return None;
         }
     };
     let image = match image::load_from_memory(&bytes) {
@@ -39,58 +45,58 @@ fn try_load_as_image(path: PathBuf) -> Option<RawImage2d<'static, u8>> {
     .flipv()
     .into_rgba8();
 
-    let raw_image = RawImage2d::from_raw_rgba(
-        image.as_bytes().to_vec(),
-        (image.width(), image.height()),
-    );
+    let raw_image =
+        RawImage2d::from_raw_rgba(image.as_bytes().to_vec(), (image.width(), image.height()));
 
     log::info!("{:?}", raw_image.format);
 
     return Some(raw_image);
-
 }
 
 impl MyFile {
-
     pub fn get_raw(&self) -> Vec<RawImage2d<u8>> {
-
         let mut output = vec![];
 
         if let Some(data) = try_load_as_image(self.path.clone()) {
-            output.push(
-                data
-            );
+            output.push(data);
             return output;
-        }else {
+        } else {
             return output;
         }
     }
 
-
-
-
     pub fn new(path: PathBuf) -> Option<MyFile> {
-
         let meta = fs::metadata(&path);
         if let Ok(metadata) = meta {
-        Some(MyFile {
-            path,
-            size: metadata.len(),
-        })
-    }else {
-        None
-    }
+            Some(MyFile {
+                path,
+                size: metadata.len(),
+            })
+        } else {
+            None
+        }
     }
 
     pub fn name(&self) -> String {
-        self.path.file_name().unwrap_or(&OsStr::new("Error")).to_str().unwrap().split(".").next().unwrap().to_string()
+        self.path
+            .file_name()
+            .unwrap_or(&OsStr::new("Error"))
+            .to_str()
+            .unwrap()
+            .split(".")
+            .next()
+            .unwrap()
+            .to_string()
     }
     pub fn type_(&self) -> String {
-        self.path.extension().unwrap_or(&OsStr::new("")).to_str().unwrap().to_string()
+        self.path
+            .extension()
+            .unwrap_or(&OsStr::new(""))
+            .to_str()
+            .unwrap()
+            .to_string()
     }
 }
-
-
 
 #[derive(Savefile)]
 pub struct RunBatch {
@@ -123,46 +129,67 @@ fn recurse_files(path: impl AsRef<Path>) -> std::io::Result<Vec<PathBuf>> {
     Ok(buf)
 }
 
-
 impl Project {
-
     pub fn run_batch(&mut self, renderer: &mut Renderer) {
-
-
-        let binding = self.project_settings.batch_files.files[self.project_settings.batch_files.index].clone();
+        let binding = self.project_settings.batch_files.files
+            [self.project_settings.batch_files.index]
+            .clone();
         let raw_in: Vec<RawImage2d<u8>> = binding.get_raw();
         if raw_in.len() > 0 {
-        log::info!("{}", raw_in[0].width);
-        log::info!("Format {:?}", raw_in[0].format);
-        let mut raw_out: RawImage2d<u8> = RawImage2d::from_raw_rgb(vec![], (0,0));
+            log::info!("{}", raw_in[0].width);
+            log::info!("Format {:?}", raw_in[0].format);
+            let mut raw_out: RawImage2d<u8> = RawImage2d::from_raw_rgb(vec![], (0, 0));
 
-        let raw_in_file = raw_in[0].data.clone();
+            let raw_in_file = raw_in[0].data.clone();
 
-        self.run_nodes_on_io_arrays(renderer, RawImage2d::from_raw_rgba(raw_in_file.to_vec(), (raw_in[0].width, raw_in[0].height)), &mut raw_out);
+            self.run_nodes_on_io_arrays(
+                renderer,
+                RawImage2d::from_raw_rgba(
+                    raw_in_file.to_vec(),
+                    (raw_in[0].width, raw_in[0].height),
+                ),
+                &mut raw_out,
+            );
 
-        let output_path = self.project_settings.batch_files.save_path.join(self.project_settings.batch_files.files[self.project_settings.batch_files.index].name()).with_extension(self.project_settings.batch_files.files[self.project_settings.batch_files.index].type_());
+            let output_path = self
+                .project_settings
+                .batch_files
+                .save_path
+                .join(
+                    self.project_settings.batch_files.files
+                        [self.project_settings.batch_files.index]
+                        .name(),
+                )
+                .with_extension(
+                    self.project_settings.batch_files.files
+                        [self.project_settings.batch_files.index]
+                        .type_(),
+                );
 
-        let img: ImageBuffer<Rgba<u8>, _> =
-                            ImageBuffer::from_raw(raw_out.width, raw_out.height, raw_out.data.into_owned())
-                                .unwrap();
-                            
-                        let img = DynamicImage::ImageRgba8(img).flipv();
-        let a = img.save(output_path);
-        if a.is_err() {
-            log::info!("{a:?}");
+            let img: ImageBuffer<Rgba<u8>, _> =
+                ImageBuffer::from_raw(raw_out.width, raw_out.height, raw_out.data.into_owned())
+                    .unwrap();
+
+            let img = DynamicImage::ImageRgba8(img).flipv();
+            let a = img.save(output_path);
+            if a.is_err() {
+                log::info!("{a:?}");
+            }
         }
-    }
         self.project_settings.batch_files.index += 1;
-        if self.project_settings.batch_files.index >= self.project_settings.batch_files.files.len() {
+        if self.project_settings.batch_files.index >= self.project_settings.batch_files.files.len()
+        {
             self.project_settings.batch_files.run = false;
             self.project_settings.batch_files.index = 0;
         }
     }
 
-    pub fn render_batch_edit(&mut self, ui: &Ui, sidebar_params: &mut SidebarParams, _user_settings: &mut UserSettings) {
-
-
-
+    pub fn render_batch_edit(
+        &mut self,
+        ui: &Ui,
+        sidebar_params: &mut SidebarParams,
+        _user_settings: &mut UserSettings,
+    ) {
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
 
@@ -333,8 +360,6 @@ impl Project {
             }
             });
         });
-
-
 
         for i in window_params {
             i.end();

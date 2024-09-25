@@ -1,14 +1,15 @@
-use std::{any::Any, collections::HashMap, hash::Hash, path::PathBuf};
-use image::EncodableLayout;
-use imgui_glium_renderer::Renderer;
 use crate::{
-    node::{random_id,MyNode},
-    storage::Storage, widgets::link_widget,
+    node::{random_id, MyNode},
+    storage::Storage,
+    widgets::link_widget,
 };
 use glium::{texture::RawImage2d, Texture2d};
 use image;
+use image::EncodableLayout;
 use imgui::text_filter;
+use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use std::{any::Any, collections::HashMap, hash::Hash, path::PathBuf};
 
 use crate::nodes::node_enum::NodeType;
 
@@ -34,19 +35,16 @@ impl Default for DefaultImage {
 }
 
 impl MyNode for DefaultImage {
-
     fn savefile_version() -> u32 {
         0
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
     fn path(&self) -> Vec<&str> {
-        vec!["IO","Load"]
+        vec!["IO", "Load"]
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
@@ -62,20 +60,17 @@ impl MyNode for DefaultImage {
         NodeType::DefaultImageOut
     }
 
-
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             DefaultImage::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         vec![]
@@ -90,41 +85,51 @@ impl MyNode for DefaultImage {
         self.y = y;
     }
 
-    fn run(&mut self, storage: &mut Storage, map: HashMap<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let output_id = self.output_id(self.outputs()[0].clone());
 
+        if self.texture_cache.is_none()
+            || !storage.cached_texture_exists(self.texture_cache.unwrap())
+        {
+            let image = image::load_from_memory_with_format(
+                &fastrand::choice([
+                    include_bytes!("img/image-1.jpg").to_vec(),
+                    include_bytes!("img/image-2.jpg").to_vec(),
+                    include_bytes!("img/image-3.jpg").to_vec(),
+                    include_bytes!("img/image-4.jpg").to_vec(),
+                    include_bytes!("img/image-5.jpg").to_vec(),
+                    include_bytes!("img/image-6.jpg").to_vec(),
+                    include_bytes!("img/image-7.jpg").to_vec(),
+                    include_bytes!("img/image-8.jpg").to_vec(),
+                    include_bytes!("img/image-9.jpg").to_vec(),
+                    include_bytes!("img/image-10.jpg").to_vec(),
+                    include_bytes!("img/image-11.jpg").to_vec(),
+                    include_bytes!("img/image-12.jpg").to_vec(),
+                    include_bytes!("img/image-13.jpg").to_vec(),
+                ])
+                .unwrap(),
+                image::ImageFormat::Jpeg,
+            )
+            .unwrap()
+            .flipv()
+            .into_rgba8();
 
-        if self.texture_cache.is_none() || !storage.cached_texture_exists(self.texture_cache.unwrap()) {
-        let image = image::load_from_memory_with_format(
-            &fastrand::choice([
-    include_bytes!("img/image-1.jpg").to_vec(),
-    include_bytes!("img/image-2.jpg").to_vec(),
-    include_bytes!("img/image-3.jpg").to_vec(),
-    include_bytes!("img/image-4.jpg").to_vec(),
-    include_bytes!("img/image-5.jpg").to_vec(),
-    include_bytes!("img/image-6.jpg").to_vec(),
-    include_bytes!("img/image-7.jpg").to_vec(),
-    include_bytes!("img/image-8.jpg").to_vec(),
-    include_bytes!("img/image-9.jpg").to_vec(),
-    include_bytes!("img/image-10.jpg").to_vec(),
-    include_bytes!("img/image-11.jpg").to_vec(),
-    include_bytes!("img/image-12.jpg").to_vec(),
-    include_bytes!("img/image-13.jpg").to_vec(),
-]).unwrap(),
-            image::ImageFormat::Jpeg,
-        )
-        .unwrap().flipv().into_rgba8();
+            let not_texture = RawImage2d::from_raw_rgba(
+                image.as_bytes().to_vec(),
+                (image.width(), image.height()),
+            );
+            // let a: HashMap<Texture2d, String> = HashMap::new();
+            let texture: Texture2d = Texture2d::new(&storage.display, not_texture).unwrap();
+            self.texture_cache = Some(storage.cache_texture(texture));
+        }
 
-
-        let not_texture = RawImage2d::from_raw_rgba(image.as_bytes().to_vec(), (image.width(), image.height()));
-        // let a: HashMap<Texture2d, String> = HashMap::new();
-        let texture: Texture2d = Texture2d::new(&storage.display, not_texture).unwrap();
-        self.texture_cache = Some( storage.cache_texture(texture));
-    }
-        
         storage.set_id_of_cached_texture(self.texture_cache.unwrap(), output_id);
-            // storage.set_texture(output_id,  texture);
-        
+        // storage.set_texture(output_id,  texture);
 
         return true;
     }
@@ -143,5 +148,4 @@ impl MyNode for DefaultImage {
     fn as_any(&self) -> &dyn Any {
         self
     }
-
 }

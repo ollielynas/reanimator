@@ -1,5 +1,11 @@
 use std::{
-    collections::HashMap, env::current_exe, fs::{self, DirEntry}, path::PathBuf, sync::{Mutex, MutexGuard}, thread::Thread, time::SystemTime
+    collections::HashMap,
+    env::current_exe,
+    fs::{self, DirEntry},
+    path::PathBuf,
+    sync::{Mutex, MutexGuard},
+    thread::Thread,
+    time::SystemTime,
 };
 
 use imgui::{FontConfig, FontSource, Style, Ui};
@@ -13,13 +19,14 @@ use glium::Display;
 
 use log::*;
 
-
 use glium::glutin::surface::WindowSurface;
-use win_msgbox::Okay;
 use std::thread;
+use win_msgbox::Okay;
 
-use crate::{fonts::MyFonts, popups::set_as_default_for_filetype, project::Project, relaunch_windows, support::FONT_SIZE};
-
+use crate::{
+    fonts::MyFonts, popups::set_as_default_for_filetype, project::Project, relaunch_windows,
+    support::FONT_SIZE,
+};
 
 pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 6;
 
@@ -44,30 +51,30 @@ pub struct UserSettings {
     pub new_project_name: String,
     pub project_folder_path: PathBuf,
     pub projects: Vec<PathBuf>,
-    #[savefile_versions="1.."]
-    #[savefile_default_val="false"]
+    #[savefile_versions = "1.."]
+    #[savefile_default_val = "false"]
     pub history: bool,
-    #[savefile_versions="1.."]
+    #[savefile_versions = "1.."]
     pub ui_theme: UiTheme,
     global_font_scale: f32,
     scroll_to_scale: bool,
-    #[savefile_versions="2.."]
-    #[savefile_default_val="false"]
+    #[savefile_versions = "2.."]
+    #[savefile_default_val = "false"]
     pub fullscreen: bool,
-    #[savefile_versions="3.."]
-    #[savefile_default_val="120"]
+    #[savefile_versions = "3.."]
+    #[savefile_default_val = "120"]
     pub max_fps: i32,
-    #[savefile_versions="4.."]
-    #[savefile_default_val="Default"]
+    #[savefile_versions = "4.."]
+    #[savefile_default_val = "Default"]
     pub font: String,
-    #[savefile_versions="5.."]
-    
+    #[savefile_versions = "5.."]
+
     /// doesn't currently work, and should not be used
     pub node_speed: HashMap<String, Vec<f32>>,
-    #[savefile_versions="5.."]
-    #[savefile_default_val="true"]
+    #[savefile_versions = "5.."]
+    #[savefile_default_val = "true"]
     pub dots: bool,
-    #[savefile_default_fn="none_val_font_id"]
+    #[savefile_default_fn = "none_val_font_id"]
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     pub font_id: Option<imgui::FontId>,
@@ -77,19 +84,15 @@ pub struct UserSettings {
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     selected_project: Option<PathBuf>,
-    #[savefile_versions="6.."]
+    #[savefile_versions = "6.."]
     pub finished_setup: bool,
-    #[savefile_versions="6.."]
+    #[savefile_versions = "6.."]
     pub install_ffmpeg: bool,
-
 }
-
-
 
 impl Default for UserSettings {
     fn default() -> Self {
         let user_dirs = UserDirs::new();
-        
 
         let project_folder_path = match user_dirs {
             Some(a) => a.document_dir,
@@ -115,7 +118,11 @@ impl Default for UserSettings {
             dots: true,
             finished_setup: false,
             install_ffmpeg: true,
-            node_speed: savefile::load_from_mem::<HashMap<String, Vec<f32>>>(include_bytes!("node_speeds.bin"), 0).unwrap_or_default(),
+            node_speed: savefile::load_from_mem::<HashMap<String, Vec<f32>>>(
+                include_bytes!("node_speeds.bin"),
+                0,
+            )
+            .unwrap_or_default(),
             selected_project: None,
         };
 
@@ -157,7 +164,7 @@ impl UserSettings {
                 _ => None,
             })
             .collect::<Vec<DirEntry>>();
-        
+
         projects.sort_by(|a, b| {
             b.metadata()
                 .unwrap()
@@ -175,11 +182,10 @@ impl UserSettings {
     }
 
     pub fn load_theme(&mut self, ctx: &mut imgui::Context) {
-
         ctx.io_mut().font_global_scale = self.global_font_scale;
 
         ctx.io_mut().font_allow_user_scaling = self.scroll_to_scale;
-        
+
         // ctx.load_ini_settings(data)
 
         match self.ui_theme {
@@ -194,117 +200,102 @@ impl UserSettings {
         }
 
         let fonts = MyFonts::new();
-        
+
         if self.font != "Default" {
+            if let Ok(handle) = fonts.fonts.select_family_by_name(&self.font) {
+                let mut font = None;
+                for h in handle.fonts() {
+                    let mut fonts = vec![];
+                    match h.load() {
+                        Ok(a) => {
+                            // log::info!("{:?}",a.full_name());
+                            fonts.push(a);
+                        }
+                        Err(_) => {}
+                    }
+                    fonts.sort_by_key(|x| {
+                        x.full_name()
+                            .to_lowercase()
+                            .replace("bold", "bolddddddddddddddd")
+                            .replace("regular", "")
+                            .len()
+                    });
+                    if fonts.len() > 0 {
+                        font = Some(fonts[0].clone());
+                    }
+                    log::info!("{font:?}");
+                }
+                if let Some(font) = font {
+                    if let Some(data) = font.copy_font_data() {
+                        log::info!("added font");
+                        let id: imgui::FontId = ctx.fonts().add_font(&[FontSource::TtfData {
+                            data: &data,
+                            size_pixels: FONT_SIZE,
+                            config: Some(FontConfig {
+                                // As imgui-glium-renderer isn't gamma-correct with
+                                // it's font rendering, we apply an arbitrary
+                                // multiplier to make the font a bit "heavier". With
+                                // default imgui-glow-renderer this is unnecessary.
+                                // rasterizer_multiply: 1.5,
+                                // Oversampling font helps improve text rendering at
+                                // expense of larger font atlas texture.
+                                oversample_h: 4,
+                                oversample_v: 4,
+                                ..FontConfig::default()
+                            }),
+                        }]);
 
+                        self.font_id = Some(id);
 
-        if let Ok(handle) = fonts.fonts.select_family_by_name(&self.font) {
-        let mut font = None;
-        for h in handle.fonts() {
-            let mut fonts = vec![];
-            match h.load() {
-                Ok(a) => {
-                    // log::info!("{:?}",a.full_name());
-                    fonts.push(a);
-                },
-                Err(_) => {},
+                        if !ctx.fonts().is_built() {
+                            log::info!("font not build");
+                            ctx.fonts().build_rgba32_texture();
+                            ctx.fonts().build_alpha8_texture();
+                            if !ctx.fonts().is_built() {
+                                self.font = "Default".to_owned();
+                                self.save();
+                                // #[cfg(all(target_os="windows", not(debug_assertions)))]{
+                                win_msgbox::show::<Okay>(&format!("Font Loading Error"));
+                                // }
+                                let id: imgui::FontId =
+                                    ctx.fonts().add_font(&[FontSource::TtfData {
+                                        data: include_bytes!(
+                                            "support/resources/WorkSans-VariableFont_wght.ttf"
+                                        ),
+                                        size_pixels: FONT_SIZE,
+                                        config: Some(FontConfig {
+                                            // As imgui-glium-renderer isn't gamma-correct with
+                                            // it's font rendering, we apply an arbitrary
+                                            // multiplier to make the font a bit "heavier". With
+                                            // default imgui-glow-renderer this is unnecessary.
+                                            // rasterizer_multiply: 1.5,
+                                            // Oversampling font helps improve text rendering at
+                                            // expense of larger font atlas texture.
+                                            oversample_h: 4,
+                                            oversample_v: 4,
+                                            ..FontConfig::default()
+                                        }),
+                                    }]);
+
+                                self.font_id = Some(id);
+
+                                ctx.fonts().build_rgba32_texture();
+                                ctx.fonts().build_alpha8_texture();
+                            }
+                            // ctx.new_frame();
+                        }
+                    }
+                };
             }
-            fonts.sort_by_key(|x| x.full_name().to_lowercase()
-            .replace("bold", "bolddddddddddddddd")
-            .replace("regular", "")
-            .len());
-            if fonts.len() > 0 {
-                font = Some(fonts[0].clone());
-            }
-            log::info!("{font:?}");
         }
-        if let Some(font) = font {
-        
-        if let Some(data) = font.copy_font_data() {
-            log::info!("added font");
-        let id: imgui::FontId = ctx.fonts().add_font(
-            &[
-        FontSource::TtfData {
-            data: &data,
-            size_pixels: FONT_SIZE,
-            config: Some(FontConfig {
-                // As imgui-glium-renderer isn't gamma-correct with
-                // it's font rendering, we apply an arbitrary
-                // multiplier to make the font a bit "heavier". With
-                // default imgui-glow-renderer this is unnecessary.
-                // rasterizer_multiply: 1.5,
-                // Oversampling font helps improve text rendering at
-                // expense of larger font atlas texture.
-                oversample_h: 4,
-                oversample_v: 4,
-                ..FontConfig::default()
-            }),
-            
-        },]
-    
-        );
-
-        self.font_id = Some(id);
-
-
-        if !ctx.fonts().is_built() {
-            log::info!("font not build");
-            ctx.fonts().build_rgba32_texture();
-            ctx.fonts().build_alpha8_texture();
-            if !ctx.fonts().is_built() {
-                self.font = "Default".to_owned();
-                self.save();
-                // #[cfg(all(target_os="windows", not(debug_assertions)))]{
-                    win_msgbox::show::<Okay>(&format!("Font Loading Error"));
-                // }
-                let id: imgui::FontId = ctx.fonts().add_font(
-                    &[
-                FontSource::TtfData {
-                    data: include_bytes!("support/resources/WorkSans-VariableFont_wght.ttf"),
-                    size_pixels: FONT_SIZE,
-                    config: Some(FontConfig {
-                        // As imgui-glium-renderer isn't gamma-correct with
-                        // it's font rendering, we apply an arbitrary
-                        // multiplier to make the font a bit "heavier". With
-                        // default imgui-glow-renderer this is unnecessary.
-                        // rasterizer_multiply: 1.5,
-                        // Oversampling font helps improve text rendering at
-                        // expense of larger font atlas texture.
-                        oversample_h: 4,
-                        oversample_v: 4,
-                        ..FontConfig::default()
-                    }),
-                    
-                },]
-            
-                );
-        
-                self.font_id = Some(id);
-
-                ctx.fonts().build_rgba32_texture();
-                ctx.fonts().build_alpha8_texture();
-
-                
-            }
-            // ctx.new_frame();
-        }   
-
-
-
-
-    }
-        };
-    }
-        }
-
 
         match self.ui_theme {
             UiTheme::GenericLightMode => {
                 Style::use_light_colors(ctx.style_mut());
-            },
+            }
             UiTheme::GenericDarkMode => {
                 Style::use_dark_colors(ctx.style_mut());
-            },
+            }
         }
     }
 
@@ -312,7 +303,6 @@ impl UserSettings {
         // log::info!("settings1");
         let screen_size_array = ui.io().display_size;
 
-        
         ui.window("settings")
         .no_decoration()
         .resizable(false)
@@ -460,10 +450,7 @@ impl UserSettings {
     }
 }
 
-
-
 impl Project {
-    
     pub fn project_menu(
         ui: &Ui,
         display: &Display<WindowSurface>,
@@ -476,9 +463,6 @@ impl Project {
         let height = size_array[1] * 0.8;
         let pos = [size_array[0] * 0.5, size_array[1] * 0.5];
 
-
-
-        
         // let size = ui.siz
         ui.window("project selector")
             .collapsible(false)
@@ -526,18 +510,17 @@ impl Project {
                         [
                             ui.content_region_avail()[0] - 10.0,
                             ui.content_region_avail()[1] - 10.0,
-                            ],
-                            imgui::Condition::Always,
-                        )
-                        .build(|| {
-                            for project in &user_settings.projects {
-
-                                if ui.button(project.file_name().unwrap().to_str().unwrap()) {
-                                    let mut new_project_1 =
+                        ],
+                        imgui::Condition::Always,
+                    )
+                    .build(|| {
+                        for project in &user_settings.projects {
+                            if ui.button(project.file_name().unwrap().to_str().unwrap()) {
+                                let mut new_project_1 =
                                     Project::new(project.to_path_buf(), display.clone());
                                 // let _ = new_project_1.save();
-                                
-                                // I have no idea what this code does. 
+
+                                // I have no idea what this code does.
                                 let save_dir = match AppDirs::new(Some("ReAnimator"), false) {
                                     Some(a) => {
                                         fs::create_dir_all(a.cache_dir.clone());
@@ -548,7 +531,7 @@ impl Project {
                                 };
 
                                 let p = save_dir.join(new_project_1.name());
-                                
+
                                 let _ = fs::create_dir_all(&p);
 
                                 for i in fs::read_dir(&p).unwrap() {
@@ -568,44 +551,37 @@ impl Project {
                                 }
 
                                 fs::remove_dir_all(&p);
-                                
+
                                 new_project_1.recenter_nodes(ui);
-                                
+
                                 new_project = Some(new_project_1);
                             }
 
-                            
-
                             let item_size = ui.item_rect_size();
-                            
-                            if (ui.is_window_hovered() && (0.0..item_size[1]).contains(&(ui.cursor_screen_pos()[1] - ui.io().mouse_pos[1]))) 
-                            || user_settings.selected_project.as_ref() == Some(project)   {
+
+                            if (ui.is_window_hovered()
+                                && (0.0..item_size[1])
+                                    .contains(&(ui.cursor_screen_pos()[1] - ui.io().mouse_pos[1])))
+                                || user_settings.selected_project.as_ref() == Some(project)
+                            {
                                 ui.same_line();
-                                
+
                                 if ui.button("...") {
                                     user_settings.selected_project = Some(project.clone());
                                 }
                                 if ui.is_item_clicked() {
                                     user_settings.selected_project = Some(project.clone());
                                 }
-
-                                
                             };
-                            
                         }
-                        
                     });
-                    
 
                 ui.dummy(ui.content_region_avail());
-
 
                 if ui.is_window_hovered() {
                     ui.close_current_popup();
                 }
-                
             });
-
 
         // if new_project.is_some() {
 
@@ -615,67 +591,56 @@ impl Project {
         let mut closed_popup = false;
 
         if let Some(project_path) = &user_settings.selected_project {
-        ui.open_popup("project_options");
-        
-        ui.popup("project_options", || {
-            if ui.button("trash") {
-                log::info!("deleted project {:?}", trash::delete(project_path));
-                deleted_project = true;
+            ui.open_popup("project_options");
+
+            ui.popup("project_options", || {
+                if ui.button("trash") {
+                    log::info!("deleted project {:?}", trash::delete(project_path));
+                    deleted_project = true;
+                }
+
+                if ui.button("export") {
+                    log::info!("exporting project");
+
+                    let mut new_project_1 =
+                        Project::new(project_path.to_path_buf(), display.clone());
+
+                    let export_path = new_project_1.export();
+
+                    if let Some(export_path) = export_path {
+                        if let Some(parent_path) = export_path.parent() {
+                            open::that_detached(parent_path);
+                        }
+                    };
+                    closed_popup = true;
+                }
+
+                if !ui.is_window_hovered()
+                    && ui.is_any_mouse_down()
+                    && !ui.is_any_item_active()
+                    && (ui.mouse_pos_on_opening_current_popup()[0] - ui.io().mouse_pos[0]).abs()
+                        > 1.0
+                    && (ui.mouse_pos_on_opening_current_popup()[1] - ui.io().mouse_pos[1]).abs()
+                        > 1.0
+                {
+                    closed_popup = true;
+                }
+            });
+
+            if deleted_project {
+                user_settings.update_projects();
             }
 
-            
-            
-            
-
-            if ui.button("export") {
-                log::info!("exporting project");
-
-                let mut new_project_1 =
-                                    Project::new(project_path.to_path_buf(), display.clone());
-
-                let export_path = new_project_1.export();
-
-                if let Some(export_path) = export_path {
-                    if let Some(parent_path) = export_path.parent() {
-                        open::that_detached(parent_path);
-                    }
-                };
-                closed_popup = true;
-        
+            if deleted_project || closed_popup {
+                user_settings.selected_project = None;
             }
-
-            if !ui.is_window_hovered()
-            && ui.is_any_mouse_down()
-            && !ui.is_any_item_active()
-            && (ui.mouse_pos_on_opening_current_popup()[0] - ui.io().mouse_pos[0]).abs() > 1.0
-            && (ui.mouse_pos_on_opening_current_popup()[1] - ui.io().mouse_pos[1]).abs() > 1.0
-             {
-                closed_popup = true;
-            }
-
-        });
-
-        if deleted_project {
-            user_settings.update_projects();
         }
 
-        if deleted_project || closed_popup {
-            user_settings.selected_project = None;
-        }
-
-        
-        }
-
-        
-        
         return new_project;
     }
-
-
 
     pub fn load_objects(&mut self, mut renderer: Mutex<&mut Renderer>) {
         // let mut r = ;
         self.run_nodes(renderer.get_mut().unwrap());
     }
-
 }

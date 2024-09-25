@@ -1,9 +1,9 @@
-
-
-
-
-
-use std::{any::Any, collections::HashMap, ops::{RangeBounds, RangeInclusive}, path::PathBuf};
+use std::{
+    any::Any,
+    collections::HashMap,
+    ops::{RangeBounds, RangeInclusive},
+    path::PathBuf,
+};
 
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
@@ -11,10 +11,6 @@ use node_enum::*;
 use savefile::{save_file, SavefileError};
 
 use crate::{node::*, nodes::*, storage::Storage};
-
-
-
-
 
 #[derive(Savefile)]
 pub struct RestrictPalletNode {
@@ -27,9 +23,7 @@ pub struct RestrictPalletNode {
     alpha: f32,
 }
 
-
 impl RestrictPalletNode {
-
     pub fn new() -> RestrictPalletNode {
         RestrictPalletNode {
             x: 0.0,
@@ -39,25 +33,23 @@ impl RestrictPalletNode {
             green: 1.0,
             blue: 1.0,
             alpha: 1.0,
-            
         }
     }
 }
 
-
 impl MyNode for RestrictPalletNode {
-
     fn path(&self) -> Vec<&str> {
-        vec!["Image","Basic Shader"]
+        vec!["Image", "Basic Shader"]
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
-    fn savefile_version() -> u32 where Self: Sized {
+    fn savefile_version() -> u32
+    where
+        Self: Sized,
+    {
         0
     }
 
@@ -83,27 +75,24 @@ impl MyNode for RestrictPalletNode {
         self.id.clone()
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui , renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         // ui.color_edit3_config(label, value)
         let mut color = [self.red, self.green, self.blue, self.alpha];
         ui.color_edit4_config("restrictions", &mut color)
-        .display_mode(imgui::ColorEditDisplayMode::Rgb)
-        .alpha_bar(true)
-        .hdr(true)
-        .input_mode(imgui::ColorEditInputMode::Rgb)
-        .options(true)
-        .format(imgui::ColorFormat::Float)
-        .picker(true)
-        .build()
-        ;
+            .display_mode(imgui::ColorEditDisplayMode::Rgb)
+            .alpha_bar(true)
+            .hdr(true)
+            .input_mode(imgui::ColorEditInputMode::Rgb)
+            .options(true)
+            .format(imgui::ColorFormat::Float)
+            .picker(true)
+            .build();
 
         self.red = color[0];
         self.green = color[1];
         self.blue = color[2];
         self.alpha = color[3];
-
     }
-
 
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text("restrict the red green and blue data to cause color banding");
@@ -111,12 +100,11 @@ impl MyNode for RestrictPalletNode {
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             RestrictPalletNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         return vec!["In".to_string()];
@@ -131,18 +119,20 @@ impl MyNode for RestrictPalletNode {
         self.y = y;
     }
 
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => {return false},
+            None => return false,
         };
 
-        let fragment_shader_src = 
-            r#"
+        let fragment_shader_src = r#"
 
             #version 140
 
@@ -165,35 +155,45 @@ impl MyNode for RestrictPalletNode {
             }
             "#;
 
-    let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-        Some(a) => {(a.width(), a.height())},
-        None => {return false},
-    };
-    
+        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+            Some(a) => (a.width(), a.height()),
+            None => return false,
+        };
 
-    storage.gen_frag_shader(fragment_shader_src.to_string()).unwrap();
-    storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
-    
-    let texture: &glium::Texture2d = match storage.get_texture(get_output) {
-        Some(a) => {a},
-        None => {return false},
-    };
+        storage
+            .gen_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+        storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
-    let shader = storage.get_frag_shader(fragment_shader_src.to_string()).unwrap();
+        let texture: &glium::Texture2d = match storage.get_texture(get_output) {
+            Some(a) => a,
+            None => return false,
+        };
 
-            let uniforms = uniform! {
-                tex: texture,
-                r: self.red,
-                g: self.green,
-                b: self.blue,
+        let shader = storage
+            .get_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
 
-            };
-            let texture2 = storage.get_texture(&output_id).unwrap();
-            texture2.as_surface().draw(&storage.vertex_buffer, &storage.indices, shader, &uniforms,
-                            &DrawParameters {
-                                ..Default::default()
-                            }
-                            ).unwrap();
+        let uniforms = uniform! {
+            tex: texture,
+            r: self.red,
+            g: self.green,
+            b: self.blue,
+
+        };
+        let texture2 = storage.get_texture(&output_id).unwrap();
+        texture2
+            .as_surface()
+            .draw(
+                &storage.vertex_buffer,
+                &storage.indices,
+                shader,
+                &uniforms,
+                &DrawParameters {
+                    ..Default::default()
+                },
+            )
+            .unwrap();
 
         return true;
     }

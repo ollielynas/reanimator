@@ -1,10 +1,15 @@
-use std::{any::Any, borrow::BorrowMut, collections::HashMap, path::PathBuf, rc::{self, Rc}};
+use std::{
+    any::Any,
+    borrow::BorrowMut,
+    collections::HashMap,
+    path::PathBuf,
+    rc::{self, Rc},
+};
 
-
+use glium::{backend::Facade, Texture2d};
 use imgui::DrawData;
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
-use glium::{backend::Facade, Texture2d};
 // use typer::TextRenderer;
 // use glium_text_rusttype::TextSystem;
 
@@ -27,7 +32,7 @@ pub struct TextMaskNode {
     font_data: Option<String>,
 
     text_data: Vec<u8>,
-    output_size: (u32,u32),
+    output_size: (u32, u32),
 }
 
 impl Default for TextMaskNode {
@@ -40,33 +45,29 @@ impl Default for TextMaskNode {
             font_data: Some(String::new()),
             font_size: 35.0,
             text_data: vec![],
-            output_size: (1,1),
+            output_size: (1, 1),
         }
     }
 }
 
-
-
 impl TextMaskNode {
-    fn gen_font_data(&mut self, storage: &Storage, renderer:&mut Renderer) {
+    fn gen_font_data(&mut self, storage: &Storage, renderer: &mut Renderer) {
         let fonts = MyFonts::new();
 
         if self.font != "Default" {
             if let Ok(handle) = fonts.fonts.select_family_by_name(&self.font) {
                 let mut font = None;
                 for h in handle.fonts() {
-                
                     let mut fonts = vec![];
                     match h.load() {
                         Ok(a) => {
                             // log::info!("{:?}",a.full_name());
-                            
+
                             fonts.push(a);
                         }
                         Err(_) => {}
                     }
                     fonts.sort_by_key(|x| {
-                        
                         x.full_name()
                             .to_lowercase()
                             .replace("bold", "bolddddddddddddddd")
@@ -79,7 +80,7 @@ impl TextMaskNode {
                     log::info!("{font:?}");
                 }
                 if let Some(font) = font {
-                    if let Some(data) =  &self.font_data {
+                    if let Some(data) = &self.font_data {
                         // imgui_glium_renderer::Renderer::render(&mut self, target, draw_data)
                         // reder
                         // let system = glium_text_rusttype::TextSystem::new(&rcc);
@@ -146,7 +147,6 @@ impl MyNode for TextMaskNode {
         self.y = y;
     }
 
-    
     fn run(
         &mut self,
         storage: &mut Storage,
@@ -164,26 +164,24 @@ impl MyNode for TextMaskNode {
 
         // if let Some(text) = text {
         //     if let Some(font_data) = self.font_data {
-                
+
         //     }
         // }
 
-        
-        
         if self.text_data.len() as u32 == self.output_size.0 * self.output_size.1 * 4 {
-            storage.create_and_set_texture(self.output_size.0, self.output_size.1, output_id.clone());
+            storage.create_and_set_texture(
+                self.output_size.0,
+                self.output_size.1,
+                output_id.clone(),
+            );
             let texture: &Texture2d = storage.get_texture(&output_id).unwrap();
             // texture.write(Rect {
             //     bottom: 0,
             //     left: 0,
             //     width: texture.width(),
-       //     height: texture.height(),
+            //     height: texture.height(),
             // }, Image2d:: self.text_data);
-            
-            
-
         }
-
 
         return true;
     }

@@ -9,9 +9,9 @@
 
 use glium::backend::glutin::GlutinBackend;
 use regex::Regex;
-use win_screenshot::prelude::*;
 use std::time::Duration;
 use std::{any::Any, collections::HashMap, path::PathBuf};
+use win_screenshot::prelude::*;
 
 use glium::texture::RawImage2d;
 use glium::{glutin, uniform, DrawParameters, Rect, Surface};
@@ -24,7 +24,6 @@ use crate::{
 };
 
 use crate::nodes::node_enum::NodeType;
-
 
 #[derive(Savefile)]
 pub struct CaptureWindowNode {
@@ -107,37 +106,36 @@ impl MyNode for CaptureWindowNode {
         self.y = y;
     }
 
-
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
-
         ui.checkbox("capture entire screen", &mut self.entire_screen);
 
         ui.disabled(self.entire_screen, || {
-        ui.input_text("program name", &mut self.app_name).build();
-        
-        if ui.is_item_edited() {
-let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap());
-    let hwnd = window_list()
-        .unwrap()
-        .iter()
-        .find(|i| re.is_match(&i.window_name))
-        .unwrap_or(&HwndName {hwnd: 0, window_name: "error".to_owned()})
-        .hwnd;
-            self.hwnd = hwnd;
-        }
+            ui.input_text("program name", &mut self.app_name).build();
 
+            if ui.is_item_edited() {
+                let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap());
+                let hwnd = window_list()
+                    .unwrap()
+                    .iter()
+                    .find(|i| re.is_match(&i.window_name))
+                    .unwrap_or(&HwndName {
+                        hwnd: 0,
+                        window_name: "error".to_owned(),
+                    })
+                    .hwnd;
+                self.hwnd = hwnd;
+            }
 
-        let mut hwnd = self.hwnd as i32;
-        ui.input_int("hwnd (window handle)", &mut hwnd).build();
+            let mut hwnd = self.hwnd as i32;
+            ui.input_int("hwnd (window handle)", &mut hwnd).build();
 
-        if ui.is_item_edited() {
-            self.app_name = "".to_string()
-        }
+            if ui.is_item_edited() {
+                self.app_name = "".to_string()
+            }
 
-        self.hwnd = hwnd as isize;
+            self.hwnd = hwnd as isize;
         });
     }
-
 
     fn run(
         &mut self,
@@ -152,75 +150,73 @@ let re = Regex::new(&self.app_name).unwrap_or(Regex::new(r"~~~~error~~~").unwrap
             .gen_frag_shader(fragment_shader_src.to_string())
             .unwrap();
 
-
-            let buf = if self.entire_screen {
-                match capture_display() {
-                    Ok(a) => a,
-                    Err(_) => {return false;},
+        let buf = if self.entire_screen {
+            match capture_display() {
+                Ok(a) => a,
+                Err(_) => {
+                    return false;
                 }
-            }else {
-                
-                // match capture_window_ex(self.hwnd, Using::BitBlt, Area::ClientOnly, None, None) {
-                //     Ok(a) => a,
-                //     Err(_) => {return false;},
-                // }
-                match capture_window(self.hwnd) {
-                    Ok(a) => a,
-                    Err(_) => {return false;},
-                }
-                
-            };
-
-            let size = (buf.width, buf.height);
-
-            self.data = buf.pixels;
-
-            storage.create_and_set_texture(size.0, size.1, output_id.clone());
-            storage.create_and_set_texture(size.0, size.1, output_id.clone()+"-temp-texture");
-
-            // let mut data: Vec<u8> = Vec::new();
-            let texture2 = storage.get_texture(&(output_id)).unwrap();
-            let texture = storage.get_texture(&(output_id+"-temp-texture")).unwrap();
-            if self.data.len() as u32 == size.0 * size.1 * 4 {
-                let image2d: RawImage2d<u8> = RawImage2d::from_raw_rgba(self.data.clone(), size);
-                texture.write(
-                    Rect {
-                        left: 0,
-                        bottom: 0,
-                        width: texture.width(),
-                        height: texture.height(),
-                    },
-                    image2d,
-                );
-            }else {
-                log::info!("incorrect size {:?} {}", size, self.data.len())
             }
+        } else {
+            // match capture_window_ex(self.hwnd, Using::BitBlt, Area::ClientOnly, None, None) {
+            //     Ok(a) => a,
+            //     Err(_) => {return false;},
+            // }
+            match capture_window(self.hwnd) {
+                Ok(a) => a,
+                Err(_) => {
+                    return false;
+                }
+            }
+        };
 
-            
-            let uniforms = uniform! {
-                tex: texture,
-            };
-            // glutin
-            let shader = storage
-                .get_frag_shader(fragment_shader_src.to_string())
-                
-                .unwrap();
-            texture2
-                .as_surface()
-                .draw(
-                    &storage.vertex_buffer,
-                    &storage.indices,
-                    shader,
-                    &uniforms,
-                    &DrawParameters {
-                        ..Default::default()
-                    },
-                )
-                .unwrap();
-            // std::thread::sleep(Duration::from_millis(5));
+        let size = (buf.width, buf.height);
 
-            return true;
+        self.data = buf.pixels;
 
+        storage.create_and_set_texture(size.0, size.1, output_id.clone());
+        storage.create_and_set_texture(size.0, size.1, output_id.clone() + "-temp-texture");
+
+        // let mut data: Vec<u8> = Vec::new();
+        let texture2 = storage.get_texture(&(output_id)).unwrap();
+        let texture = storage.get_texture(&(output_id + "-temp-texture")).unwrap();
+        if self.data.len() as u32 == size.0 * size.1 * 4 {
+            let image2d: RawImage2d<u8> = RawImage2d::from_raw_rgba(self.data.clone(), size);
+            texture.write(
+                Rect {
+                    left: 0,
+                    bottom: 0,
+                    width: texture.width(),
+                    height: texture.height(),
+                },
+                image2d,
+            );
+        } else {
+            log::info!("incorrect size {:?} {}", size, self.data.len())
+        }
+
+        let uniforms = uniform! {
+            tex: texture,
+        };
+        // glutin
+        let shader = storage
+            .get_frag_shader(fragment_shader_src.to_string())
+            .unwrap();
+        texture2
+            .as_surface()
+            .draw(
+                &storage.vertex_buffer,
+                &storage.indices,
+                shader,
+                &uniforms,
+                &DrawParameters {
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        // std::thread::sleep(Duration::from_millis(5));
+
+        return true;
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

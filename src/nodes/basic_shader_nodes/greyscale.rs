@@ -19,18 +19,13 @@ enum GreyscaleType {
     Desaturation,
 }
 
-
-const PRESETS: [(&str, [f32;3], GreyscaleType); 2] = [
+const PRESETS: [(&str, [f32; 3], GreyscaleType); 2] = [
     (
         "ENGGEN 131",
-        [1.0, 5.0/3.0, 1.0/3.0],
+        [1.0, 5.0 / 3.0, 1.0 / 3.0],
         GreyscaleType::Sum,
     ),
-    (
-        "Desaturate",
-        [1.0, 1.0,1.0],
-        GreyscaleType::Desaturation,
-    ),
+    ("Desaturate", [1.0, 1.0, 1.0], GreyscaleType::Desaturation),
 ];
 
 impl GreyscaleType {
@@ -197,7 +192,7 @@ impl MyNode for GreyScaleNode {
         if ui.button("pick from preset") {
             ui.open_popup("preset")
         }
-        ui.popup("preset", ||{
+        ui.popup("preset", || {
             for (name, scale, greyscale_type) in PRESETS.iter().rev() {
                 if ui.button(name) {
                     self.grey_type = greyscale_type.clone();
@@ -205,6 +200,5 @@ impl MyNode for GreyScaleNode {
                 }
             }
         });
-
     }
 }

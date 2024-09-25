@@ -1,8 +1,4 @@
-use std::{
-    any::Any,
-    collections::HashMap,
-    path::PathBuf,
-};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
@@ -12,25 +8,20 @@ use strum::IntoEnumIterator;
 
 use crate::{node::*, nodes::*, storage::Storage};
 
-
-
-
 impl NodeType {
     fn generic_shader_index(&self) -> i32 {
         match self {
-            
-                NodeType::ChromaticAberration => 0, 
-                NodeType::VHS => 1,
-                NodeType::Blur => 2,
-                NodeType::Dot => 3,
-                NodeType::Sharpness => 4,
-                NodeType::BlurSp => 5,
-                NodeType::Crystal => 6,
-                _a => {
-                    -1
-                    // unreachable!("node type: {a:?} has no index")
-                }
-            
+            NodeType::ChromaticAberration => 0,
+            NodeType::VHS => 1,
+            NodeType::Blur => 2,
+            NodeType::Dot => 3,
+            NodeType::Sharpness => 4,
+            NodeType::BlurSp => 5,
+            NodeType::Crystal => 6,
+            _a => {
+                -1
+                // unreachable!("node type: {a:?} has no index")
+            }
         }
     }
 }
@@ -41,11 +32,11 @@ fn default_node_type() -> NodeType {
 
 #[derive(Savefile)]
 pub struct GenericShaderNode {
-    #[savefile_default_fn="default_node_type"]
+    #[savefile_default_fn = "default_node_type"]
     #[savefile_ignore]
-    #[savefile_versions="..0"]
+    #[savefile_versions = "..0"]
     type_: NodeType,
-    #[savefile_versions="1.."]
+    #[savefile_versions = "1.."]
     type_index: i32,
     x: f32,
     y: f32,
@@ -58,7 +49,6 @@ pub struct GenericShaderNode {
 }
 
 impl GenericShaderNode {
-
     pub fn load_type(&mut self) {
         if self.type_index != self.type_.generic_shader_index() {
             log::info!("{}", self.type_index);
@@ -70,7 +60,7 @@ impl GenericShaderNode {
                     self.input_max = new.input_max;
                     self.input_name = new.input_name;
                     log::info!("loaded {:?}", self.type_);
-                    break
+                    break;
                 }
             }
         }
@@ -84,8 +74,7 @@ impl GenericShaderNode {
             type_index: type_.generic_shader_index(),
             type_,
             input: match type_ {
-                NodeType::ChromaticAberration 
-                | NodeType::VHS => 0.5,
+                NodeType::ChromaticAberration | NodeType::VHS => 0.5,
                 NodeType::Blur => 10.0,
                 NodeType::Dot => 3.0,
                 NodeType::Sharpness => 1.0,
@@ -216,7 +205,9 @@ impl MyNode for GenericShaderNode {
             }
             NodeType::Crystal => {
                 ui.text_wrapped("Creates a frosted glass/crystal effect");
-                ui.text_wrapped("This effect is based on a matlab assignment that I had to do for uni");
+                ui.text_wrapped(
+                    "This effect is based on a matlab assignment that I had to do for uni",
+                );
             }
             a => {
                 unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
@@ -255,9 +246,6 @@ impl MyNode for GenericShaderNode {
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
     ) -> bool {
-
-
-
         if self.type_index != self.type_.generic_shader_index() {
             log::info!("{}", self.type_index);
             for i in NodeType::iter() {
@@ -268,7 +256,7 @@ impl MyNode for GenericShaderNode {
                     self.input_max = new.input_max;
                     self.input_name = new.input_name;
                     log::info!("{:?}", self.type_);
-                    break
+                    break;
                 }
             }
         }
@@ -342,8 +330,6 @@ impl MyNode for GenericShaderNode {
             u_input: self.input,
             u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
         };
-
-
 
         let texture2 = storage.get_texture(&output_id).unwrap();
         texture2

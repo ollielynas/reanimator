@@ -1,18 +1,15 @@
-
-
-
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{texture::RawImage2d, uniform, BlitTarget, DrawParameters, Rect, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
+use crate::{
+    node::{random_id, MyNode},
+    storage::Storage,
+};
 
 use super::node_enum::NodeType;
-
-
-
 
 #[derive(Savefile)]
 pub struct DelayNode {
@@ -38,16 +35,16 @@ impl Default for DelayNode {
 }
 impl MyNode for DelayNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Image","msc"]
+        vec!["Image", "msc"]
     }
 
-    
     fn set_id(&mut self, id: String) {
         self.id = id;
     }
 
-
-    fn savefile_version() -> u32 {0}
+    fn savefile_version() -> u32 {
+        0
+    }
 
     fn as_any(&self) -> &dyn Any {
         self
@@ -64,19 +61,17 @@ impl MyNode for DelayNode {
         NodeType::Delay
     }
 
-
     fn id(&self) -> String {
         self.id.clone()
     }
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
-            path.join(self.name()).join(self.id()+".bin"),
+            path.join(self.name()).join(self.id() + ".bin"),
             DelayNode::savefile_version(),
             self,
         );
     }
-
 
     fn inputs(&self) -> Vec<String> {
         return vec!["Input".to_string()];
@@ -91,105 +86,116 @@ impl MyNode for DelayNode {
         self.y = y;
     }
 
-
-
-    fn run(&mut self, storage: &mut Storage, map: HashMap::<String, String>, renderer: &mut Renderer) -> bool {
-
-
-        
-
-
+    fn run(
+        &mut self,
+        storage: &mut Storage,
+        map: HashMap<String, String>,
+        renderer: &mut Renderer,
+    ) -> bool {
         let input_id = self.input_id(self.inputs()[0].clone());
         let output_id = self.output_id(self.outputs()[0].clone());
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => {return false},
+            None => return false,
         };
 
-
-        let texture_size:(u32, u32) = match storage.get_texture(get_output) {
-            Some(a) => {(a.width(), a.height())},
-            None => {return false},
+        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+            Some(a) => (a.width(), a.height()),
+            None => return false,
         };
-        
-    
+
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
-    let input_texture: &glium::Texture2d = match storage.get_texture(get_output) {
-        Some(a) => {a},
-        None => {return false},
-    };
-    
+        let input_texture: &glium::Texture2d = match storage.get_texture(get_output) {
+            Some(a) => a,
+            None => return false,
+        };
 
-    if self.frame_delay_count != self.frames.len() as i32 {
-        self.frames.clear();
-        
-        for _ in 0..self.frame_delay_count {
-            let frame = RawImage2d::from_raw_rgb(vec![0;(3 * input_texture.dimensions().0 * input_texture.dimensions().1) as usize], input_texture.dimensions());
-            
-            let texture2 = match Texture2d::new(&storage.display, frame) {
-                Ok(a) => a,
-                Err(e) => {
-                    log::info!("{e:?}");
-                    return false;
-                },
-            };
+        if self.frame_delay_count != self.frames.len() as i32 {
+            self.frames.clear();
 
-            input_texture.as_surface().blit_color(&Rect {
-                left: 0,
-                bottom: 0,
-                width: input_texture.width(),
-                height: input_texture.height()
-            }, &texture2.as_surface(), &BlitTarget {
-                left: 0,
-                bottom: 0,
-                width: texture2.width() as i32,
-                height: texture2.height() as i32
-            }, glium::uniforms::MagnifySamplerFilter::Linear);
+            for _ in 0..self.frame_delay_count {
+                let frame = RawImage2d::from_raw_rgb(
+                    vec![
+                        0;
+                        (3 * input_texture.dimensions().0 * input_texture.dimensions().1) as usize
+                    ],
+                    input_texture.dimensions(),
+                );
 
-            self.frames.push(texture2);
-
-        }
-    }
-
-            if let Some(delayed_frame) = self.frames.pop() {
-
-                let texture3 = match storage.get_texture(&output_id) {
-                    Some(a) => a,
-                    None => {
-                        log::info!("no texture found: {}", output_id);
-                        return  false;
-                    },
+                let texture2 = match Texture2d::new(&storage.display, frame) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        log::info!("{e:?}");
+                        return false;
+                    }
                 };
-                delayed_frame.as_surface().blit_color(&Rect {
+
+                input_texture.as_surface().blit_color(
+                    &Rect {
+                        left: 0,
+                        bottom: 0,
+                        width: input_texture.width(),
+                        height: input_texture.height(),
+                    },
+                    &texture2.as_surface(),
+                    &BlitTarget {
+                        left: 0,
+                        bottom: 0,
+                        width: texture2.width() as i32,
+                        height: texture2.height() as i32,
+                    },
+                    glium::uniforms::MagnifySamplerFilter::Linear,
+                );
+
+                self.frames.push(texture2);
+            }
+        }
+
+        if let Some(delayed_frame) = self.frames.pop() {
+            let texture3 = match storage.get_texture(&output_id) {
+                Some(a) => a,
+                None => {
+                    log::info!("no texture found: {}", output_id);
+                    return false;
+                }
+            };
+            delayed_frame.as_surface().blit_color(
+                &Rect {
                     left: 0,
                     bottom: 0,
                     width: delayed_frame.width(),
-                    height: delayed_frame.height()
-                }, &texture3.as_surface(), &BlitTarget {
+                    height: delayed_frame.height(),
+                },
+                &texture3.as_surface(),
+                &BlitTarget {
                     left: 0,
                     bottom: 0,
                     width: texture3.width() as i32,
-                    height: texture3.height() as i32
-                }, glium::uniforms::MagnifySamplerFilter::Linear);
+                    height: texture3.height() as i32,
+                },
+                glium::uniforms::MagnifySamplerFilter::Linear,
+            );
 
-
-                input_texture.as_surface().blit_color(&Rect {
+            input_texture.as_surface().blit_color(
+                &Rect {
                     left: 0,
                     bottom: 0,
                     width: input_texture.width(),
-                    height: input_texture.height()
-                }, &delayed_frame.as_surface(), &BlitTarget {
+                    height: input_texture.height(),
+                },
+                &delayed_frame.as_surface(),
+                &BlitTarget {
                     left: 0,
                     bottom: 0,
                     width: delayed_frame.width() as i32,
-                    height: delayed_frame.height() as i32
-                }, glium::uniforms::MagnifySamplerFilter::Linear);
+                    height: delayed_frame.height() as i32,
+                },
+                glium::uniforms::MagnifySamplerFilter::Linear,
+            );
 
-                self.frames.insert(0, delayed_frame);
-                
-            }
-
+            self.frames.insert(0, delayed_frame);
+        }
 
         return true;
     }
@@ -202,12 +208,8 @@ impl MyNode for DelayNode {
     }
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         ui.input_int("frame delay count", &mut self.frame_delay_count)
-        .allow_tab_input(true)
-        .build();
+            .allow_tab_input(true)
+            .build();
         self.frame_delay_count = self.frame_delay_count.clamp(1, 10);
     }
-
-
 }
-
-

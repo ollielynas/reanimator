@@ -11,7 +11,6 @@ use imgui_winit_support::winit::dpi::{Position, Size};
 use itertools::Itertools;
 use platform_dirs::{AppDirs, UserDirs};
 use self_update::cargo_crate_version;
-use textdistance::{Algorithm, Cosine, Hamming, Levenshtein};
 use std::collections::HashSet;
 use std::thread::{panicking, sleep};
 use std::{
@@ -22,6 +21,7 @@ use std::{
     task::ready,
     time,
 };
+use textdistance::{Algorithm, Cosine, Hamming, Levenshtein};
 
 use glium::{backend::Facade, glutin::surface::WindowSurface, Texture2d};
 use savefile::SavefileError;
@@ -48,11 +48,7 @@ use crate::{
     advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
     nodes::node_enum::*,
 };
-use crate::{
-    node::MyNode,
-    storage::Storage,
-    user_info::UserSettings,
-};
+use crate::{node::MyNode, storage::Storage, user_info::UserSettings};
 use crate::{project, project_settings};
 use rfd::FileDialog;
 
@@ -157,8 +153,6 @@ impl Project {
 
     /// wont save if the project is not loaded yet
     pub fn save(&mut self) -> Result<(), SavefileError> {
-
-
         let mut input_ok = false;
         let mut output_ok = false;
 
@@ -167,12 +161,11 @@ impl Project {
             return Ok(());
         }
 
-
         self.backup_data = vec![];
 
         // create the save folder if it doesn't already exist
         fs::create_dir_all(self.path.clone())?;
-        
+
         // save the connections
         savefile::save_file(self.path.join("connections.bin"), 0, &self.connections)?;
 
@@ -188,7 +181,7 @@ impl Project {
 
         // create the nodes directory cos we just deleted it
         fs::create_dir_all(self.path.join("nodes"))?;
-        
+
         // iter over nodes
         for node in &self.nodes {
             if Some(node.id()) == self.project_settings.generic_io.input_id {
@@ -211,8 +204,12 @@ impl Project {
             self.project_settings.generic_io.output_id = None;
         }
 
-        // back up 
-        savefile::save_file(self.path.join("backup_data.bin"), GenericNodeInfo::savefile_version(), &self.backup_data);
+        // back up
+        savefile::save_file(
+            self.path.join("backup_data.bin"),
+            GenericNodeInfo::savefile_version(),
+            &self.backup_data,
+        );
 
         return Ok(());
     }
@@ -254,13 +251,10 @@ impl Project {
         renderer: &mut Renderer,
         window: &imgui_winit_support::winit::window::Window,
     ) {
-
         // get window size
         let size_array = ui.io().display_size;
         let window_size = ImVec2::new(size_array[0], size_array[1]);
 
-
-        
         // This code is responsible for loading the project in chunks so that a loading
         // screen can be sown.
         if self.loading <= MAX_LOADING + 1 {
@@ -329,15 +323,17 @@ impl Project {
                                 let node: Box<dyn MyNode> = node_type.new_node();
                                 debug_assert_eq!(node_type, node.type_());
                                 debug_assert_eq!(node_type.name(), node.name());
-                                
+
                                 new_node_types.push(node);
                             }
 
                             nodes[0].set_xy(350.0, 0.0);
                             nodes[1].set_xy(0.0, 0.0);
 
-
-                            self.connections.insert(nodes[0].input_id(nodes[0].inputs()[0].clone()), nodes[1].output_id(nodes[1].outputs()[0].clone()));
+                            self.connections.insert(
+                                nodes[0].input_id(nodes[0].inputs()[0].clone()),
+                                nodes[1].output_id(nodes[1].outputs()[0].clone()),
+                            );
 
                             self.nodes = nodes;
                             self.new_node_types = new_node_types;
@@ -379,8 +375,13 @@ impl Project {
                             }
 
                             if self.project_settings.batch_files.save_path == PathBuf::new() {
-                                self.project_settings.batch_files.save_path = UserDirs::new().unwrap().download_dir.join(format!("{}", self.name()));
-                                fs::create_dir_all(self.project_settings.batch_files.save_path.clone());
+                                self.project_settings.batch_files.save_path = UserDirs::new()
+                                    .unwrap()
+                                    .download_dir
+                                    .join(format!("{}", self.name()));
+                                fs::create_dir_all(
+                                    self.project_settings.batch_files.save_path.clone(),
+                                );
                             }
 
                             if let Ok(connections) =
@@ -409,13 +410,11 @@ impl Project {
                                         }
                                     }
                                 }
-                                
                             } else {
                                 log::info!("project not found");
                             }
 
                             self.storage.project_root = self.path.clone().join("root");
-                            
                         }
                         2 => {
                             self.recenter_nodes(ui);
@@ -424,37 +423,45 @@ impl Project {
                             self.run_nodes(renderer);
                             for (i, (_id, speed)) in self.node_speeds.iter().enumerate() {
                                 let type_: NodeType = self.nodes[i].type_();
-                                let speed = speed.as_secs_f32()/(self.total_frame_time.max(self.total_gpu_frame_time)/self.node_speeds.len() as f32);
-                                if let Some(array) = user_settings.node_speed.get_mut(&self.nodes[i].name()) {
+                                let speed = speed.as_secs_f32()
+                                    / (self.total_frame_time.max(self.total_gpu_frame_time)
+                                        / self.node_speeds.len() as f32);
+                                if let Some(array) =
+                                    user_settings.node_speed.get_mut(&self.nodes[i].name())
+                                {
                                     array.push(speed);
                                     if array.len() > 40 {
                                         array.remove(40);
                                     }
-                            }else {
-                                user_settings.node_speed.insert(self.nodes[i].name(), vec![speed]);
+                                } else {
+                                    user_settings
+                                        .node_speed
+                                        .insert(self.nodes[i].name(), vec![speed]);
+                                }
                             }
-
-                        }
-                        #[cfg(debug_assertion)] {
-                            let a = savefile::save_file("src/node_speeds.bin", 0, &user_settings.node_speed);
-                            // log::info!("{a:?}");
-                        
-                        }
+                            #[cfg(debug_assertion)]
+                            {
+                                let a = savefile::save_file(
+                                    "src/node_speeds.bin",
+                                    0,
+                                    &user_settings.node_speed,
+                                );
+                                // log::info!("{a:?}");
+                            }
                         }
                         3 => {
                             self.save();
-                            
+
                             if let Some(pos) = self.project_settings.window_pos {
-                            if let Some(size) = self.project_settings.window_pos {
-                                window.set_outer_position(Position::Physical(pos.into()));
-                                let _ = window.request_inner_size(Size::Physical(size.into()));
-                            }
+                                if let Some(size) = self.project_settings.window_pos {
+                                    window.set_outer_position(Position::Physical(pos.into()));
+                                    let _ = window.request_inner_size(Size::Physical(size.into()));
+                                }
                             }
                             if self.project_settings.maximised {
                                 window.set_maximized(true);
                             }
                             self.project_settings.local_files.reload(&self.storage)
-
                         }
                         4 => {
                             for node in &self.nodes {
@@ -466,8 +473,8 @@ impl Project {
                         }
                         5 => {
                             if user_settings.install_ffmpeg {
-                            ffmpeg_sidecar::download::auto_download().unwrap();
-                        };
+                                ffmpeg_sidecar::download::auto_download().unwrap();
+                            };
                         }
                         a => {
                             unreachable!("There is no loading step: {a}")
@@ -482,25 +489,55 @@ impl Project {
         // this should probably be moved into its own function
         if self.project_settings.batch_files.run {
             ui.window("running batch")
-            .position([window_size.x*0.5,window_size.y*0.5], imgui::Condition::Always)
-            .position_pivot([0.5,0.5])
-            .size([window_size.x * 0.5, window_size.y * 0.5], imgui::Condition::Always)
-            .build(|| {
-                ui.text(format!("{}",self.project_settings.batch_files.files[self.project_settings.batch_files.index].name()));
-                ui.text(format!("{}",self.project_settings.batch_files.save_path.join(self.project_settings.batch_files.files[self.project_settings.batch_files.index].name()).with_extension(self.project_settings.batch_files.files[self.project_settings.batch_files.index].type_()).display()));
-                ui.text(format!("{}/{}",self.project_settings.batch_files.index,self.project_settings.batch_files.files.len()));
-            });
+                .position(
+                    [window_size.x * 0.5, window_size.y * 0.5],
+                    imgui::Condition::Always,
+                )
+                .position_pivot([0.5, 0.5])
+                .size(
+                    [window_size.x * 0.5, window_size.y * 0.5],
+                    imgui::Condition::Always,
+                )
+                .build(|| {
+                    ui.text(format!(
+                        "{}",
+                        self.project_settings.batch_files.files
+                            [self.project_settings.batch_files.index]
+                            .name()
+                    ));
+                    ui.text(format!(
+                        "{}",
+                        self.project_settings
+                            .batch_files
+                            .save_path
+                            .join(
+                                self.project_settings.batch_files.files
+                                    [self.project_settings.batch_files.index]
+                                    .name()
+                            )
+                            .with_extension(
+                                self.project_settings.batch_files.files
+                                    [self.project_settings.batch_files.index]
+                                    .type_()
+                            )
+                            .display()
+                    ));
+                    ui.text(format!(
+                        "{}/{}",
+                        self.project_settings.batch_files.index,
+                        self.project_settings.batch_files.files.len()
+                    ));
+                });
             self.run_batch(renderer);
             return;
         }
 
         let mut sidebar_params = SidebarParams {
-            menu_bar_size:  ui.item_rect_size(),
+            menu_bar_size: ui.item_rect_size(),
             ..Default::default()
         };
 
-
-        // start by rendering the menu bar. 
+        // start by rendering the menu bar.
         ui.main_menu_bar(|| {
             
             ui.menu("project", || {
@@ -556,8 +593,6 @@ impl Project {
             });
         });
 
-
-        
         let wheel_delta = ui.io().mouse_wheel;
 
         let mut params: RenderNodesParams = RenderNodesParams {
@@ -577,7 +612,6 @@ impl Project {
             delete_node: None,
         };
 
-
         let window_params = vec![
             ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0)),
             ui.push_style_var(imgui::StyleVar::WindowRounding(0.0)),
@@ -587,8 +621,14 @@ impl Project {
         ui.window("tabs")
             // .draw_background(false)
             .bring_to_front_on_focus(false)
-            .position([sidebar_params.left_sidebar_width, sidebar_params.menu_bar_size[1]], imgui::Condition::Always)
-            .size_constraints([window_size.x,-1.0], [window_size.x, -1.0])
+            .position(
+                [
+                    sidebar_params.left_sidebar_width,
+                    sidebar_params.menu_bar_size[1],
+                ],
+                imgui::Condition::Always,
+            )
+            .size_constraints([window_size.x, -1.0], [window_size.x, -1.0])
             .no_decoration()
             .build(|| {
                 if let Some(_tab_bar) = ui.tab_bar("top tab bar") {
@@ -604,30 +644,27 @@ impl Project {
                 }
                 sidebar_params.menu_bar_size[1] += ui.window_size()[1] - 7.0;
             });
-        
+
         for i in window_params {
             i.end();
         }
-
 
         self.render_sidebar(&mut params, ui, &mut sidebar_params, user_settings);
         self.storage.debug_window(ui, &mut params);
 
         match self.edit_tab {
-            EditTab::Nodes => {},
+            EditTab::Nodes => {}
             EditTab::BatchFileEdit => {
                 self.render_batch_edit(ui, &mut sidebar_params, user_settings);
-            },
+            }
             EditTab::ProjectRes => {
                 self.render_local_files(ui, &mut sidebar_params, user_settings);
-            },
+            }
         }
 
         if self.edit_tab != EditTab::Nodes {
             return;
         }
-
-
 
         let mut run_id = String::new();
         for node in &self.nodes {
@@ -656,7 +693,7 @@ impl Project {
                     if cover_node.render && run_id == cover_node.id() {
                         if cover_node.render(ui, window, &mut self.storage, renderer) {
                             // ui.text("text");
-                            
+
                             return;
                         } else {
                             window.set_cursor_hittest(true);
@@ -670,10 +707,6 @@ impl Project {
                 }
             }
         }
-
-
-
-
 
         // log::info!("{:?}", ui.mouse_drag_delta());
 
@@ -862,7 +895,6 @@ impl Project {
 
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
 
-        
         self.advanced_color_picker.render(ui);
 
         if self.open_settings {
@@ -880,9 +912,11 @@ impl Project {
             )
             .size_constraints(
                 [size_array[0] - sidebar_params.left_sidebar_width + 3.0, 0.0],
-                [size_array[0] - sidebar_params.left_sidebar_width + 3.0, size_array[1]],
+                [
+                    size_array[0] - sidebar_params.left_sidebar_width + 3.0,
+                    size_array[1],
+                ],
             )
-        
             .build(|| {
                 if ui.is_window_hovered() && ui.is_mouse_down(imgui::MouseButton::Left) {
                     params.moving = false;
@@ -973,48 +1007,69 @@ impl Project {
     }
 
     pub fn run_nodes(&mut self, renderer: &mut Renderer) {
-        self.run_nodes_on_io_arrays(renderer, RawImage2d::from_raw_rgb(vec![], (0,0)), &mut RawImage2d::from_raw_rgb(vec![], (0,0)));
+        self.run_nodes_on_io_arrays(
+            renderer,
+            RawImage2d::from_raw_rgb(vec![], (0, 0)),
+            &mut RawImage2d::from_raw_rgb(vec![], (0, 0)),
+        );
     }
-    pub fn run_nodes_on_io_arrays(&mut self, renderer: &mut Renderer, input: RawImage2d<u8>, output: &mut RawImage2d<u8>) {
+    pub fn run_nodes_on_io_arrays(
+        &mut self,
+        renderer: &mut Renderer,
+        input: RawImage2d<u8>,
+        output: &mut RawImage2d<u8>,
+    ) {
         self.storage.reset();
         self.node_speeds.clear();
 
-        let mut do_io = input.data.len() > 0 
-        && self.project_settings.generic_io.input_id.is_some()
-        && self.project_settings.generic_io.output_id.is_some();
+        let mut do_io = input.data.len() > 0
+            && self.project_settings.generic_io.input_id.is_some()
+            && self.project_settings.generic_io.output_id.is_some();
 
-        let input_node_id = <Option<String> as Clone>::clone(&self.project_settings.generic_io.input_id).unwrap_or_default();
-        let output_node_id = <Option<String> as Clone>::clone(&self.project_settings.generic_io.output_id).unwrap_or_default();
-
+        let input_node_id =
+            <Option<String> as Clone>::clone(&self.project_settings.generic_io.input_id)
+                .unwrap_or_default();
+        let output_node_id =
+            <Option<String> as Clone>::clone(&self.project_settings.generic_io.output_id)
+                .unwrap_or_default();
 
         let mut input_texture_id = String::new();
         let mut output_texture_id = String::new();
 
         if do_io {
-        for node in &self.nodes {
-            if node.id() == input_node_id {
-                input_texture_id = node.output_id(node.outputs()[0].clone());
-            }
-            if node.id() == output_node_id {
-                let input_id = node.input_id(node.inputs()[0].clone());
-                let get_output = match self.connections.get(&input_id) {
-                    Some(a) => a.to_owned(),
-                    None => {do_io = false;String::new()},
-                };
-                output_texture_id = get_output;
+            for node in &self.nodes {
+                if node.id() == input_node_id {
+                    input_texture_id = node.output_id(node.outputs()[0].clone());
+                }
+                if node.id() == output_node_id {
+                    let input_id = node.input_id(node.inputs()[0].clone());
+                    let get_output = match self.connections.get(&input_id) {
+                        Some(a) => a.to_owned(),
+                        None => {
+                            do_io = false;
+                            String::new()
+                        }
+                    };
+                    output_texture_id = get_output;
+                }
             }
         }
-        }
-
 
         if do_io {
-            self.storage.create_and_set_texture(input.width, input.height, input_texture_id.clone());
-            self.storage.get_texture(&input_texture_id).unwrap().write(Rect {
-                left: 0,
-                bottom: 0,
-                width: input.width,
-                height: input.height,
-            }, input);
+            self.storage.create_and_set_texture(
+                input.width,
+                input.height,
+                input_texture_id.clone(),
+            );
+            self.storage.get_texture(&input_texture_id).unwrap().write(
+                Rect {
+                    left: 0,
+                    bottom: 0,
+                    width: input.width,
+                    height: input.height,
+                },
+                input,
+            );
         }
 
         // log::info!("run");
@@ -1024,7 +1079,7 @@ impl Project {
                 &<HashMap<String, String> as Clone>::clone(&self.connections)
                     .into_iter()
                     .collect::<Vec<(String, String)>>(),
-        );
+            );
 
         let mut node_indices: HashMap<String, usize> = HashMap::new();
 
@@ -1090,7 +1145,6 @@ impl Project {
                         n.type_(),
                         NodeType::Output //| NodeType::Output
                         | NodeType::CoverWindow //| NodeType::Output
-                        
                     ) {
                         outputs.push(n.id());
                     }
@@ -1108,15 +1162,15 @@ impl Project {
                 if self.nodes.len() > *index {
                     let now = Instant::now();
 
-                    let worked = 
-                    if !do_io || self.nodes[*index].id() != input_node_id {
-                    self.nodes[*index].run(
-                        &mut self.storage,
-                        self.connections.clone(),
-                        renderer,
-                    )}
-                    else
-                    {true};
+                    let worked = if !do_io || self.nodes[*index].id() != input_node_id {
+                        self.nodes[*index].run(
+                            &mut self.storage,
+                            self.connections.clone(),
+                            renderer,
+                        )
+                    } else {
+                        true
+                    };
                     if worked {
                         self.node_speeds.insert(id.to_string(), now.elapsed());
                     } else {
@@ -1128,8 +1182,16 @@ impl Project {
 
         if let Some(texture) = self.storage.get_texture(&output_texture_id) {
             *output = RawImage2d::from_raw_rgba(
-                texture.read_to_pixel_buffer().read().unwrap().iter().flat_map(|(r,g,b,a)| [r,g,b,a]).copied().collect_vec(),
-                texture.dimensions());
+                texture
+                    .read_to_pixel_buffer()
+                    .read()
+                    .unwrap()
+                    .iter()
+                    .flat_map(|(r, g, b, a)| [r, g, b, a])
+                    .copied()
+                    .collect_vec(),
+                texture.dimensions(),
+            );
         }
     }
 
@@ -1144,12 +1206,27 @@ impl Project {
             .build(|| {
                 open = true;
                 ui.columns(2, "select new node col", true);
-                ui.input_text("search", &mut self.node_search_string).build();
-                let mut node_order =  (0..self.new_node_types.len()).collect::<Vec<usize>>();
+                ui.input_text("search", &mut self.node_search_string)
+                    .build();
+                let mut node_order = (0..self.new_node_types.len()).collect::<Vec<usize>>();
                 if ui.is_item_edited() || true {
                     let alg: Levenshtein = Levenshtein::default();
-                    node_order.retain(|n| (alg.for_str(&self.new_node_types[*n].name().to_lowercase(), &self.node_search_string.to_lowercase()).ndist())  < 0.9);
-                    node_order.sort_by_cached_key(|n| (alg.for_str(&self.new_node_types[*n].name().to_lowercase(), &self.node_search_string.to_lowercase()).ndist() * 10000.0) as i32);
+                    node_order.retain(|n| {
+                        (alg.for_str(
+                            &self.new_node_types[*n].name().to_lowercase(),
+                            &self.node_search_string.to_lowercase(),
+                        )
+                        .ndist())
+                            < 0.9
+                    });
+                    node_order.sort_by_cached_key(|n| {
+                        (alg.for_str(
+                            &self.new_node_types[*n].name().to_lowercase(),
+                            &self.node_search_string.to_lowercase(),
+                        )
+                        .ndist()
+                            * 10000.0) as i32
+                    });
                 }
 
                 let avil = ui.content_region_avail();
@@ -1163,50 +1240,48 @@ impl Project {
                                     name += " (Debug Only)"
                                 }
                                 ui.radio_button(name, &mut self.selected_node_to_add, n);
+                            }
+                        } else {
+                            for n in 0..self.new_node_types.len() {
+                                #[cfg(not(debug_assertions))]
+                                {
+                                    if self.new_node_types[n].type_().disabled() {
+                                        continue;
+                                    }
+                                }
+                                let mut invalid_tree: Vec<String> = vec![];
+                                for k in group.keys() {
+                                    if !self.new_node_types[n].path().contains(&&k.as_str()) {
+                                        invalid_tree.push(k.to_string());
+                                    }
+                                }
+                                for invalid in invalid_tree {
+                                    if let Some(Some(a)) = group.remove(&invalid) {
+                                        a.end();
+                                    }
+                                }
+                                for p in self.new_node_types[n].path() {
+                                    if !group.contains_key(p) {
+                                        group.insert(p.to_owned(), ui.tree_node(p));
+                                    }
+                                    if !matches!(group.get(p), Some(Some(_))) {
+                                        break;
+                                    }
+                                }
 
-                            }
-                        }else {
-                        for n in 0..self.new_node_types.len() {
-                            #[cfg(not(debug_assertions))]
-                            {
-                                if self.new_node_types[n].type_().disabled() {
-                                    continue;
+                                if self.new_node_types[n]
+                                    .path()
+                                    .iter()
+                                    .all(|x| matches!(group.get(&x.to_string()), Some(Some(_))))
+                                {
+                                    let mut name = self.new_node_types[n].name();
+                                    if self.new_node_types[n].type_().disabled() {
+                                        name += " (Debug Only)"
+                                    }
+                                    ui.radio_button(name, &mut self.selected_node_to_add, n);
                                 }
-                            }
-                            let mut invalid_tree: Vec<String> = vec![];
-                            for k in group.keys() {
-                                if !self.new_node_types[n].path().contains(&&k.as_str()) {
-                                    invalid_tree.push(k.to_string());
-                                }
-                            }
-                            for invalid in invalid_tree {
-                                if let Some(Some(a)) = group.remove(&invalid) {
-                                    a.end();
-                                }
-                            }
-                            for p in self.new_node_types[n].path() {
-                                if !group.contains_key(p) {
-                                    group.insert(p.to_owned(), ui.tree_node(p));
-                                }
-                                if !matches!(group.get(p), Some(Some(_))) {
-                                    break;
-                                }
-                            }
-
-                            if self.new_node_types[n]
-                                .path()
-                                .iter()
-                                .all(|x| matches!(group.get(&x.to_string()), Some(Some(_))))
-                            {
-                                let mut name = self.new_node_types[n].name();
-                                if self.new_node_types[n].type_().disabled() {
-                                    name += " (Debug Only)"
-                                }
-                                ui.radio_button(name, &mut self.selected_node_to_add, n);
-
                             }
                         }
-                    }
 
                         for i in group.drain() {
                             if let (_, Some(a)) = i {
@@ -1240,10 +1315,17 @@ impl Project {
                     ui.set_window_font_scale(1.3);
                     ui.text(self.new_node_types[self.selected_node_to_add].name());
                     ui.set_window_font_scale(1.0);
-                    #[cfg(debug_assertions)] {
+                    #[cfg(debug_assertions)]
+                    {
                         let v = vec![0.0];
-                        let array = user_settings.node_speed.get(&self.new_node_types[self.selected_node_to_add].name()).unwrap_or(&v);
-                        ui.text(format!("{}",array.iter().sum::<f32>() / array.len() as f32 ));
+                        let array = user_settings
+                            .node_speed
+                            .get(&self.new_node_types[self.selected_node_to_add].name())
+                            .unwrap_or(&v);
+                        ui.text(format!(
+                            "{}",
+                            array.iter().sum::<f32>() / array.len() as f32
+                        ));
                     }
                     self.new_node_types[self.selected_node_to_add].description(ui);
                 } else {
@@ -1290,9 +1372,6 @@ impl Project {
         }
     }
 }
-
-
-    
 
 pub fn graph_to_screen_pos(mut pos: [f32; 2], graph_offset: [f32; 2], scale: f32) -> [f32; 2] {
     for i in [0, 1] {
