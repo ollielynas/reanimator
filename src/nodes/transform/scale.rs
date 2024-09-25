@@ -9,11 +9,9 @@ use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::{
-    node::{random_id, MyNode},
-    storage::Storage,
+    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
 };
 
-use super::node_enum::NodeType;
 
 #[derive(Savefile, EnumIter, PartialEq, Copy, Clone)]
 enum MyFilterType {

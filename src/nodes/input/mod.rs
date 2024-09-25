@@ -6,3 +6,4 @@ pub mod render_3d;
 pub mod webcam;
 pub mod load_video;
 pub mod apply_path_root;
+pub mod uv;

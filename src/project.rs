@@ -36,11 +36,11 @@ use strum::IntoEnumIterator;
 use crate::generic_io::EditTab;
 use crate::generic_node_info::GenericNodeInfo;
 use crate::node::random_id;
-use crate::nodes::cover_window::CoverWindowNode;
 use crate::nodes::debug;
 
 use crate::nodes::input::load_gif::LoadGifNode;
 use crate::nodes::input::load_image::LoadImage;
+use crate::nodes::output::cover_window::CoverWindowNode;
 use crate::project_settings::{ProjectSettings, PROJECT_SETTINGS_VERSION};
 use crate::render_nodes::RenderNodesParams;
 use crate::sidebar::SidebarParams;
@@ -465,8 +465,9 @@ impl Project {
                             }
                         }
                         5 => {
-                            
+                            if user_settings.install_ffmpeg {
                             ffmpeg_sidecar::download::auto_download().unwrap();
+                        };
                         }
                         a => {
                             unreachable!("There is no loading step: {a}")

@@ -199,7 +199,7 @@ impl Render3DNode {
         let film: Film = renderer.render();
 
 
-        let temp = match AppDirs::new(Some("Reanimator"), false) {
+        let temp = match AppDirs::new(Some("ReAnimator"), false) {
             Some(a) => {
                 fs::create_dir_all(a.config_dir.clone());
                 a.config_dir

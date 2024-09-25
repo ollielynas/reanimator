@@ -18,10 +18,10 @@ use glium::glutin::surface::WindowSurface;
 use win_msgbox::Okay;
 use std::thread;
 
-use crate::{fonts::MyFonts, nodes::node_enum::NodeType, project::{self, Project}, project_settings, relaunch_windows, set_as_default_for_filetype, support::{create_context, FONT_SIZE}};
+use crate::{fonts::MyFonts, popups::set_as_default_for_filetype, project::Project, relaunch_windows, support::FONT_SIZE};
 
 
-pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 4;
+pub const USER_SETTINGS_SAVEFILE_VERSION: u32 = 6;
 
 #[derive(Savefile, EnumIter, EnumString, PartialEq, Eq, Debug, Clone)]
 pub enum UiTheme {
@@ -77,6 +77,10 @@ pub struct UserSettings {
     #[savefile_ignore]
     #[savefile_introspect_ignore]
     selected_project: Option<PathBuf>,
+    #[savefile_versions="6.."]
+    pub finished_setup: bool,
+    #[savefile_versions="6.."]
+    pub install_ffmpeg: bool,
 
 }
 
@@ -91,7 +95,7 @@ impl Default for UserSettings {
             Some(a) => a.document_dir,
             None => current_exe().unwrap(),
         }
-        .join("Reanimator");
+        .join("ReAnimator");
 
         log::info!("{:?}", fs::create_dir_all(project_folder_path.clone()));
 
@@ -109,7 +113,8 @@ impl Default for UserSettings {
             font: "Default".to_owned(),
             font_id: None,
             dots: true,
-
+            finished_setup: false,
+            install_ffmpeg: true,
             node_speed: savefile::load_from_mem::<HashMap<String, Vec<f32>>>(include_bytes!("node_speeds.bin"), 0).unwrap_or_default(),
             selected_project: None,
         };
@@ -120,7 +125,7 @@ impl Default for UserSettings {
 
 impl UserSettings {
     pub fn save(&self) {
-        let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
+        let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
             Some(a) => {
                 let _ = fs::create_dir_all(a.config_dir.clone());
                 log::info!("{:#?}", a);
@@ -173,7 +178,7 @@ impl UserSettings {
 
         ctx.io_mut().font_global_scale = self.global_font_scale;
 
-        ctx.io_mut().font_allow_user_scaling = true;
+        ctx.io_mut().font_allow_user_scaling = self.scroll_to_scale;
         
         // ctx.load_ini_settings(data)
 
@@ -441,7 +446,7 @@ impl UserSettings {
                     ui.spacing();
                     ui.spacing();
                     if ui.button("Register as default application for .repj files") {
-                        set_as_default_for_filetype(true);
+                        set_as_default_for_filetype();
                     }
                     if ui.is_item_hovered() {
                         ui.tooltip_text("Application must be run as admin");
@@ -533,7 +538,7 @@ impl Project {
                                 // let _ = new_project_1.save();
                                 
                                 // I have no idea what this code does. 
-                                let save_dir = match AppDirs::new(Some("Reanimator"), false) {
+                                let save_dir = match AppDirs::new(Some("ReAnimator"), false) {
                                     Some(a) => {
                                         fs::create_dir_all(a.cache_dir.clone());
                                         log::info!("cache_dir{:?}", a.cache_dir.clone());

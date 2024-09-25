@@ -800,15 +800,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "compressed_string"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3191fb9cd59eb0195c223d4f1d8894d2078957ee44f4940f059d11060a6d0e7"
-dependencies = [
- "flate2",
-]
-
-[[package]]
 name = "comprexor"
 version = "0.1.520"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3049,16 +3040,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pac2"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0821da030ca8570464142ef3d0f66aac33c78ce5a67bca4ffb03b37bf7dde18b"
-dependencies = [
- "protobuf",
- "protobuf-codegen-pure",
-]
-
-[[package]]
 name = "palette"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3402,31 +3383,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "protobuf"
-version = "2.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "106dd99e98437432fed6519dedecfade6a06a73bb7b2a1e019fdd2bee5778d94"
-
-[[package]]
-name = "protobuf-codegen"
-version = "2.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "033460afb75cf755fcfc16dfaed20b86468082a2ea24e05ac35ab4a099a017d6"
-dependencies = [
- "protobuf",
-]
-
-[[package]]
-name = "protobuf-codegen-pure"
-version = "2.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95a29399fc94bcd3eeaa951c715f7bea69409b2445356b00519740bcd6ddd865"
-dependencies = [
- "protobuf",
- "protobuf-codegen",
-]
-
-[[package]]
 name = "quantette"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3560,11 +3516,10 @@ dependencies = [
 
 [[package]]
 name = "reanimator"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "anyhow",
  "blake2",
- "compressed_string",
  "comprexor",
  "copypasta",
  "dtt",
@@ -3589,11 +3544,9 @@ dependencies = [
  "numfmt",
  "okolors",
  "open",
- "pac2",
  "platform-dirs",
  "regex",
  "rfd",
- "rusty-duplication",
  "savefile",
  "savefile-derive",
  "self_update",
@@ -3604,7 +3557,6 @@ dependencies = [
  "system-extensions",
  "textdistance",
  "trash",
- "willhook",
  "win-msgbox",
  "win-screenshot",
  "winapi 0.3.9",
@@ -3841,15 +3793,6 @@ name = "rustversion"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955d28af4278de8121b7ebeb796b6a45735dc01436d898801014aced2773a3d6"
-
-[[package]]
-name = "rusty-duplication"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4da83e24f47966814d32c4b51ceba92c8df3ff2867893febb878b86495c0eed4"
-dependencies = [
- "windows 0.48.0",
-]
 
 [[package]]
 name = "ryu"
@@ -5078,22 +5021,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "willhook"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "984cc87572ddeee205caab3372ca4d84596c363e6c809294dc4514ef43f5e83e"
-dependencies = [
- "once_cell",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "win-msgbox"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75fa92b8b7a828ac44d3f5ef0f3b5f6dab2fc362ba7b0f972492eb2c51e62581"
+checksum = "2b293d082c6da3f8e9f58a9d2fb076a61737b8f752fb559550a0a864ccfa2bd8"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5166,15 +5099,6 @@ dependencies = [
  "const-sha1",
  "windows_gen",
  "windows_macros",
-]
-
-[[package]]
-name = "windows"
-version = "0.48.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e686886bc078bc1b0b600cac0147aadb815089b6e4da64016cbd754b6342700f"
-dependencies = [
- "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -5370,6 +5294,15 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]

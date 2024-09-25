@@ -16,11 +16,9 @@ use windows::Win32::{
 };
 // use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 use crate::{
-    node::{random_id, MyNode},
-    storage::Storage,
+    node::{random_id, MyNode}, nodes::node_enum::NodeType, storage::Storage
 };
 
-use super::node_enum::NodeType;
 use regex::Regex;
 use win_screenshot::prelude::*;
 

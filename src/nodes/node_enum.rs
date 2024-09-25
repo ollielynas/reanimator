@@ -5,6 +5,7 @@ use basic_shader_nodes::invert::InvertTextureNode;
 use basic_shader_nodes::shader_generic::GenericShaderNode;
 use basic_shader_nodes::solid_color::ColorNode;
 use color::k_mean::PalletGenNode;
+use color::restrict_pallet::RestrictPalletNode;
 use detect_motion::MotionNode;
 use difference_of_gaussians::DifferenceofGaussiansNode;
 use enum_to_string::ToJsonString;
@@ -15,12 +16,12 @@ use input::load_gif::LoadGifNode;
 use input::load_image::LoadImage;
 use input::load_video::LoadVideoNode;
 use input::render_3d::Render3DNode;
+use input::uv::UvInputNode;
 use input::webcam::WebcamNode;
 use mask::brightness_range::BrightnessRangeMaskNode;
 use mask::layer_trail::LayerTrailNode;
 use mask::text_mask::TextMaskNode;
 
-use cover_window::CoverWindowNode;
 use debug::DebugNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
@@ -31,21 +32,22 @@ use mask::generic_mask::GenericMaskNode;
 use mask::multiply::MultiplyNode;
 use mask::white_noise::WhiteNoiseNode;
 use node_error::ErrorNode;
+use output::cover_window::CoverWindowNode;
 use output::image_io::OutputNode;
 use pick_random::RandomInputNode;
 use regex::Regex;
-use restrict_pallet::RestrictPalletNode;
 use rgb_hsl::combine_hsv::*;
 use rgb_hsl::combine_rgba::CombineRgbaNode;
 use rgb_hsl::split_hsv::SplitHsvNode;
 use rgb_hsl::split_rgba::SplitRgbaNode;
 use savefile::{self, SavefileError};
-use scale::ScaleNode;
 
 use serde::Serialize;
 use strum_macros::EnumIter;
 use text::display_text::DisplayTextNode;
 use text::text_input::TextInputNode;
+use transform::sample_uv::SampleUvNode;
+use transform::scale::ScaleNode;
 use watercolor::watercolor::WaterColorNode;
 use win_screenshot::utils::{window_list, HwndName};
 use crate::node::MyNode;
@@ -101,6 +103,8 @@ pub enum NodeType {
     BrightnessRangeMask,
     PalletGen,
     Error,
+    UvInput,
+    SampleUV,
 }
 
 impl NodeType  {
@@ -151,6 +155,8 @@ impl NodeType  {
             NodeType::BrightnessRangeMask => "Mask Brightness",
             NodeType::PalletGen => "Generate Pallet",
             NodeType::Error => "Error Node",
+            NodeType::UvInput => "Get UV",
+            NodeType::SampleUV => "Sample UV",
         }.to_owned();
 
         if self.deprecated() {
@@ -164,6 +170,18 @@ impl NodeType  {
         match self {
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> = savefile::load_file(project_file, TextInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    log::error!("{e}");
+                    None}}
+            }
+            NodeType::UvInput => {
+                let a: Result<UvInputNode, SavefileError> = savefile::load_file(project_file, UvInputNode::savefile_version());
+                match a {Ok(b) => Some(Box::new(b)), Err(e) => {
+                    log::error!("{e}");
+                    None}}
+            }
+            NodeType::SampleUV => {
+                let a: Result<SampleUvNode, SavefileError> = savefile::load_file(project_file, SampleUvNode::savefile_version());
                 match a {Ok(b) => Some(Box::new(b)), Err(e) => {
                     log::error!("{e}");
                     None}}
@@ -459,6 +477,8 @@ impl NodeType  {
             NodeType::BrightnessRangeMask => Box::new(BrightnessRangeMaskNode::default()),
             NodeType::PalletGen => Box::new(PalletGenNode::default()),
             NodeType::Error => Box::new(ErrorNode::default()),
+            NodeType::UvInput => Box::new(UvInputNode::default()),
+            NodeType::SampleUV => Box::new(SampleUvNode::default()),
             }
     }
 

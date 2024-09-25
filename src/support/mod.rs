@@ -1,4 +1,5 @@
 use glium::glutin::surface::WindowSurface;
+use glium::texture::MipmapsOption;
 use glium::{Display, Surface};
 use image::{load_from_memory_with_format, GenericImageView};
 use imgui::{Context, FontConfig, FontSource, Ui};
@@ -33,7 +34,6 @@ where
     FInit: FnMut(&mut Context, &mut Renderer, &Display<WindowSurface>) + 'static,
     FUi: FnMut(&mut bool, &mut Ui, &Display<WindowSurface>, &mut Renderer, Option<PathBuf>,&Window) + 'static,
 {
-    // let mut imgui = create_context();
 
 
     let title = match Path::new(&title).file_name() {
@@ -43,11 +43,12 @@ where
     let event_loop = EventLoop::new().expect("Failed to create EventLoop");
     // Program::
 
-    let icon = load_from_memory_with_format(include_bytes!("./res/icon.ico"), image::ImageFormat::Ico).unwrap();
+    let icon = load_from_memory_with_format(include_bytes!("./res/icon2.ico"), image::ImageFormat::Ico).unwrap();
 
     let builder = WindowBuilder::new()
         .with_title(title)
         .with_maximized(fullscreen.is_some())
+        
         .with_window_icon(Some(
             Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap()
         ))
@@ -140,7 +141,7 @@ where
                 
                 let draw_data = imgui.render();
                 
-
+            
                 renderer
                     .render(&mut target, draw_data)
                     .expect("Rendering failed");
@@ -274,12 +275,14 @@ pub fn create_context() -> imgui::Context {
 
     imgui.fonts().build_rgba32_texture();
     imgui.fonts().build_alpha8_texture();
+
+    // MipmapsOption::NoMipmap;
     
     log::info!("is font built: {}",imgui.fonts().is_built());
 
     log::info!("fonts {:?}",imgui.fonts().fonts());
 
-    let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
+    let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
         Some(a) => {
             let _ = fs::create_dir_all(a.config_dir.clone());
             log::info!("{:#?}", a);

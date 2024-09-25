@@ -57,7 +57,7 @@ impl Project {
             return Ok(());
         }
 
-        let mut save_dir = match AppDirs::new(Some("Reanimator"), false) {
+        let mut save_dir = match AppDirs::new(Some("ReAnimator"), false) {
             Some(a) => {
                 fs::create_dir_all(a.cache_dir.clone());
                 a.cache_dir

@@ -4,31 +4,31 @@ use glium::{texture::RawImage2d, uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 
-use crate::{node::{random_id, MyNode}, storage::Storage};
+use crate::{node::{random_id, MyNode}, nodes::node_enum, storage::Storage};
 
-use super::node_enum::NodeType;
+use node_enum::NodeType;
 
 
 
 #[derive(Savefile)]
-pub struct DebugNode {
+pub struct UvInputNode {
     x: f32,
     y: f32,
     id: String,
 }
 
-impl Default for DebugNode {
+impl Default for UvInputNode {
     fn default() -> Self {
-        DebugNode {
+        UvInputNode {
             x: 0.0,
             y: 0.0,
             id: random_id(),
         }
     }
 }
-impl MyNode for DebugNode {
+impl MyNode for UvInputNode {
     fn path(&self) -> Vec<&str> {
-        vec!["Dev"]
+        vec!["Image", "UV"]
     }
 
     
@@ -53,7 +53,7 @@ impl MyNode for DebugNode {
     }
 
     fn type_(&self) -> NodeType {
-        NodeType::Debug
+        NodeType::UvInput
     }
 
 
@@ -64,7 +64,7 @@ impl MyNode for DebugNode {
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(
             path.join(self.name()).join(self.id()+".bin"),
-            DebugNode::savefile_version(),
+            UvInputNode::savefile_version(),
             self,
         );
     }
@@ -92,6 +92,7 @@ impl MyNode for DebugNode {
             Some(a) => a,
             None => {return false},
         };
+        
 
         let fragment_shader_src = 
             r#"
@@ -103,7 +104,7 @@ impl MyNode for DebugNode {
 
             uniform sampler2D tex;
             void main() {
-            color = texture(tex, v_tex_coords);
+            color = vec4(v_tex_coords.x,v_tex_coords.y, 0.0,1.0);
             }
             "#;
 
@@ -133,7 +134,6 @@ impl MyNode for DebugNode {
                                 ..Default::default()
                             }
                             ).unwrap();
-
         return true;
     }
 
@@ -141,6 +141,6 @@ impl MyNode for DebugNode {
 
 
     fn description(&mut self, ui: &imgui::Ui) {
-        ui.text_wrapped("basic node, for debugging purposes")
+        ui.text_wrapped("Get the UV texture of an image (red = x, green = y)")
     }
 }

@@ -13,6 +13,7 @@ use fonts::MyFonts;
 use imgui_winit_support::winit::{dpi::{LogicalPosition, LogicalSize}, error::OsError, monitor::VideoMode, window::{self, Fullscreen, Window, WindowBuilder}};
 use import_export::load_project;
 use platform_dirs::{AppDirs, UserDirs};
+use popups::setup_popup;
 use savefile;
 use project::Project;
 use self_update::cargo_crate_version;
@@ -55,24 +56,14 @@ pub mod batch_edit;
 pub mod import_export;
 pub mod generic_node_info;
 pub mod project_files;
+pub mod popups;
 
 
 // in theoiry this is just a temp solution, but im never going to 
 // static DISPLAY_TEXTURE_ID: Mutex<Option<TextureId>> = Mutex::new(None);
 
 
-pub fn set_as_default_for_filetype(popup_message: bool) {
 
-    let command = format!("ftype \"ReAnimator Project\"=\"{}\"  \"%1\" && assoc .repj=\"ReAnimator Project\"", current_exe().unwrap().as_os_str().to_str().unwrap());
-    info!("{command}");
-    let res = Command::new("cmd")
-    .raw_arg("/C ".to_owned() + &command)
-    .creation_flags(CREATE_NO_WINDOW)
-    .output();
-    if popup_message {
-        win_msgbox::show::<Okay>(&format!("{} \n\n\n {:?}", command, res));
-    }
-}
 
 
 fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
@@ -114,17 +105,9 @@ fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
 }
 
 fn main() -> anyhow::Result<()> {
-    // env::set_var("MY_LOG_STYLE", "info");
-    // env_logger::init();
-
-    // todo: achuallly do something with this
-    // color_eyre::install().unwrap();
-
-    // let shared_data = RwLock::new(Vec::<i32>::new());
 
     let shared_dispatch = fern::Dispatch::new().into_shared();
 
-    
     fern::Dispatch::new()
     // Perform allocation-free log formatting
     .format(|out, message, record| {
@@ -193,7 +176,6 @@ fn main() -> anyhow::Result<()> {
             // panic!("{:?}", a2);
         }
     }
-    // panic!("test");
 
 
 
@@ -201,7 +183,6 @@ fn main() -> anyhow::Result<()> {
 
     trace!("{args:?}");
 
-    set_as_default_for_filetype(false);
 
 
     let res = Command::new("cmd")
@@ -217,20 +198,13 @@ fn main() -> anyhow::Result<()> {
     };
 
 
-    if !assoc {
-        if MessageBox::new("ReAnimator", "ReAnimator has not been set a the default application for .repj files. Press Ok to set as default")
-                .set_icon_type(IconType::ICON_WARNING)
-                .set_window_type(WindowType::OK_CANCEL)
-                .show().is_ok() {
-                    relaunch_windows(true);
-                };
-    }
+    
 
 
 
     // update();
 
-    let app_dirs = match AppDirs::new(Some("Reanimator"), false) {
+    let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
         Some(a) => {
             a.config_dir
         },
@@ -245,6 +219,19 @@ fn main() -> anyhow::Result<()> {
     let mut user_settings: UserSettings = savefile::load_file(app_dirs.join("settings.bat"), USER_SETTINGS_SAVEFILE_VERSION).unwrap_or_default();
     let mut project: Option<Project> = None;
     
+
+    if !assoc {
+        if MessageBox::new("ReAnimator", "ReAnimator has not been set a the default application for .repj files. Press Ok to set as default")
+                .set_icon_type(IconType::ICON_WARNING)
+                .set_window_type(WindowType::OK_CANCEL)
+                .show().is_ok() {
+                    relaunch_windows(true);
+                };
+    }
+
+    if !user_settings.finished_setup && false {
+        setup_popup(&user_settings);
+    }
     
     user_settings.update_projects();
 
@@ -293,7 +280,7 @@ fn main() -> anyhow::Result<()> {
             return_to_home = false;
             window.set_maximized(false);
             window.request_inner_size(LogicalSize::new(1024, 512));
-
+            
         }
 
         let size_array = ui.io().display_size;
