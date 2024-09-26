@@ -204,7 +204,6 @@ impl Project {
             self.project_settings.generic_io.output_id = None;
         }
 
-        // back up
         savefile::save_file(
             self.path.join("backup_data.bin"),
             GenericNodeInfo::savefile_version(),

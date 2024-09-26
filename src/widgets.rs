@@ -1,3 +1,5 @@
+use std::{path::PathBuf, str::FromStr};
+
 use imgui::{Ui, Window};
 use lumo::tracer::Color;
 
@@ -17,5 +19,14 @@ pub fn link_widget(ui: &Ui, text: impl Into<String>, link: impl Into<String> + C
             open::that(&(link.clone().into()));
         }
         ui.tooltip_text(&(link.into()));
+    }
+}
+
+pub fn path_input(ui: &Ui, text: impl Into<String>, path: &mut PathBuf) {
+    
+    let mut input_buffer = path.display().to_string();
+    ui.input_text(text.into(), &mut input_buffer).build();
+    if let Ok(new_path) = PathBuf::from_str(&input_buffer) {
+        *path = new_path;
     }
 }

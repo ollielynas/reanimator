@@ -15,19 +15,18 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
+use debug_and_logger::set_logger_mine;
 use fast_smaz::Smaz;
 use fonts::MyFonts;
 use imgui_winit_support::winit::{
-    dpi::{LogicalPosition, LogicalSize},
-    error::OsError,
-    monitor::VideoMode,
-    window::{self, Fullscreen, Window, WindowBuilder},
+    dpi::{LogicalSize},
+    window::{Fullscreen},
 };
 use import_export::load_project;
 use lazy_static::lazy_static;
-use log::{error, info, trace};
+use log::{error, info, set_logger, trace};
 use platform_dirs::{AppDirs, UserDirs};
-use popups::setup_popup;
+use popups::{set_panic_hook, setup_popup, update};
 use project::Project;
 use savefile;
 use self_update::cargo_crate_version;
@@ -47,6 +46,7 @@ extern crate savefile_derive;
 
 pub mod advanced_color_picker;
 pub mod batch_edit;
+pub mod debug_and_logger;
 pub mod fonts;
 pub mod generic_io;
 pub mod generic_node_info;
@@ -65,125 +65,27 @@ pub mod support;
 pub mod user_info;
 pub mod widgets;
 
-// in theoiry this is just a temp solution, but im never going to
-// static DISPLAY_TEXTURE_ID: Mutex<Option<TextureId>> = Mutex::new(None);
-
-fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
-    info!("updating");
-
-    let relase_builds = self_update::backends::github::ReleaseList::configure()
-        .repo_owner("ollielynas")
-        .repo_name("reanimator")
-        .build();
-
-    let status = self_update::backends::github::Update::configure()
-        .repo_owner("ollielynas")
-        .repo_name("reanimator")
-        // .identifier(".zip")
-        .bin_name("reanimator")
-        // .bin_path_in_archive()
-        .no_confirm(false)
-        .show_download_progress(true)
-        .current_version(cargo_crate_version!())
-        .build()?
-        .update()?;
-
-    if status.updated() {
-        #[cfg(all(target_os = "windows", not(debug_assertions)))]
-        {
-            set_as_default_for_filetype(false);
-
-            win_msgbox::show::<Okay>(&format!("Updated to version: {}", status.version()));
-            relaunch_windows(false);
-        }
-        exit(0);
-    }
-    // self_update
-    info!("Update status: `{}`!", status.version());
-
-    Ok(())
-}
-
 fn main() -> anyhow::Result<()> {
-    let shared_dispatch = fern::Dispatch::new().into_shared();
+    set_logger_mine()?;
+    set_panic_hook();
 
-    fern::Dispatch::new()
-        // Perform allocation-free log formatting
-        .format(|out, message, record| {
-            if let Ok(ref mut log) = LOG_TEXT.lock() {
-                let text = format!(
-                    "\n[{} {}:{}:0 {}] {}",
-                    record.level(),
-                    record.file().unwrap_or_default(),
-                    record
-                        .line()
-                        .unwrap_or(999999)
-                        .to_string()
-                        .replace("999999", ""),
-                    humantime::format_rfc3339(SystemTime::now()),
-                    message
-                );
-                match log.last_mut() {
-                    Some(a) if a.len() < 500 => {
-                        *a = [
-                            a.smaz_decompress().unwrap_or_default(),
-                            text.as_bytes().to_vec(),
-                        ]
-                        .concat()
-                        .smaz_compress();
-                    }
-                    _ => log.push(text.smaz_compress()),
-                }
-            }
+    let a = update();
 
-            out.finish(format_args!(
-                "[{} {}:{}:0 {}] {}",
-                record.level(),
-                record.file().unwrap_or_default(),
-                record
-                    .line()
-                    .unwrap_or(999999)
-                    .to_string()
-                    .replace("999999", ""),
-                humantime::format_rfc3339(SystemTime::now()),
-                message
-            ))
-        })
-        // Add blanket level filter -
-        .level(log::LevelFilter::Debug)
-        // - and per-module overrides
-        // Output to stdout, files, and other Dispatch configurations
-        .chain(std::io::stdout())
-        .chain(fern::log_file("output.log")?)
-        // Apply globally
-        .chain(shared_dispatch.clone())
-        .apply()?;
-
-    // env_logger::
-
-    #[cfg(all(target_os = "windows", not(debug_assertions)))]
-    {
-        std::panic::set_hook(Box::new(|a| {
-            win_msgbox::show::<Okay>(&format!("Program Crashed \n {a}"));
-        }));
-        let a = update();
-        fs::remove_file("output.log");
-
-        if let Err(a2) = a {
-            if a2.to_string().contains("os error 5") {
-                if MessageBox::new("Updater", "New update avalible, press ok to install")
-                    .set_icon_type(IconType::ICON_INFORMATION)
-                    .set_window_type(WindowType::OK_CANCEL)
-                    .show()
-                    .is_ok()
-                {
-                    relaunch_windows(true);
-                };
-            } else {
-                win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
-            }
-            // panic!("{:?}", a2);
+    // move this to popups.rs
+    if let Err(a2) = a {
+        if a2.to_string().contains("os error 5") {
+            if MessageBox::new("Updater", "New update available, press ok to install")
+                .set_icon_type(IconType::ICON_INFORMATION)
+                .set_window_type(WindowType::OK_CANCEL)
+                .show()
+                .is_ok()
+            {
+                relaunch_program(true);
+            };
+        } else {
+            win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
         }
+        // panic!("{:?}", a2);
     }
 
     let args: Vec<String> = env::args().collect();
@@ -214,6 +116,11 @@ fn main() -> anyhow::Result<()> {
         USER_SETTINGS_SAVEFILE_VERSION,
     )
     .unwrap_or_default();
+
+    if !user_settings.finished_setup {
+        setup_popup(&user_settings);
+    }
+
     let mut project: Option<Project> = None;
 
     if !assoc {
@@ -221,7 +128,7 @@ fn main() -> anyhow::Result<()> {
                 .set_icon_type(IconType::ICON_WARNING)
                 .set_window_type(WindowType::OK_CANCEL)
                 .show().is_ok() {
-                    relaunch_windows(true);
+                    relaunch_program(true);
                 };
     }
 
@@ -235,6 +142,8 @@ fn main() -> anyhow::Result<()> {
 
     let mut ctx: imgui::Context = create_context();
 
+    
+
     let mut save_timer = Instant::now();
 
     let mut settings_window_open = false;
@@ -247,6 +156,7 @@ fn main() -> anyhow::Result<()> {
 
     init_with_startup(
         "ReAnimator",
+        None,
         |_, _, _display| {},
         move |_, ui, display, renderer, drop_file, window| {
             if args.len() >= 2 && args[1].contains(".repj") && !loaded_project {
@@ -357,10 +267,13 @@ fn main() -> anyhow::Result<()> {
         &mut ctx,
     );
 
+    ctx.suspend();
+
     return Ok(());
 }
 
-pub fn relaunch_windows(admin: bool) {
+/// TODO: make this cross platform
+pub fn relaunch_program(admin: bool) {
     let command = if admin {
         format!(
             "Start-Process \"{}\" -Verb RunAs",

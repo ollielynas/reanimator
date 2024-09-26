@@ -19,7 +19,7 @@ use std::hash::Hash;
 use crate::fonts::MyFonts;
 use crate::render_nodes::RenderNodesParams;
 use crate::widgets::link_widget;
-use crate::{relaunch_windows, LOG_TEXT};
+use crate::{relaunch_program, LOG_TEXT};
 
 const VERTEX_SHADER: &'static str = r#"
         #version 140
@@ -256,7 +256,7 @@ impl Storage {
         if ui.button("relaunch (admin)") {
             #[cfg(target_os = "windows")]
             {
-                relaunch_windows(true);
+                relaunch_program(true);
             }
         }
 

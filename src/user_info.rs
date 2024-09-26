@@ -24,7 +24,7 @@ use std::thread;
 use win_msgbox::Okay;
 
 use crate::{
-    fonts::MyFonts, popups::set_as_default_for_filetype, project::Project, relaunch_windows,
+    fonts::MyFonts, popups::set_as_default_for_filetype, project::Project, relaunch_program,
     support::FONT_SIZE,
 };
 
@@ -328,7 +328,7 @@ impl UserSettings {
             // ui.same_line();
             if ui.button("save and relaunch") {
                 self.save();
-                relaunch_windows(false);
+                relaunch_program(false);
             }
             ui.set_column_width(0, ui.window_size()[0] * 0.25);
 
@@ -440,6 +440,11 @@ impl UserSettings {
                     }
                     if ui.is_item_hovered() {
                         ui.tooltip_text("Application must be run as admin");
+                    }
+                    if ui.button("redo setup") {
+                        self.finished_setup = false;
+                        self.save();
+                        relaunch_program(false);
                     }
                 }
                 tab_bar.end();

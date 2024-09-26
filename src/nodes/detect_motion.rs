@@ -9,7 +9,7 @@ use crate::{
     storage::Storage,
 };
 
-use super::{node_enum::NodeType, text};
+use super::node_enum::NodeType;
 
 #[derive(Savefile)]
 pub struct MotionNode {

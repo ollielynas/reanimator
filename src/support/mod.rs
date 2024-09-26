@@ -1,3 +1,4 @@
+use glium::backend::Backend;
 use glium::glutin::surface::WindowSurface;
 use glium::texture::MipmapsOption;
 use glium::{Display, Surface};
@@ -30,6 +31,7 @@ pub const FONT_SIZE: f32 = 13.0;
 
 pub fn init_with_startup<FInit, FUi>(
     title: &str,
+    size: Option<(i32, i32)>,
     mut startup: FInit,
     mut run_ui: FUi,
     fullscreen: Option<Fullscreen>,
@@ -43,12 +45,16 @@ pub fn init_with_startup<FInit, FUi>(
         Some(file_name) => file_name.to_str().unwrap(),
         None => title,
     };
-    let event_loop = EventLoop::new().expect("Failed to create EventLoop");
-    // Program::
 
+    let event_loop = EventLoop::new().expect("Failed to create EventLoop");
     let icon =
         load_from_memory_with_format(include_bytes!("./res/icon2.ico"), image::ImageFormat::Ico)
             .unwrap();
+
+    let window_size = match size {
+        Some(a) => a,
+        None => (1024, 512),
+    };
 
     let builder = WindowBuilder::new()
         .with_title(title)
@@ -57,7 +63,7 @@ pub fn init_with_startup<FInit, FUi>(
             Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap(),
         ))
         // .with_fullscreen(fullscreen)
-        .with_inner_size(LogicalSize::new(1024, 512));
+        .with_inner_size(LogicalSize::new(window_size.0, window_size.1));
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
         .set_window_builder(builder.clone())
         .build(&event_loop);

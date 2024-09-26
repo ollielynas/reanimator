@@ -1,18 +1,16 @@
 use std::{
-    env::current_exe,
-    fs,
-    os::windows::process::CommandExt,
-    process::Command,
-    thread::{self, Thread},
+    env::current_exe, fs, os::windows::process::CommandExt, path::PathBuf, process::{exit, Command}, ptr, str::FromStr, thread::{self, Thread}
 };
 
 use enum_to_string::ToJsonString;
 use humantime::Duration;
-use imgui::Ui;
+use imgui::{sys, Ui};
 use imgui_winit_support::winit::window::Fullscreen;
 use itertools::Itertools;
-use log::{info, log};
+use log::{error, info, log};
+use platform_dirs::AppDirs;
 use rfd::FileDialog;
+use self_update::cargo_crate_version;
 use serde::Serialize;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -20,10 +18,10 @@ use win_msgbox::Okay;
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
 use crate::{
-    relaunch_windows,
+    relaunch_program,
     support::{create_context, init_with_startup},
-    user_info::UserSettings,
-    widgets::link_widget,
+    user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION},
+    widgets::{link_widget, path_input},
 };
 
 #[derive(EnumIter, ToJsonString, Serialize)]
@@ -33,7 +31,106 @@ enum SetupStage {
     DefaultApplicationForRepjFiles,
 }
 
-pub fn setup_popup(settings: &UserSettings) -> bool {
+
+pub fn set_panic_hook() {
+
+    
+
+    std::panic::set_hook(Box::new(|info: &std::panic::PanicInfo<'_>| {
+
+        let text = match (
+            info.payload().downcast_ref::<&str>(),
+            info.payload().downcast_ref::<String>(),
+        )
+        {
+            (Some(a), _) => a.to_string(),
+            (_, Some(a)) => a.to_owned(),
+            _ => format!("{info:#?}"),
+        };
+    
+    let message = format!(
+        "version: {}\n{:?}message:{:?}", 
+        cargo_crate_version!(),
+        if info.location().is_some() {format!("location: {:?}\n", info.location())} else {String::new()},
+        text,
+    );
+    println!("{message}");
+    error!("{}", message);
+    let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
+        Some(a) => a.config_dir,
+        None => current_exe().unwrap(),
+    };
+
+    let ctx: *mut sys::ImGuiContext = unsafe { sys::igGetCurrentContext() };
+    
+    if !ctx.is_null() {
+        unsafe {
+            
+            sys::igSetCurrentContext(ptr::null_mut());
+        }
+    }
+
+    let mut ctx: imgui::Context = create_context();
+
+    
+
+    let mut user_settings: UserSettings = savefile::load_file(
+        app_dirs.join("settings.bat"),
+        USER_SETTINGS_SAVEFILE_VERSION,
+    )
+    .unwrap_or_default();
+
+    user_settings.load_theme(&mut ctx);
+
+    init_with_startup(
+        "Error!",
+        Some((256,256)),
+        |_, _, _display| {},
+        move |_, ui, _display, _rendererr, _drop_filee, _window| {
+            
+            let size_array = ui.io().display_size;
+            let _a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
+            ui.window("setup")
+                .always_auto_resize(true)
+                .menu_bar(false)
+                .bg_alpha(0.0)
+                .focused(true)
+                .no_decoration()
+                .title_bar(false)
+                .content_size(
+                    [size_array[0] * 0.5, size_array[1] * 0.5]
+                )
+                .position([0.0,0.0], imgui::Condition::Always)
+                .build(|| {
+                    ui.set_window_font_scale(1.2);
+                ui.text("The program has crashed");
+                ui.set_window_font_scale(1.0);
+                ui.text_wrapped(&message);
+                if ui.clipboard_text().as_ref() != Some(&message) {
+                if ui.button("copy error message") {
+                    ui.set_clipboard_text(&message);
+                }}else {
+                    ui.text("copied message");
+                }
+                if ui.button("submit bug report") {
+                    let bug_body = "Try to include info like:%0A- how to replicate the issue%0A- what the issue was%0A-screenshots%0A- error messages%0A- an exported version of the project%A0%0Adon't forget a title".replace(" ", "%20");
+                    open::that(format!("https://github.com/ollielynas/reanimator/issues/new?labels=bug&title=[bug]%20v{}-&body=\"{}\"", cargo_crate_version!(), bug_body));
+                }
+                
+                });
+
+        },
+        if false {
+            Some(Fullscreen::Borderless(None))
+        } else {
+            None
+        },
+        &mut ctx,
+    );
+}));
+}
+
+pub fn setup_popup(settings: &UserSettings) {
     let mut settings = settings.clone();
     let mut finished = false;
     let mut pick_options = true;
@@ -47,38 +144,41 @@ pub fn setup_popup(settings: &UserSettings) -> bool {
 
     let setup_items: Vec<SetupStage> = SetupStage::iter().collect();
     let mut setup_index = 0;
-
     init_with_startup(
-        "ReAnimator",
+        "Setup",
+        Some((355,355)),
         |_, _, _display| {},
         move |_, ui, _display, renderer, drop_file, window| {
             let size_array = ui.io().display_size;
-
+            let a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
             ui.window("setup")
                 .always_auto_resize(true)
                 .menu_bar(false)
-                .bg_alpha(0.0)
-                .focused(true)
+                .bg_alpha(0.0)                
                 .no_decoration()
                 .title_bar(false)
+                .content_size(size_array)
+                .bring_to_front_on_focus(false)
                 .position(
-                    [size_array[0] * 0.5, size_array[1] * 0.5],
+                    [0.0,0.0],
                     imgui::Condition::Always,
                 )
-                .position_pivot([0.5, 0.5])
+                // .size_constraints([-1.0,-1.0], [size_array[0], size_array[1]])
+                // .position_pivot([0.5, 0.5])
                 .build(|| {
                     if pick_options {
-                        // ui.set_window_font_scale(1.5);
-                        // ui.text("Setup");
-                        // ui.set_window_font_scale(1.0);
-                        // ui.text_disabled(format!("{}, {}/{}", setup_items[setup_index], setup_index + 1, setup_items.len()));
+                        ui.set_window_font_scale(1.2);
+                        ui.text("Setup");
+                        ui.set_window_font_scale(1.0);
+                        ui.text_disabled(format!("{}, {}/{}", setup_items[setup_index], setup_index + 1, setup_items.len()));
 
-                        // ui.spacing();
+                        ui.spacing();
+                        ui.spacing();
 
                         match setup_items[setup_index] {
                             SetupStage::ProjectFolder => {
-                                ui.text("project folder");
-                                ui.text(settings.project_folder_path.display().to_string());
+                                ui.text("set project folder");
+                                path_input(ui, "##", &mut settings.project_folder_path);
                                 if ui.button("change path") {
                                     let new_folder = FileDialog::new()
                                         .set_directory(&settings.project_folder_path)
@@ -98,27 +198,13 @@ pub fn setup_popup(settings: &UserSettings) -> bool {
                                 ui.checkbox("set as default for .repj files", &mut repj);
                             }
                         }
-                        ui.disabled(setup_index <= 0, || {
-                            if ui.button("back") {
-                                setup_index -= 1;
-                            };
-                        });
-                        ui.same_line();
-                        if setup_index < setup_items.len() - 1 {
-                            if ui.button("next") {
-                                setup_index += 1;
-                            };
-                        } else {
-                            if ui.button("finish") {
-                                pick_options = false;
-                                setup_index = 0;
-                            };
-                        }
+                        
                     } else {
                         if setup_index >= setup_items.len() {
                             finished = true;
+                            settings.finished_setup = true;
                             settings.save();
-                            relaunch_windows(false);
+                            relaunch_program(false);
                         }
 
                         match setup_items[setup_index] {
@@ -158,6 +244,39 @@ pub fn setup_popup(settings: &UserSettings) -> bool {
                         }
                     }
                 });
+                ui.window("back-fwd")
+                .always_auto_resize(true)
+                .menu_bar(false)
+                .bg_alpha(0.0)
+                // .focused(true)
+                .bring_to_front_on_focus(true)
+                .no_decoration()
+                .title_bar(false)
+                .position(
+                    size_array,
+                    imgui::Condition::Always,
+                )
+                .size_constraints([-1.0,-1.0], [size_array[0], size_array[1]])
+                .position_pivot([1.0, 1.0])
+                .build(|| {
+                    ui.disabled(setup_index <= 0, || {
+                        if ui.button("back") {
+                            setup_index -= 1;
+                        };
+                    });
+                    ui.same_line();
+                    if setup_index < setup_items.len() - 1 {
+                        if ui.button("next") {
+                            setup_index += 1;
+                            println!("{setup_index}")
+                        };
+                    } else {
+                        if ui.button("finish") {
+                            pick_options = false;
+                            setup_index = 0;
+                        };
+                    }
+                });
         },
         if false {
             Some(Fullscreen::Borderless(None))
@@ -167,7 +286,7 @@ pub fn setup_popup(settings: &UserSettings) -> bool {
         &mut ctx,
     );
 
-    return finished;
+    exit(0);
 }
 
 /// TODO add support for linux
@@ -226,4 +345,37 @@ pub fn set_as_default_for_filetype2() {
         .raw_arg("/C ".to_owned() + &command)
         .creation_flags(CREATE_NO_WINDOW)
         .output();
+}
+
+
+pub fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
+    info!("updating");
+
+    let relase_builds = self_update::backends::github::ReleaseList::configure()
+        .repo_owner("ollielynas")
+        .repo_name("reanimator")
+        .build();
+
+    let status = self_update::backends::github::Update::configure()
+        .repo_owner("ollielynas")
+        .repo_name("reanimator")
+        // .identifier(".zip")
+        .bin_name("reanimator")
+        // .bin_path_in_archive()
+        .no_confirm(false)
+        .show_download_progress(true)
+        .current_version(cargo_crate_version!())
+        .build()?
+        .update()?;
+
+    if status.updated() {
+
+            set_as_default_for_filetype2();
+            relaunch_program(false);
+        
+        exit(0);
+    }
+    info!("Update status: `{}`!", status.version());
+
+    Ok(())
 }
