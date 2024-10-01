@@ -10,7 +10,7 @@ use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
-
+use anyhow::anyhow;
 use crate::nodes::node_enum::NodeType;
 
 use super::apply_path_root;
@@ -139,12 +139,12 @@ impl MyNode for LoadImage {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.path.is_none() {
-            return false;
+            return return Err(anyhow!("path is none"));
         }
 
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         // log::info!("{:?}", self.texture_cache);
 
@@ -155,15 +155,13 @@ impl MyNode for LoadImage {
                 let bytes = match fs::read(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
                     Err(e) => {
-                        log::error!("{e}");
-                        return false;
+                        return Err(anyhow!("file not found"));
                     }
                 };
                 let image = match image::load_from_memory(&bytes) {
                     Ok(a) => a,
                     Err(e) => {
-                        log::error!("{e}");
-                        return false;
+                        return Err(anyhow!("unable to decode file as image"));
                     }
                 }
                 .flipv()
@@ -181,7 +179,7 @@ impl MyNode for LoadImage {
         }
         storage.set_id_of_cached_texture(self.texture_cache.unwrap(), output_id);
 
-        return true;
+        return Ok(());
     }
 
     fn as_any(&self) -> &dyn Any {

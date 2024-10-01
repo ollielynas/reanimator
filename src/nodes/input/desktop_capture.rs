@@ -17,6 +17,8 @@ use glium::texture::RawImage2d;
 use glium::{glutin, uniform, DrawParameters, Rect, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -142,19 +144,19 @@ impl MyNode for CaptureWindowNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         let fragment_shader_src = include_str!("fix_desktop_capture.glsl");
         storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
 
         let buf = if self.entire_screen {
             match capture_display() {
                 Ok(a) => a,
                 Err(_) => {
-                    return false;
+                    return Err(anyhow!("failed to capture display"));
                 }
             }
         } else {
@@ -165,7 +167,7 @@ impl MyNode for CaptureWindowNode {
             match capture_window(self.hwnd) {
                 Ok(a) => a,
                 Err(_) => {
-                    return false;
+                    return Err(anyhow!("failed to capture window", ));
                 }
             }
         };
@@ -201,8 +203,7 @@ impl MyNode for CaptureWindowNode {
         // glutin
         let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
-        texture2
+            .unwrap();        texture2
             .as_surface()
             .draw(
                 &storage.vertex_buffer,
@@ -216,7 +217,7 @@ impl MyNode for CaptureWindowNode {
             .unwrap();
         // std::thread::sleep(Duration::from_millis(5));
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

@@ -5,3 +5,4 @@ pub mod layer_trail;
 pub mod multiply;
 pub mod text_mask;
 pub mod white_noise;
+pub mod logic;

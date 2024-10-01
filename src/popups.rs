@@ -1,5 +1,5 @@
 use std::{
-    env::current_exe, fs, os::windows::process::CommandExt, path::PathBuf, process::{exit, Command}, ptr, str::FromStr, thread::{self, Thread}
+    env::{self, current_exe}, fs, os::windows::process::CommandExt, path::PathBuf, process::{exit, Command}, ptr, str::FromStr, thread::{self, Thread}
 };
 
 use enum_to_string::ToJsonString;
@@ -31,10 +31,88 @@ enum SetupStage {
     DefaultApplicationForRepjFiles,
 }
 
-
+/// call this right at the start
 pub fn set_panic_hook() {
 
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() == 3 && args[1] == "-ErrorMessage" {
     
+    
+    
+    let message =
+        String::from_utf8(fast_smaz::decompress(&hex::decode(args[2].clone()).unwrap_or_default()).unwrap_or_default())
+        .unwrap_or_default();
+
+
+    let mut ctx: imgui::Context = create_context();
+    let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
+        Some(a) => a.config_dir,
+        None => current_exe().unwrap(),
+    };
+    
+
+    let mut user_settings: UserSettings = savefile::load_file(
+        app_dirs.join("settings.bat"),
+        USER_SETTINGS_SAVEFILE_VERSION,
+    )
+    .unwrap_or_default();
+
+    user_settings.load_theme(&mut ctx);
+
+    init_with_startup(
+        "Error!",
+        Some((512,356)),
+        |_, _, _display| {},
+        move |_, ui, _display, _rendererr, _drop_filee, _window| {
+            
+            let size_array = ui.io().display_size;
+            let _a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
+            ui.window("setup")
+                .always_auto_resize(true)
+                .menu_bar(false)
+                .bg_alpha(0.0)
+                .focused(true)
+                .no_decoration()
+                .title_bar(false)
+                .size_constraints(size_array, size_array)
+                .position([0.0,0.0], imgui::Condition::Always)
+                .build(|| {
+                    ui.set_window_font_scale(1.2);
+                ui.text("The program has crashed");
+                ui.set_window_font_scale(1.0);
+                
+                ui.input_text_multiline("##", &mut message.clone(), [
+                    (ui.calc_text_size(&message)[0] + ui.clone_style().frame_padding[1] * 2.0).min(ui.content_region_avail()[0]),
+                    ui.calc_text_size(&message)[1] + ui.clone_style().frame_padding[1] * 2.0
+                    ]).build();
+                if ui.clipboard_text().as_ref() != Some(&message) {
+                if ui.button("copy error message") {
+                    ui.set_clipboard_text(&message);
+                }}else {
+                    ui.text("copied message");
+                }
+                if ui.button("submit bug report") {
+                    let bug_body = "Try to include info like:%0A- how to replicate the issue%0A- what the issue was%0A-screenshots%0A- error messages%0A- an exported version of the project%A0%0Adon't forget a title".replace(" ", "%20");
+                    open::that(format!("https://github.com/ollielynas/reanimator/issues/new?labels=bug&title=[bug]%20v{}-&body=\"{}\"", cargo_crate_version!(), bug_body));
+                }
+
+                if ui.button("relaunch") {
+                    relaunch_program(false, "");
+                }
+                
+                });
+
+        },
+        if false {
+            Some(Fullscreen::Borderless(None))
+        } else {
+            None
+        },
+        &mut ctx,
+    );
+        exit(0);
+    }
 
     std::panic::set_hook(Box::new(|info: &std::panic::PanicInfo<'_>| {
 
@@ -49,84 +127,14 @@ pub fn set_panic_hook() {
         };
     
     let message = format!(
-        "version: {}\n{:?}message:{:?}", 
+        "version: {}\n{}message:{}",
         cargo_crate_version!(),
-        if info.location().is_some() {format!("location: {:?}\n", info.location())} else {String::new()},
+        if info.location().is_some() {format!("location: {} {} {}\n", info.location().unwrap().file(), info.location().unwrap().line(), info.location().unwrap().column())} else {String::new()},
         text,
     );
-    println!("{message}");
-    error!("{}", message);
-    let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
-        Some(a) => a.config_dir,
-        None => current_exe().unwrap(),
-    };
-
-    let ctx: *mut sys::ImGuiContext = unsafe { sys::igGetCurrentContext() };
     
-    if !ctx.is_null() {
-        unsafe {
-            
-            sys::igSetCurrentContext(ptr::null_mut());
-        }
-    }
+    relaunch_program(false, format!("-ErrorMessage {}",hex::encode(fast_smaz::encode(&message))));
 
-    let mut ctx: imgui::Context = create_context();
-
-    
-
-    let mut user_settings: UserSettings = savefile::load_file(
-        app_dirs.join("settings.bat"),
-        USER_SETTINGS_SAVEFILE_VERSION,
-    )
-    .unwrap_or_default();
-
-    user_settings.load_theme(&mut ctx);
-
-    init_with_startup(
-        "Error!",
-        Some((256,256)),
-        |_, _, _display| {},
-        move |_, ui, _display, _rendererr, _drop_filee, _window| {
-            
-            let size_array = ui.io().display_size;
-            let _a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
-            ui.window("setup")
-                .always_auto_resize(true)
-                .menu_bar(false)
-                .bg_alpha(0.0)
-                .focused(true)
-                .no_decoration()
-                .title_bar(false)
-                .content_size(
-                    [size_array[0] * 0.5, size_array[1] * 0.5]
-                )
-                .position([0.0,0.0], imgui::Condition::Always)
-                .build(|| {
-                    ui.set_window_font_scale(1.2);
-                ui.text("The program has crashed");
-                ui.set_window_font_scale(1.0);
-                ui.text_wrapped(&message);
-                if ui.clipboard_text().as_ref() != Some(&message) {
-                if ui.button("copy error message") {
-                    ui.set_clipboard_text(&message);
-                }}else {
-                    ui.text("copied message");
-                }
-                if ui.button("submit bug report") {
-                    let bug_body = "Try to include info like:%0A- how to replicate the issue%0A- what the issue was%0A-screenshots%0A- error messages%0A- an exported version of the project%A0%0Adon't forget a title".replace(" ", "%20");
-                    open::that(format!("https://github.com/ollielynas/reanimator/issues/new?labels=bug&title=[bug]%20v{}-&body=\"{}\"", cargo_crate_version!(), bug_body));
-                }
-                
-                });
-
-        },
-        if false {
-            Some(Fullscreen::Borderless(None))
-        } else {
-            None
-        },
-        &mut ctx,
-    );
 }));
 }
 
@@ -152,12 +160,12 @@ pub fn setup_popup(settings: &UserSettings) {
             let size_array = ui.io().display_size;
             let a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
             ui.window("setup")
-                .always_auto_resize(true)
+                // .always_auto_resize(true)
                 .menu_bar(false)
                 .bg_alpha(0.0)                
                 .no_decoration()
                 .title_bar(false)
-                .content_size(size_array)
+                .size(size_array, imgui::Condition::Always)
                 .bring_to_front_on_focus(false)
                 .position(
                     [0.0,0.0],
@@ -178,6 +186,7 @@ pub fn setup_popup(settings: &UserSettings) {
                         match setup_items[setup_index] {
                             SetupStage::ProjectFolder => {
                                 ui.text("set project folder");
+                                ui.set_next_item_width(-10.0);
                                 path_input(ui, "##", &mut settings.project_folder_path);
                                 if ui.button("change path") {
                                     let new_folder = FileDialog::new()
@@ -204,7 +213,7 @@ pub fn setup_popup(settings: &UserSettings) {
                             finished = true;
                             settings.finished_setup = true;
                             settings.save();
-                            relaunch_program(false);
+                            relaunch_program(false, "");
                         }
 
                         match setup_items[setup_index] {
@@ -371,7 +380,7 @@ pub fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     if status.updated() {
 
             set_as_default_for_filetype2();
-            relaunch_program(false);
+            relaunch_program(false, "");
         
         exit(0);
     }

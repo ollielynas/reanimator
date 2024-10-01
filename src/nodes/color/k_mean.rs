@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use std::hash::DefaultHasher;
 use std::hash::Hash;
@@ -130,19 +132,19 @@ impl MyNode for PalletGenNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         storage.create_and_set_texture(self.pallet_size as _, 1, output_id.clone());
 
         let input_texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("unable to find input texture")),
         };
 
         let texture2 = storage.get_texture(&output_id).unwrap();
@@ -167,7 +169,7 @@ impl MyNode for PalletGenNode {
                         (self.pallet_size as u32, 1),
                     ),
                 );
-                return true;
+                return Ok(());
             }
         }
 
@@ -221,7 +223,7 @@ impl MyNode for PalletGenNode {
                 ),
             );
         }
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

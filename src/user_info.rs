@@ -328,7 +328,7 @@ impl UserSettings {
             // ui.same_line();
             if ui.button("save and relaunch") {
                 self.save();
-                relaunch_program(false);
+                relaunch_program(false, "");
             }
             ui.set_column_width(0, ui.window_size()[0] * 0.25);
 
@@ -343,7 +343,7 @@ impl UserSettings {
 
             if let Some(tab_bar)=ui.tab_bar("settings tab bar") {
                 ui.indent();
-                ui.indent();
+                // ui.indent();
                 if let Some(_general_settings) = ui.tab_item("general") {
                     ui.spacing();
                     ui.spacing();
@@ -444,7 +444,7 @@ impl UserSettings {
                     if ui.button("redo setup") {
                         self.finished_setup = false;
                         self.save();
-                        relaunch_program(false);
+                        relaunch_program(false, "");
                     }
                 }
                 tab_bar.end();

@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -88,13 +90,13 @@ impl MyNode for MultiplyNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_outputs = self
             .inputs()
             .iter()
             .map(|x| {
-                match map.get(&self.input_id(x.to_string())) {
+                match map.get(&self.input_id(x)) {
                     Some(a) => a,
                     None => "----BLANK----",
                 }
@@ -103,7 +105,7 @@ impl MyNode for MultiplyNode {
             .collect::<Vec<String>>();
 
         if get_outputs.contains(&"----BLANK----".to_string()) {
-            return false;
+            return Err(anyhow!("missing input"));
         }
 
         let fragment_shader_src = r#"
@@ -125,27 +127,25 @@ impl MyNode for MultiplyNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(&get_outputs[0]) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let a: &glium::Texture2d = match storage.get_texture(&get_outputs[0]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to create output texture")),
         };
         let b: &glium::Texture2d = match storage.get_texture(&get_outputs[1]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to create output texture")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             a: a,
             b: b,
@@ -164,6 +164,6 @@ impl MyNode for MultiplyNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
 }

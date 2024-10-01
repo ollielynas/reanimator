@@ -81,11 +81,11 @@ impl Project {
                         ui.checkbox("auto update", &mut self.project_settings.render_ticker);
                     }
                     crate::generic_io::EditTab::BatchFileEdit => {
-                        ui.set_window_font_scale(1.3);
+                        // ui.set_window_font_scale(1.3);
                         if ui.button("run batch") {
                             self.project_settings.batch_files.run = true;
                         }
-                        ui.set_window_font_scale(1.0);
+                        // ui.set_window_font_scale(1.0);
                     }
                     crate::generic_io::EditTab::ProjectRes => {
                         if ui.button("reload files") {

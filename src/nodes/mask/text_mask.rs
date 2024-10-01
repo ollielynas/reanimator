@@ -10,6 +10,8 @@ use glium::{backend::Facade, Texture2d};
 use imgui::DrawData;
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 // use typer::TextRenderer;
 // use glium_text_rusttype::TextSystem;
 
@@ -152,12 +154,12 @@ impl MyNode for TextMaskNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let text = storage.get_text(&input_id);
@@ -183,7 +185,7 @@ impl MyNode for TextMaskNode {
             // }, Image2d:: self.text_data);
         }
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

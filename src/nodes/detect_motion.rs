@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, BlitMask, BlitTarget, DrawParameters, Rect, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -91,29 +93,29 @@ impl MyNode for MotionNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let fragment_shader_src = include_str!("movement.glsl");
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
 
         if self.last_frame.is_none()
@@ -123,7 +125,7 @@ impl MyNode for MotionNode {
             let new_texture =
                 match Texture2d::empty(&storage.display, texture.width(), texture.height()) {
                     Ok(a) => a,
-                    Err(_) => return false,
+                    Err(_) => return Err(anyhow!("failed to create texture")),
                 };
             texture.as_surface().blit_color(
                 &Rect {
@@ -187,9 +189,9 @@ impl MyNode for MotionNode {
                 );
             }
 
-            return true;
+            return Ok(());
         } else {
-            return false;
+            return Err(anyhow!("no frames available"));
         }
     }
 

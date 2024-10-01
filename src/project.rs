@@ -58,7 +58,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-const MAX_LOADING: i32 = 5;
+const MAX_LOADING: i32 = 6;
 
 // #[savefile_derive]
 pub struct Project {
@@ -95,6 +95,7 @@ pub struct Project {
     pub edit_tab: EditTab,
     pub node_search_string: String,
     pub backup_data: Vec<GenericNodeInfo>,
+    pub node_error_value: HashMap<String, anyhow::Result<()>>
 }
 
 impl Project {
@@ -140,6 +141,7 @@ impl Project {
             edit_tab: EditTab::BatchFileEdit,
             backup_data: vec![],
             node_search_string: String::new(),
+            node_error_value: HashMap::new(),
         };
         return new;
     }
@@ -302,6 +304,9 @@ impl Project {
                         5 => {
                             ui.text("Updateing ffmpeg");
                         }
+                        5 => {
+                            ui.text("Loading assets");
+                        }
                         _ => {}
                     }
 
@@ -330,8 +335,8 @@ impl Project {
                             nodes[1].set_xy(0.0, 0.0);
 
                             self.connections.insert(
-                                nodes[0].input_id(nodes[0].inputs()[0].clone()),
-                                nodes[1].output_id(nodes[1].outputs()[0].clone()),
+                                nodes[0].input_id(&nodes[0].inputs()[0]),
+                                nodes[1].output_id(&nodes[1].outputs()[0]),
                             );
 
                             self.nodes = nodes;
@@ -475,6 +480,12 @@ impl Project {
                                 ffmpeg_sidecar::download::auto_download().unwrap();
                             };
                         }
+                        6 => {
+                            for node in &mut self.nodes {
+                                node.load_assets(&self.storage);
+                            }
+                            self.run_nodes(renderer);
+                        }
                         a => {
                             unreachable!("There is no loading step: {a}")
                         }
@@ -483,6 +494,12 @@ impl Project {
                 });
             return;
         }
+
+
+        if self.open_settings {
+            user_settings.settings_window(ui, &mut self.open_settings, &self.storage.fonts);
+        }
+
 
         // if the user is running a batch file edit
         // this should probably be moved into its own function
@@ -690,9 +707,7 @@ impl Project {
                     (*node).as_any_mut().downcast_mut::<CoverWindowNode>();
                 if let Some(cover_node) = a {
                     if cover_node.render && run_id == cover_node.id() {
-                        if cover_node.render(ui, window, &mut self.storage, renderer) {
-                            // ui.text("text");
-
+                        if cover_node.render(ui, window, &mut self.storage, renderer).is_ok() {
                             return;
                         } else {
                             window.set_cursor_hittest(true);
@@ -896,9 +911,6 @@ impl Project {
 
         self.advanced_color_picker.render(ui);
 
-        if self.open_settings {
-            user_settings.settings_window(ui, &mut self.open_settings, &self.storage.fonts);
-        }
 
         let mut edit_window_pos: [f32; 2] = [0.0; 2];
 
@@ -1020,6 +1032,7 @@ impl Project {
     ) {
         self.storage.reset();
         self.node_speeds.clear();
+        self.node_error_value.clear();
 
         let mut do_io = input.data.len() > 0
             && self.project_settings.generic_io.input_id.is_some()
@@ -1038,10 +1051,10 @@ impl Project {
         if do_io {
             for node in &self.nodes {
                 if node.id() == input_node_id {
-                    input_texture_id = node.output_id(node.outputs()[0].clone());
+                    input_texture_id = node.output_id(&node.outputs()[0]);
                 }
                 if node.id() == output_node_id {
-                    let input_id = node.input_id(node.inputs()[0].clone());
+                    let input_id = node.input_id(&node.inputs()[0]);
                     let get_output = match self.connections.get(&input_id) {
                         Some(a) => a.to_owned(),
                         None => {
@@ -1125,7 +1138,6 @@ impl Project {
                         return;
                     }
                     1 => {
-                        log::info!("loop :/");
                         return;
                     }
                     2 => {
@@ -1168,13 +1180,14 @@ impl Project {
                             renderer,
                         )
                     } else {
-                        true
+                        Ok(())
                     };
-                    if worked {
+                    if worked.is_ok() {
                         self.node_speeds.insert(id.to_string(), now.elapsed());
                     } else {
                         self.node_speeds.remove(id);
                     }
+                    self.node_error_value.insert(id.to_owned(), worked);
                 }
             }
         }

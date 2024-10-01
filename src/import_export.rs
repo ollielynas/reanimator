@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use crate::project::Project;
 use crate::user_info::{self, UserSettings};
@@ -30,6 +31,7 @@ impl Project {
             let compressor = Compressor::new(&input, &out);
             let compress_info = compressor.compress(CompressionLevel::Default);
             log::info!("exported project: {:?}", compress_info);
+            let _ = fs::remove_dir_all(output_path.with_extension(""));
         }
         return output_path;
     }
@@ -37,21 +39,21 @@ impl Project {
 
 pub fn load_project(path: String, mut user_settings: UserSettings) -> Option<PathBuf> {
     user_settings.update_projects();
-    let projects = user_settings.projects.clone();
+    // let _projects = user_settings.projects.clone();
     let out = user_settings.project_folder_path.display().to_string();
     let extractor = Extractor::new(&path, &out);
-    let extract_info = extractor.extract();
+    let _extract_info = extractor.extract();
 
-    let _a = fs::remove_file(path);
+    // let _a = fs::remove_file(path);
+
+
 
     user_settings.update_projects();
 
-    let mut new_projects = user_settings.projects;
-
-    new_projects.retain(|x| !projects.contains(x));
-
-    if extract_info.is_ok() && new_projects.len() > 0 {
-        return Some(new_projects[0].clone());
+    for project in user_settings.projects {
+        if project.file_name().is_some() && project.file_name() == PathBuf::from_str(&path).unwrap_or_default().file_name() {
+            return Some(project);
+        }
     }
     return None;
 }

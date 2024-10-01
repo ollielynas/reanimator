@@ -1,25 +1,19 @@
 use std::{
-    error::Error,
-    ffi::OsStr,
-    fmt::Debug,
-    fs::{self, read_dir},
-    path::{Path, PathBuf},
+    error::Error, ffi::OsStr, fmt::Debug, fs::{self, read_dir}, io::Write, path::{Path, PathBuf}
 };
 
 use crate::{
-    project::Project, sidebar::SidebarParams, user_info::UserSettings, widgets::link_widget,
+    nodes::input::load_video::load_video_bytes, project::Project, sidebar::SidebarParams, user_info::UserSettings, widgets::link_widget
 };
-use glium::texture::{RawImage1d, RawImage2d};
+use ffmpeg_sidecar::event::{FfmpegEvent, LogLevel};
+use glium::texture::RawImage2d;
 use image::EncodableLayout;
-use image::{self, ImageFormat};
-use image::{DynamicImage, ImageBuffer, ImageDecoder, Rgba};
-use imgui::text_filter;
 use imgui::{sys::ImVec2, Ui};
 use imgui_glium_renderer::Renderer;
-use imgui_winit_support::winit::error::OsError;
 use itertools::Itertools;
 use numfmt::{Formatter, Precision, Scales};
 use rfd::FileDialog;
+use anyhow::anyhow;
 
 #[derive(Savefile, Clone)]
 pub struct MyFile {
@@ -27,7 +21,7 @@ pub struct MyFile {
     pub size: u64,
 }
 
-fn try_load_as_image(path: PathBuf) -> Option<RawImage2d<'static, u8>> {
+fn try_load_as_image(path: &PathBuf) -> Option<RawImage2d<'static, u8>> {
     let bytes = match fs::read(path) {
         Ok(a) => a,
         Err(e) => {
@@ -57,7 +51,7 @@ impl MyFile {
     pub fn get_raw(&self) -> Vec<RawImage2d<u8>> {
         let mut output = vec![];
 
-        if let Some(data) = try_load_as_image(self.path.clone()) {
+        if let Some(data) = try_load_as_image(&self.path) {
             output.push(data);
             return output;
         } else {
@@ -130,28 +124,59 @@ fn recurse_files(path: impl AsRef<Path>) -> std::io::Result<Vec<PathBuf>> {
 }
 
 impl Project {
+
+    pub fn process_file(&mut self, renderer: &mut Renderer, input_file: PathBuf, output_file: PathBuf) -> anyhow::Result<()> {
+
+        
+        
+        let (length, width, height, frames) = load_video_bytes(&input_file, String::new(), String::new())?;
+        let mut command = ffmpeg_sidecar::command::FfmpegCommand::new()
+        .format("rawvideo")
+        .size(width, height)
+        .pix_fmt("rgba")
+        .input("pipe:0")
+        .output(output_file.display().to_string())
+        .duration(length.to_string())
+        .create_no_window()
+        .spawn()?;
+
+        let mut std_in = command.take_stdin().ok_or(anyhow!("failed to take std in"))?;
+
+
+        let time_per_frame = length / frames.len() as f32;
+
+        self.storage.time = 0.0;
+
+        
+        for frame in frames {
+            self.storage.time += time_per_frame as f64;
+            let mut output_frame = RawImage2d::from_raw_rgba(vec![0;frame.len()], (width, height));
+            self.run_nodes_on_io_arrays(renderer,  
+                RawImage2d::from_raw_rgba(frame, (width, height)), &mut output_frame);
+                std_in.write_all(&output_frame.data.to_vec())?;
+                // output_data.append(&mut output_frame.data.to_vec());
+        }
+        command.iter()?.collect_metadata()?;
+        // command.quit();
+        // command.wait();
+
+        // command.iter().unwrap().for_each(|e| match e {
+        //     FfmpegEvent::Log(LogLevel::Error, e) => println!("Error: {}", e),
+        //     FfmpegEvent::Progress(p) => println!("Progress: {} / 00:00:15", p.time),
+            
+        //     _ => {}
+        //   });
+
+        return Ok(());
+    }
+
     pub fn run_batch(&mut self, renderer: &mut Renderer) {
-        let binding = self.project_settings.batch_files.files
-            [self.project_settings.batch_files.index]
-            .clone();
-        let raw_in: Vec<RawImage2d<u8>> = binding.get_raw();
-        if raw_in.len() > 0 {
-            log::info!("{}", raw_in[0].width);
-            log::info!("Format {:?}", raw_in[0].format);
-            let mut raw_out: RawImage2d<u8> = RawImage2d::from_raw_rgb(vec![], (0, 0));
+        let _ = fs::create_dir_all(&self.project_settings.batch_files.save_path);
+        let input_path = &self.project_settings.batch_files.files
+        [self.project_settings.batch_files.index]
+        .path;
 
-            let raw_in_file = raw_in[0].data.clone();
-
-            self.run_nodes_on_io_arrays(
-                renderer,
-                RawImage2d::from_raw_rgba(
-                    raw_in_file.to_vec(),
-                    (raw_in[0].width, raw_in[0].height),
-                ),
-                &mut raw_out,
-            );
-
-            let output_path = self
+        let output_path = self
                 .project_settings
                 .batch_files
                 .save_path
@@ -165,16 +190,9 @@ impl Project {
                         [self.project_settings.batch_files.index]
                         .type_(),
                 );
-
-            let img: ImageBuffer<Rgba<u8>, _> =
-                ImageBuffer::from_raw(raw_out.width, raw_out.height, raw_out.data.into_owned())
-                    .unwrap();
-
-            let img = DynamicImage::ImageRgba8(img).flipv();
-            let a = img.save(output_path);
-            if a.is_err() {
-                log::info!("{a:?}");
-            }
+        let a  = self.process_file(renderer, input_path.to_path_buf(), output_path);
+        if let Err(e) = a {
+            log::error!("{e:?}");
         }
         self.project_settings.batch_files.index += 1;
         if self.project_settings.batch_files.index >= self.project_settings.batch_files.files.len()
@@ -205,19 +223,18 @@ impl Project {
         .resizable(false)
         .build(|| {
             
-            ui.text_wrapped("! only image files are currently supported");
-            
+            let color_token = ui.push_style_color(imgui::StyleColor::Text, [1.0, 0.404, 0.0, 1.0]);
             if self.project_settings.generic_io.input_id.is_none() {
-                ui.text_wrapped("! The generic inout node has not been set, you will not be able to perform batch operations");
+                ui.text_wrapped("The generic inout node has not been set, you will not be able to perform batch operations");
             }
             if self.project_settings.generic_io.output_id.is_none() {
-                ui.text_wrapped("! The generic output node has not been set, you will not be able to perform batch operations");
+                ui.text_wrapped("The generic output node has not been set, you will not be able to perform batch operations");
             } 
             if self.project_settings.generic_io.output_id.is_none() || self.project_settings.generic_io.output_id.is_none() {
                 ui.text_wrapped("you can set any valid node as a generic input/output using the right click popup menu");
             }
 
-            
+            color_token.end();
 
             if ui.button("add files") {
                 let files = FileDialog::new().pick_files();

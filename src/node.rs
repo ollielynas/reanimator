@@ -1,4 +1,5 @@
 use fastrand;
+use std::fmt::Display;
 use std::hash::Hash;
 use std::{
     any::Any,
@@ -7,10 +8,10 @@ use std::{
     path::{self, PathBuf},
     process::Output,
 };
-
 use imgui::Ui;
 use imgui_glium_renderer::Renderer;
 use savefile::prelude::*;
+
 
 use crate::{generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage};
 
@@ -27,6 +28,8 @@ pub trait MyNode {
             id: self.id(),
         }
     }
+
+    fn load_assets(&mut self, storage: &Storage) {}
 
     fn as_any(&self) -> &dyn Any;
 
@@ -70,10 +73,10 @@ pub trait MyNode {
     /// ```
     fn save(&self, path: PathBuf) -> Result<(), SavefileError>;
 
-    fn input_id(&self, input: String) -> String {
+    fn input_id(&self, input: &str) -> String {
         format!("node-{}-input-{input}", self.id())
     }
-    fn output_id(&self, output: String) -> String {
+    fn output_id(&self, output: &str) -> String {
         format!("node-{}-output-{output}", self.id())
     }
 
@@ -84,7 +87,7 @@ pub trait MyNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool;
+    ) -> anyhow::Result<()>;
 }
 
 pub fn random_id() -> String {

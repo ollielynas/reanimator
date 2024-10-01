@@ -18,7 +18,8 @@ use input::load_video::LoadVideoNode;
 use input::render_3d::Render3DNode;
 use input::uv::UvInputNode;
 use input::webcam::WebcamNode;
-use mask::brightness_range::BrightnessRangeMaskNode;
+use mask::logic::{LogicNotNode, LogicOrNode};
+use mask::{brightness_range::BrightnessRangeMaskNode, logic::LogicAndNode};
 use mask::layer_trail::LayerTrailNode;
 use mask::text_mask::TextMaskNode;
 
@@ -103,6 +104,9 @@ pub enum NodeType {
     Error,
     UvInput,
     SampleUV,
+    LogicNot,
+    LogicAnd,
+    LogicOr,
 }
 
 impl NodeType {
@@ -155,6 +159,10 @@ impl NodeType {
             NodeType::Error => "Error Node",
             NodeType::UvInput => "Get UV",
             NodeType::SampleUV => "Sample UV",
+            NodeType::LogicAnd => "And",
+            NodeType::LogicOr => "Or",
+            NodeType::LogicNot => "Not",
+
         }
         .to_owned();
 
@@ -166,6 +174,39 @@ impl NodeType {
 
     pub fn load_node(&self, project_file: PathBuf) -> Option<Box<dyn MyNode>> {
         match self {
+            NodeType::LogicAnd => {
+                let a: Result<LogicAndNode, SavefileError> =
+                    savefile::load_file(project_file, LogicAndNode::savefile_version());
+                match a {
+                    Ok(b) => Some(Box::new(b)),
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
+                }
+            }
+            NodeType::LogicNot => {
+                let a: Result<LogicNotNode, SavefileError> =
+                    savefile::load_file(project_file, LogicNotNode::savefile_version());
+                match a {
+                    Ok(b) => Some(Box::new(b)),
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
+                }
+            }
+            NodeType::LogicOr => {
+                let a: Result<LogicOrNode, SavefileError> =
+                    savefile::load_file(project_file, LogicOrNode::savefile_version());
+                match a {
+                    Ok(b) => Some(Box::new(b)),
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
+                }
+            }
             NodeType::TextInput => {
                 let a: Result<TextInputNode, SavefileError> =
                     savefile::load_file(project_file, TextInputNode::savefile_version());
@@ -665,6 +706,9 @@ impl NodeType {
             NodeType::Error => Box::new(ErrorNode::default()),
             NodeType::UvInput => Box::new(UvInputNode::default()),
             NodeType::SampleUV => Box::new(SampleUvNode::default()),
+            NodeType::LogicAnd => Box::new(LogicAndNode::default()),
+            NodeType::LogicOr => Box::new(LogicOrNode::default()),
+            NodeType::LogicNot => Box::new(LogicNotNode::default()),
         }
     }
 
@@ -681,6 +725,12 @@ impl NodeType {
         matches!(
             self,
             | NodeType::BrightnessMask
+        )
+    }
+    pub fn windows_only(&self) -> bool {
+        matches!(
+            self,
+            | NodeType::CoverWindow
         )
     }
 }

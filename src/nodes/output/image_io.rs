@@ -16,6 +16,7 @@ use glium::{
     uniforms::{MagnifySamplerFilter, MinifySamplerFilter, SamplerBehavior},
     Texture2d,
 };
+use anyhow::anyhow;
 use glium::{BlitMask, BlitTarget, Frame, GlObject, Rect, Surface};
 use image::gif::{GifDecoder, GifEncoder};
 use image::{Delay, DynamicImage, ImageBuffer, Rgba};
@@ -110,12 +111,12 @@ impl MyNode for OutputNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
         self.run_with_time = vec![];
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         if self.texture_id.is_none() {
@@ -159,9 +160,9 @@ impl MyNode for OutputNode {
                 }
             }
         } else {
-            return false;
+            return Err(anyhow!("failed to create texture"));
         }
-        return true;
+        return Ok(());
     }
 
     fn as_any(&self) -> &dyn Any {

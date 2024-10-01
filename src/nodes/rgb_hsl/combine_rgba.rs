@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -93,13 +95,13 @@ impl MyNode for CombineRgbaNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_outputs = self
             .inputs()
             .iter()
             .map(|x| {
-                match map.get(&self.input_id(x.to_string())) {
+                match map.get(&self.input_id(x)) {
                     Some(a) => a,
                     None => "----BLANK----",
                 }
@@ -108,7 +110,7 @@ impl MyNode for CombineRgbaNode {
             .collect::<Vec<String>>();
 
         if get_outputs.contains(&"----BLANK----".to_string()) {
-            return false;
+            return Err(anyhow!("missing input"));
         }
 
         let fragment_shader_src = r#"
@@ -136,35 +138,33 @@ impl MyNode for CombineRgbaNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(&get_outputs[0]) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("failed to create output")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture_red: &glium::Texture2d = match storage.get_texture(&get_outputs[0]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("missing input (r)")),
         };
         let texture_green: &glium::Texture2d = match storage.get_texture(&get_outputs[1]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("missing input (g)")),
         };
         let texture_blue: &glium::Texture2d = match storage.get_texture(&get_outputs[2]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("missing input (b)")),
         };
         let texture_alpha: &glium::Texture2d = match storage.get_texture(&get_outputs[3]) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("missing input (a)")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex_red: texture_red,
             tex_green: texture_green,
@@ -185,6 +185,6 @@ impl MyNode for CombineRgbaNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
 }

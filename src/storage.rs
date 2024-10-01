@@ -175,7 +175,7 @@ impl Storage {
             return self.textures.get(k);
         }
     }
-
+    /// does not reset time, resets memory
     pub fn reset(&mut self) {
         let mut keys: Vec<String> = vec![];
         for (string, _) in self.textures.iter() {
@@ -256,7 +256,7 @@ impl Storage {
         if ui.button("relaunch (admin)") {
             #[cfg(target_os = "windows")]
             {
-                relaunch_program(true);
+                relaunch_program(true, "");
             }
         }
 

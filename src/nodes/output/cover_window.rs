@@ -11,6 +11,8 @@ use imgui_winit_support::winit::{
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
 };
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 use windows::Win32::{
     Foundation::{HWND, POINT, RECT},
     Graphics::Gdi::ClientToScreen,
@@ -68,9 +70,9 @@ impl CoverWindowNode {
         window: &imgui_winit_support::winit::window::Window,
         storage: &mut Storage,
         renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.hwnd == 0 {
-            return false;
+            return Err(anyhow!("invalid window id"));
         }
 
         if self.render {
@@ -80,7 +82,7 @@ impl CoverWindowNode {
                 if a.is_err() {
                     self.render = false;
                     // log::info!("{a:?}");
-                    return false;
+                    return Err(anyhow!("invalid window id"));
                 }
                 let mut point = POINT {
                     x: rect.left,
@@ -89,7 +91,7 @@ impl CoverWindowNode {
                 let a = ClientToScreen(HWND(self.hwnd as *mut _), &mut point);
                 if !a.as_bool() {
                     self.render = false;
-                    return false;
+                    return Err(anyhow!("failed 'ClientToScreen' conversion, likely because of an invalid window id"));
                 }
                 rect.left = point.x;
                 rect.top = point.y;
@@ -157,19 +159,19 @@ impl CoverWindowNode {
                                 .add_image(texture_id, [0.0, 0.0], ui.io().display_size)
                                 .build();
                         }
-                        return true;
+                        return Ok(());
                     } else {
-                        return true;
+                        return Ok(());
                     }
                 } else {
                     ui.text("failed to load get texture");
-                    return true;
+                    return Ok(());
                 }
             } else {
-                return false;
+                return Err(anyhow!("target window is not in focus"));
             }
         } else {
-            return false;
+            return Err(anyhow!("rendering is disabled"));
         }
     }
 }
@@ -271,16 +273,16 @@ impl MyNode for CoverWindowNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
 
         if self.texture.is_none() {
@@ -310,7 +312,7 @@ impl MyNode for CoverWindowNode {
             // self.texture = Texture2d::empty(, width, height)
         }
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

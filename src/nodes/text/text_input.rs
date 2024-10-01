@@ -2,6 +2,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -95,12 +97,12 @@ impl MyNode for TextInputNode {
         storage: &mut Storage,
         _map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         storage.set_text(output_id, self.text.clone());
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

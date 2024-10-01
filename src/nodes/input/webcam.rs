@@ -12,7 +12,7 @@ use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
-
+use anyhow::anyhow;
 use crate::nodes::node_enum::NodeType;
 
 use escapi;
@@ -155,9 +155,9 @@ impl MyNode for WebcamNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        return false;
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        // return Err(anyhow!("this node is broken"));
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         // log::info!("{:?}", self.texture_cache);
 
@@ -165,7 +165,7 @@ impl MyNode for WebcamNode {
             self.size = (cam.capture_width(), cam.capture_height());
             self.data = match cam.capture() {
                 Ok(a) => a,
-                Err(_) => return false,
+                Err(_) => return Err(anyhow!("flailed to capture webcam")),
             }
             .to_vec();
         };
@@ -178,7 +178,7 @@ impl MyNode for WebcamNode {
 
         let texture: &glium::Texture2d = match storage.get_texture(&output_id) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get output texture")),
         };
 
         // Texture2d::
@@ -188,14 +188,14 @@ impl MyNode for WebcamNode {
         log::info!("{:?}", raw_image.data.len());
 
         if raw_image.data.len() == 0 {
-            return false;
+            return Err(anyhow!("webcam error"));
         }
 
         let texture2 = match Texture2d::new(&storage.display, raw_image) {
             Ok(a) => a,
             Err(e) => {
                 log::error!("{e}");
-                return false;
+                return Err(anyhow!("failed to create texture"));
             }
         };
 
@@ -224,7 +224,7 @@ impl MyNode for WebcamNode {
         // let a: HashMap<Texture2d, String> = HashMap::new();
         // let texture: Texture2d = Texture2d::new(&storage.display, raw).unwrap();
 
-        return true;
+        return Ok(());
     }
 
     fn as_any(&self) -> &dyn Any {

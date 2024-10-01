@@ -8,6 +8,8 @@ use glium::{
 use imgui::{sys::ImColor, ImColor32};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -100,22 +102,22 @@ impl MyNode for LayerNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
-        let base_input_key = match map.get(&self.input_id(self.inputs()[0].clone())) {
+        let base_input_key = match map.get(&self.input_id(&self.inputs()[0])) {
             Some(a) => a,
             None => {
-                return false;
+                return Err(anyhow!("missing input"));
             }
         };
         let mut inputs = vec![];
         for i in 1..self.inputs().len() {
-            let input_id = self.input_id(self.inputs()[i].clone());
+            let input_id = self.input_id(&self.inputs()[i]);
             let get_output = match map.get(&input_id) {
                 Some(a) => a,
                 None => {
-                    return false;
+                    return Err(anyhow!("missing input"));
                 }
             };
             inputs.push(get_output);
@@ -168,7 +170,7 @@ impl MyNode for LayerNode {
             let texture_size: (u32, u32) = match storage.get_texture(get_output) {
                 Some(a) => (a.width(), a.height()),
                 None => {
-                    return false;
+                    return Err(anyhow!("failed to create output"));
                 }
             };
             sizes.push(texture_size);
@@ -191,7 +193,7 @@ impl MyNode for LayerNode {
         let base_texture: &glium::Texture2d = match storage.get_texture(base_input_key) {
             Some(a) => a,
             None => {
-                return false;
+                return Err(anyhow!("failed to get base texture"));
             }
         };
 
@@ -222,7 +224,7 @@ impl MyNode for LayerNode {
             let texture: &glium::Texture2d = match storage.get_texture(&id) {
                 Some(a) => a,
                 None => {
-                    return false;
+                    return Err(anyhow!("failed to create output texture"));
                 }
             };
             // log::info!("{:?} {:?} {:?}", [layer[0], layer[1]],[layer[2], layer[3]],[texture.dimensions().0 as f32, texture.dimensions().1 as f32]);
@@ -249,7 +251,7 @@ impl MyNode for LayerNode {
                 .unwrap();
         }
 
-        return true;
+        return Ok(());
     }
 
     fn set_id(&mut self, id: String) {

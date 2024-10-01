@@ -3,6 +3,7 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
 
 use crate::{
     node::{random_id, MyNode},
@@ -10,6 +11,9 @@ use crate::{
     storage::Storage,
     widgets::link_widget,
 };
+
+
+
 
 /// https://youtu.be/5EuYKEvugLU?si=EMuCD_k6mjnqy74c
 #[derive(Savefile)]
@@ -104,34 +108,36 @@ impl MyNode for DifferenceofGaussiansNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let fragment_shader_src = include_str!("diff_gaussian.glsl");
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("size mismatch when fetching texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
 
-        let shader = storage
-            .get_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+        let shader = match storage
+            .get_frag_shader(fragment_shader_src.to_string()) {
+                Some(a) => a,
+                None => return Err(anyhow!("failed to find shader")),
+            };
 
         let uniforms = uniform! {
             tex: texture,
@@ -144,7 +150,7 @@ impl MyNode for DifferenceofGaussiansNode {
             greyscale: self.greyscale,
             threshold: self.threshold,
         };
-        let texture2 = storage.get_texture(&output_id).unwrap();
+        let texture2 = storage.get_texture(&output_id).ok_or(anyhow!("failed to find texture"))?;
         texture2
             .as_surface()
             .draw(
@@ -158,7 +164,7 @@ impl MyNode for DifferenceofGaussiansNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

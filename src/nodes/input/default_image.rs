@@ -9,6 +9,8 @@ use image::EncodableLayout;
 use imgui::text_filter;
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 use std::{any::Any, collections::HashMap, hash::Hash, path::PathBuf};
 
 use crate::nodes::node_enum::NodeType;
@@ -90,8 +92,8 @@ impl MyNode for DefaultImage {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         if self.texture_cache.is_none()
             || !storage.cached_texture_exists(self.texture_cache.unwrap())
@@ -131,7 +133,7 @@ impl MyNode for DefaultImage {
         storage.set_id_of_cached_texture(self.texture_cache.unwrap(), output_id);
         // storage.set_texture(output_id,  texture);
 
-        return true;
+        return Ok(());
     }
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {

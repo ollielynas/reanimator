@@ -113,6 +113,15 @@ impl Project {
 
                 ui.set_window_font_scale(self.scale);
 
+                if let Some(Err(e)) = self.node_error_value.get(&node.id()) {
+                    ui.text_colored([1.00, 0.404, 0.0, 1.0], "warning!");
+                    if ui.is_item_hovered() {
+                        ui.tooltip(|| {
+                            ui.text(format!("{:?}", e));
+                        });
+                    }
+                } 
+
                 if self.project_settings.generic_io.input_id == Some(node.id()) {
                     ui.text("generic input")
                 }
@@ -132,7 +141,7 @@ impl Project {
                 for input in node.inputs() {
                     let last_pos = ui.cursor_screen_pos();
                     if ui.button(input.clone()) {
-                        self.selected_input = Some(node.input_id(input.clone()));
+                        self.selected_input = Some(node.input_id(&input));
                     }
 
                     let new_pos = ui.cursor_screen_pos();
@@ -142,7 +151,7 @@ impl Project {
                     ];
                     params
                         .node_pos_map
-                        .insert(node.input_id(input.clone()), average_pos.into());
+                        .insert(node.input_id(&input), average_pos.into());
                 }
                 if node.outputs().len() != 0 && node.inputs().len() != 0 {
                     ui.separator();
@@ -150,7 +159,7 @@ impl Project {
                 for output in node.outputs() {
                     let last_pos = ui.cursor_screen_pos();
                     if ui.button(output.clone()) {
-                        self.selected_output = Some(node.output_id(output.clone()));
+                        self.selected_output = Some(node.output_id(&output));
                     }
 
                     let new_pos = ui.cursor_screen_pos();
@@ -160,7 +169,7 @@ impl Project {
                     ];
                     params
                         .node_pos_map
-                        .insert(node.output_id(output.clone()), average_pos.into());
+                        .insert(node.output_id(&output), average_pos.into());
                 }
                 let mut window_pos = ui.window_pos();
 

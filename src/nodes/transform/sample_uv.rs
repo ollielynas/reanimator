@@ -6,6 +6,8 @@ use glium::{
 
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -91,22 +93,22 @@ impl MyNode for SampleUvNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let input_id2 = self.input_id(self.inputs()[1].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let input_id2 = self.input_id(&self.inputs()[1]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
         let get_output2 = match map.get(&input_id2) {
             Some(a) => a,
-            None => return false,
+            None => return Ok(()),
         };
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
         let fragment_shader_src = r#"
@@ -123,25 +125,23 @@ impl MyNode for SampleUvNode {
         color = texture2DLod(tex, vec2(uv.r, uv.g), 0.0);
         }
         "#;
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
 
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
         let texture3: &glium::Texture2d = match storage.get_texture(get_output2) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("missing uv input")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex: texture,
             uvc: texture3,
@@ -160,7 +160,7 @@ impl MyNode for SampleUvNode {
                 },
             )
             .unwrap();
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

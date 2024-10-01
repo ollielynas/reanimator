@@ -4,6 +4,8 @@ use glium::{texture::RawImage2d, uniform, DrawParameters, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
 use lumo::tracer::Texture;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -96,12 +98,12 @@ impl MyNode for WaterColorNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         if self.paper_texture.is_none() {
@@ -126,23 +128,21 @@ impl MyNode for WaterColorNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex: texture,
             u_resolution: [texture_size.0 as f32, texture_size.1 as f32],
@@ -162,7 +162,7 @@ impl MyNode for WaterColorNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

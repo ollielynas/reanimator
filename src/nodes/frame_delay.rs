@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{texture::RawImage2d, uniform, BlitTarget, DrawParameters, Rect, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -91,24 +93,24 @@ impl MyNode for DelayNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let input_texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("unable to find input texture")),
         };
 
         if self.frame_delay_count != self.frames.len() as i32 {
@@ -127,7 +129,7 @@ impl MyNode for DelayNode {
                     Ok(a) => a,
                     Err(e) => {
                         log::info!("{e:?}");
-                        return false;
+                        return Ok(());
                     }
                 };
 
@@ -156,8 +158,8 @@ impl MyNode for DelayNode {
             let texture3 = match storage.get_texture(&output_id) {
                 Some(a) => a,
                 None => {
-                    log::info!("no texture found: {}", output_id);
-                    return false;
+                    // log::info!("no texture found: {}", output_id);
+                    return Err(anyhow!("no previous frames to display"))
                 }
             };
             delayed_frame.as_surface().blit_color(
@@ -197,7 +199,7 @@ impl MyNode for DelayNode {
             self.frames.insert(0, delayed_frame);
         }
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

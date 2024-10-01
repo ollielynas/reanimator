@@ -5,6 +5,8 @@ use glium::{
 };
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -161,7 +163,7 @@ impl MyNode for ScaleNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.use_percent {
             // round evan to annoy anatol
             self.target_size = (
@@ -174,16 +176,16 @@ impl MyNode for ScaleNode {
             );
         }
 
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
         self.og_size = texture_size;
@@ -192,7 +194,7 @@ impl MyNode for ScaleNode {
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
 
         let texture2 = storage.get_texture(&output_id).unwrap();
@@ -214,7 +216,7 @@ impl MyNode for ScaleNode {
             self.filter.to_magnify_sample_filter(),
         );
 
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

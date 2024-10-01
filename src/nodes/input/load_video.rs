@@ -9,6 +9,8 @@ use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
 use rfd::FileDialog;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -182,36 +184,7 @@ impl MyNode for LoadVideoNode {
         ui.text(format!("length: {}", self.length,));
 
         if ui.button("load file") || changed_path {
-            self.frames = vec![];
-            match load_video_bytes(
-                &if self.custom_input {
-                    PathBuf::new()
-                } else {
-                    apply_path_root::get_with_root(&self.path.clone().unwrap_or_default(), &storage)
-                },
-                if self.custom_input {
-                    self.custom_input_text.clone()
-                } else {
-                    String::new()
-                },
-                if self.custom_args {
-                    self.ffmpeg_args.clone()
-                } else {
-                    String::new()
-                },
-            ) {
-                Ok((length, width, height, frame_data)) => {
-                    self.frames = frame_data;
-                    self.length = length;
-                    self.width = width;
-                    self.height = height;
-                }
-                Err(e) => {
-                    log::error!("{e}");
-                }
-            };
-        } else {
-            // return false;
+            self.load_assets(storage);
         }
 
         if ui.is_item_hovered() {
@@ -246,12 +219,12 @@ impl MyNode for LoadVideoNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.path.is_none() {
-            return false;
+            return Err(anyhow!("path is none"));
         }
 
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         storage.create_and_set_texture(self.width, self.height, output_id.clone());
 
@@ -277,7 +250,7 @@ impl MyNode for LoadVideoNode {
         self.last_time = storage.time;
 
         if self.frames.len() == 0 {
-            return false;
+            return Err(anyhow!("no frames loaded"));
         }
         let data = &self.frames[(self.play_head * self.frames.len() as f64)
             .floor()
@@ -296,7 +269,38 @@ impl MyNode for LoadVideoNode {
             }
         }
 
-        return true;
+        return Ok(());
+    }
+
+    fn load_assets(&mut self, storage: &Storage) {
+        self.frames = vec![];
+            match load_video_bytes(
+                &if self.custom_input {
+                    PathBuf::new()
+                } else {
+                    apply_path_root::get_with_root(&self.path.clone().unwrap_or_default(), &storage)
+                },
+                if self.custom_input {
+                    self.custom_input_text.clone()
+                } else {
+                    String::new()
+                },
+                if self.custom_args {
+                    self.ffmpeg_args.clone()
+                } else {
+                    String::new()
+                },
+            ) {
+                Ok((length, width, height, frame_data)) => {
+                    self.frames = frame_data;
+                    self.length = length;
+                    self.width = width;
+                    self.height = height;
+                }
+                Err(e) => {
+                    log::error!("{e}");
+                }
+            };
     }
 
     fn description(&mut self, ui: &imgui::Ui) {
@@ -336,18 +340,15 @@ pub fn load_video_bytes(
         .input(if path == &PathBuf::new() {
             custom_input
         } else {
-            // format!("\"{}\"",path.display().to_string().replace("\\", "/"))
             format!("{}", path.display().to_string().replace("\\", "/"))
         }) // <- Convenient argument presets
         .rawvideo()
+        .pix_fmt("rgba")
         .spawn();
     let frames = command.unwrap().iter().unwrap().filter_frames();
 
-    // println!("frames {}", frames.collect::<Vec<_>>().len());
     let mut frame_index = 0;
     for frame in frames {
-        println!("frame_index");
-        // log::info!("frame: {}x{}", frame.width, frame.height);
         width = frame.width;
         height = frame.height;
         if inital_timestamp == -10.0 {
@@ -358,7 +359,6 @@ pub fn load_video_bytes(
         };
         let mut pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
         if pixels.len() as u32 == width * height * 3 {
-            println!("converting size");
             pixels = pixels
                 .chunks_exact(3)
                 .flat_map(|x| [x[0], x[1], x[2], 255])
@@ -368,52 +368,6 @@ pub fn load_video_bytes(
         bytes.push(pixels);
         frame_index += 1;
     }
-
-    // .output("pipe:1");
-
-    // log::info!("args: {:?}", command.get_args());
-    // // command.get_args();
-    // let mut child = command
-    //     .spawn()?; // <- Uses an ordinary `std::process::Child`;
-
-    // child
-    //     .iter()? // <- Iterator over all log messages and video output
-    //     .for_each(|event: FfmpegEvent| {
-    //         match event {
-    //             FfmpegEvent::OutputFrame(frame) => {
-    //                 log::info!("frame: {}x{}", frame.width, frame.height);
-    //                 width = frame.width;
-    //                 height = frame.height;
-    //                 if inital_timestamp == -10.0 {
-    //                     inital_timestamp = frame.timestamp;
-    //                 };
-    //                 if final_timestamp < frame.timestamp {
-    //                     final_timestamp = frame.timestamp;
-    //                 };
-    //                 let pixels: Vec<u8> = frame.data; // <- raw RGB pixels! 🎨
-    //                 println!("{} - {}", pixels.len(), width * height * 4);
-    //                 bytes.push(pixels);
-    //             }
-    //             // FfmpegEvent::Progress(progress) => {
-    //             //     log::info!("Current speed: {}x", progress.speed); // <- parsed progress updates
-    //             // }
-    //             // FfmpegEvent::Log(_level, msg) => {
-    //             //     log::info!("[ffmpeg] {}", msg); // <- granular log message from stderr
-    //             // }
-
-    //             // FfmpegEvent::ParsedInput(ffmpeg_input) => {
-    //             //     ffmpeg_input.raw_log_message;
-    //             // }
-    //             FfmpegEvent::Error(e) => {
-    //                 log::error!("{:?}",e);
-    //             }
-    //             FfmpegEvent::Done => {
-    //                 log::info!("Done");
-    //                 finished = true;
-    //             }
-    //             _ => {}
-    //         }
-    //     });
 
     if inital_timestamp == -10.0 {
         return Err(anyhow::Error::msg("no frames found"));
@@ -425,7 +379,7 @@ pub fn load_video_bytes(
             final_timestamp - inital_timestamp,
             width,
             height,
-            bytes.len()
+            bytes.len(),
         ))
     );
 

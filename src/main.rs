@@ -4,19 +4,15 @@
 )]
 
 use std::{
-    borrow::BorrowMut,
     env::{self, current_exe},
-    fs,
-    ops::DerefMut,
     os::windows::process::CommandExt,
     process::{exit, Command},
     sync::Mutex,
-    thread::{sleep, sleep_ms},
-    time::{Duration, Instant, SystemTime},
+    thread::sleep,
+    time::{Duration, Instant},
 };
 
 use debug_and_logger::set_logger_mine;
-use fast_smaz::Smaz;
 use fonts::MyFonts;
 use imgui_winit_support::winit::{
     dpi::{LogicalSize},
@@ -36,6 +32,12 @@ use system_extensions::dialogues::messagebox::{IconType, MessageBox, WindowType}
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
 use win_msgbox::{raw::w, Okay};
 use winapi::um::winbase::CREATE_NO_WINDOW;
+
+use perf_monitor::cpu::{ThreadStat, ProcessStat, processor_numbers};
+use perf_monitor::fd::fd_count_cur;
+use perf_monitor::io::get_process_io_stats;
+use perf_monitor::mem::get_process_memory_info;
+use anyhow::anyhow;
 
 lazy_static! {
     pub static ref LOG_TEXT: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
@@ -66,8 +68,13 @@ pub mod user_info;
 pub mod widgets;
 
 fn main() -> anyhow::Result<()> {
-    set_logger_mine()?;
+
+    #[cfg(debug_assertions)] {
+        set_logger_mine()?;
+    }
+    
     set_panic_hook();
+
 
     let a = update();
 
@@ -80,17 +87,16 @@ fn main() -> anyhow::Result<()> {
                 .show()
                 .is_ok()
             {
-                relaunch_program(true);
+                relaunch_program(true, "");
             };
         } else {
-            win_msgbox::show::<Okay>(&format!("Error Updating \n {a2}"));
+            
         }
-        // panic!("{:?}", a2);
     }
 
     let args: Vec<String> = env::args().collect();
 
-    trace!("{args:?}");
+    info!("args {args:?}");
 
     let res = Command::new("cmd")
         .raw_arg("/C ".to_owned() + "assoc .repj")
@@ -128,7 +134,7 @@ fn main() -> anyhow::Result<()> {
                 .set_icon_type(IconType::ICON_WARNING)
                 .set_window_type(WindowType::OK_CANCEL)
                 .show().is_ok() {
-                    relaunch_program(true);
+                    relaunch_program(true, "");
                 };
     }
 
@@ -157,15 +163,23 @@ fn main() -> anyhow::Result<()> {
     init_with_startup(
         "ReAnimator",
         None,
-        |_, _, _display| {},
+        |_, _, _display| {
+            
+        },
         move |_, ui, display, renderer, drop_file, window| {
-            if args.len() >= 2 && args[1].contains(".repj") && !loaded_project {
+            if !loaded_project && args.len() >= 2 && args[1].contains(".repj") {
                 if let Some(p) = load_project(args[1].clone(), user_settings.clone()) {
                     project = Some(Project::new(p, display.clone()));
                     loaded_project = true;
                 }
             }
-
+            let mut stat_p: Result<ProcessStat, std::io::Error> = Err(std::io::Error::other("not debug mode"));
+            let mut stat_t: Result<ThreadStat, std::io::Error> =   Err(std::io::Error::other("not debug mode"));
+            #[cfg(debug_assertions)] {
+            let core_num = processor_numbers().unwrap();
+            stat_p = ProcessStat::cur();
+            stat_t = ThreadStat::cur();
+            }
             let frame_start = Instant::now();
             let mut global_font_tokens = vec![];
             if let Some(font_id) = user_settings.font_id {
@@ -180,6 +194,9 @@ fn main() -> anyhow::Result<()> {
                 window.set_maximized(false);
                 window.request_inner_size(LogicalSize::new(1024, 512));
             }
+
+
+            
 
             let size_array = ui.io().display_size;
 
@@ -253,11 +270,23 @@ fn main() -> anyhow::Result<()> {
             if settings_window_open {
                 user_settings.settings_window(ui, &mut settings_window_open, &fonts);
             }
+            #[cfg(debug_assertions)] {
+            if ui.io().key_alt {
+                let usage_p = stat_p.unwrap().cpu().unwrap() * 100f64;
+                let usage_t = stat_t.unwrap().cpu().unwrap() * 100f64;
+
+
+                debug_and_logger::profile(ui, usage_p, usage_t);
+            }}
+            
             sleep(Duration::from_secs_f32(
                 (1.0 / (user_settings.max_fps as f32)
                     - (Instant::now() - frame_start).as_secs_f32())
                 .max(0.0),
             ));
+
+
+
         },
         if fullscreen {
             Some(Fullscreen::Borderless(None))
@@ -273,18 +302,20 @@ fn main() -> anyhow::Result<()> {
 }
 
 /// TODO: make this cross platform
-pub fn relaunch_program(admin: bool) {
+pub fn relaunch_program(admin: bool, args: impl Into<String>) {
     let command = if admin {
         format!(
-            "Start-Process \"{}\" -Verb RunAs",
-            current_exe().unwrap().as_os_str().to_str().unwrap()
+            "Start-Process \"{}\" -ArgumentList \"{}\" -Verb RunAs",
+            current_exe().unwrap().as_os_str().to_str().unwrap(),
+            args.into()
         )
     } else {
         format!(
-            "Start-Process \"{}\"",
-            current_exe().unwrap().as_os_str().to_str().unwrap()
+            "Start-Process \"{}\" -ArgumentList \"{}\"",
+            current_exe().unwrap().as_os_str().to_str().unwrap(),
+            args.into()
         )
-    };
+    }.replace("-ArgumentList \"\"", "");
     info!("{command}");
 
     // win_msgbox::show::<Okay>(&format!("command: {}", command));

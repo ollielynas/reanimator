@@ -3,6 +3,7 @@ use crate::{
     storage::Storage,
 };
 use glium::{index, texture::RawImage2d, Texture2d};
+use anyhow::anyhow;
 use image::EncodableLayout;
 use image::{
     self,
@@ -133,12 +134,12 @@ impl MyNode for LoadGifNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.path.is_none() {
-            return false;
+            return Err(anyhow!("no path set"));
         }
 
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         // log::info!("{:?}", self.texture_cache);
 
@@ -148,16 +149,14 @@ impl MyNode for LoadGifNode {
                 let file = match fs::File::open(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
                     Err(e) => {
-                        log::error!("{e}");
-                        return false;
+                        return Err(anyhow!("file not found"));
                     }
                 };
 
                 let gif = match GifDecoder::new(file) {
                     Ok(a) => a,
                     Err(e) => {
-                        log::error!("{e}");
-                        return false;
+                        return Err(anyhow!("unable to decode file to gif"));
                     }
                 };
 
@@ -195,7 +194,7 @@ impl MyNode for LoadGifNode {
             storage.set_id_of_cached_texture(self.texture_cache[index], output_id);
         }
 
-        return true;
+        return Ok(());
     }
 
     fn as_any(&self) -> &dyn Any {

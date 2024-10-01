@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -96,8 +98,8 @@ impl MyNode for WhiteNoiseNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         let fragment_shader_src = r#"
 
@@ -136,33 +138,31 @@ impl MyNode for WhiteNoiseNode {
             "#;
 
         if self.input && self.inputs().len() > 0 {
-            let input_id = self.input_id(self.inputs()[0].clone());
+            let input_id = self.input_id(&self.inputs()[0]);
             let get_output = match map.get(&input_id) {
                 Some(a) => a,
-                None => return false,
+                None => return Ok(()),
             };
             self.size = match storage.get_texture(get_output) {
                 Some(a) => (a.width(), a.height()),
-                None => return false,
+                None => return Err(anyhow!("failed to create output texture")),
             };
         }
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(self.size.0, self.size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(&output_id) {
             Some(a) => a,
             None => {
-                return false;
+                return Err(anyhow!("failed to create output texture"));
             }
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex: texture,
             time: storage.time as f32,
@@ -182,7 +182,7 @@ impl MyNode for WhiteNoiseNode {
                 },
             )
             .unwrap();
-        return true;
+        return Ok(());
     }
 
     fn description(&mut self, ui: &imgui::Ui) {

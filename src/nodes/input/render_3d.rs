@@ -408,8 +408,8 @@ impl MyNode for Render3DNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let output_id = self.output_id(self.outputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let output_id =self.output_id(&self.outputs()[0]);;
 
         // log::info!("{:?}", self.texture_cache);
 
@@ -431,7 +431,7 @@ impl MyNode for Render3DNode {
         }
         // storage.set_texture(output_id,  texture);
 
-        return true;
+        return Ok(());
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -439,6 +439,13 @@ impl MyNode for Render3DNode {
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+    fn load_assets(&mut self, storage: &Storage) {
+        let a = self.render();
+
+        if a.is_err() {
+            log::info!("{a:?}");
+        }
     }
 }
 

@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -91,16 +93,16 @@ impl MyNode for SplitRgbaNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         renderer: &mut Renderer,
-    ) -> bool {
-        let input_id = self.input_id(self.inputs()[0].clone());
+    ) -> anyhow::Result<()> {
+        let input_id = self.input_id(&self.inputs()[0]);
         let output_ids = self
             .outputs()
             .iter()
-            .map(|x| self.output_id(x.to_string()))
+            .map(|x| self.output_id(x))
             .collect::<Vec<String>>();
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let fragment_shader_src = r#"
@@ -133,25 +135,23 @@ impl MyNode for SplitRgbaNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         for i in 0..4 {
             storage.create_and_set_texture(texture_size.0, texture_size.1, output_ids[i].clone());
         }
 
         let input_texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("unable to find input texture")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
-        for i in 0..4 {
+            .unwrap();        for i in 0..4 {
             let uniforms = uniform! {
                 tex: input_texture,
                 rgba_index: i as i32,
@@ -170,6 +170,6 @@ impl MyNode for SplitRgbaNode {
                 )
                 .unwrap();
         }
-        return true;
+        return Ok(());
     }
 }

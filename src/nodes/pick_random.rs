@@ -3,6 +3,8 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 
 use crate::{
     node::{random_id, MyNode},
@@ -113,9 +115,9 @@ impl MyNode for RandomInputNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.weights.len() < 1 {
-            return false;
+            return Err(anyhow!("not enough weights"));
         }
         // let num: f32 = fastrand::f32();
         let total1 = self.weights.iter().sum::<f32>() * fastrand::f32();
@@ -129,11 +131,11 @@ impl MyNode for RandomInputNode {
             }
         }
 
-        let input_id = self.input_id(self.inputs()[index].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let input_id = self.input_id(&self.inputs()[index]);
+        let output_id =self.output_id(&self.outputs()[0]);
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let fragment_shader_src = r#"
@@ -151,23 +153,21 @@ impl MyNode for RandomInputNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex: texture,
 
@@ -186,7 +186,7 @@ impl MyNode for RandomInputNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self

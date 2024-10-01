@@ -4,6 +4,8 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use node_enum::*;
 use savefile::{save_file, SavefileError};
+use anyhow::anyhow;
+
 use strum::IntoEnumIterator;
 
 use crate::{node::*, nodes::*, storage::Storage};
@@ -173,7 +175,7 @@ impl MyNode for GenericMaskNode {
         storage: &mut Storage,
         map: HashMap<String, String>,
         _renderer: &mut Renderer,
-    ) -> bool {
+    ) -> anyhow::Result<()> {
         if self.type_index != self.type_.generic_mask_index() {
             log::info!("{}", self.type_index);
             for i in NodeType::iter() {
@@ -189,11 +191,11 @@ impl MyNode for GenericMaskNode {
             }
         }
 
-        let input_id = self.input_id(self.inputs()[0].clone());
-        let output_id = self.output_id(self.outputs()[0].clone());
+        let input_id = self.input_id(&self.inputs()[0]);
+        let output_id =self.output_id(&self.outputs()[0]);;
         let get_output = match map.get(&input_id) {
             Some(a) => a,
-            None => return false,
+            None => return  Err(anyhow!("missing input")),
         };
 
         let fragment_shader_src = match self.type_ {
@@ -205,23 +207,21 @@ impl MyNode for GenericMaskNode {
 
         let texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
-            None => return false,
+            None => return Err(anyhow!("cannot find input texture")),
         };
 
-        storage
+                storage
             .gen_frag_shader(fragment_shader_src.to_string())
-            .unwrap();
+            .ok_or(anyhow!("failed to compile shader"))?;
         storage.create_and_set_texture(texture_size.0, texture_size.1, output_id.clone());
 
         let texture: &glium::Texture2d = match storage.get_texture(get_output) {
             Some(a) => a,
-            None => return false,
+            None => return Err(anyhow!("failed to get input texture from storage")),
         };
-
-        let shader = storage
+let shader = storage
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
-
         let uniforms = uniform! {
             tex: texture,
             u_time: storage.time,
@@ -242,6 +242,6 @@ impl MyNode for GenericMaskNode {
             )
             .unwrap();
 
-        return true;
+        return Ok(());
     }
 }
