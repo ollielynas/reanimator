@@ -209,7 +209,7 @@ pub fn setup_popup(settings: &UserSettings) {
                                 ui.checkbox("set as default for .repj files", &mut repj);
                             }
                             SetupStage::SetGpuPref => {
-                                ui.checkbox("GPU priority", &mut repj);
+                                ui.checkbox("GPU priority", &mut attempt_to_set_gpu_pref);
                                 ui.text_wrapped("attempt to tell the computer to prioritize performance when running this application");
                             }
                         }
@@ -257,7 +257,9 @@ pub fn setup_popup(settings: &UserSettings) {
                                 }
                             }
                             SetupStage::SetGpuPref => {
+                                if attempt_to_set_gpu_pref {
                                 set_gpu_pref();
+                            }
                                 setup_index += 1;
                             }
                         }
