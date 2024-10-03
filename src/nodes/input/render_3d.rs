@@ -1,6 +1,5 @@
 use crate::{
-    node::{random_id, MyNode},
-    storage::Storage,
+    generic_node_info::GenericNodeInfo, node::{random_id, MyNode}, storage::Storage
 };
 use glium::{texture::RawImage2d, Texture2d};
 use image::EncodableLayout;
@@ -261,16 +260,20 @@ impl MyNode for Render3DNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.clone(),
+        }
+    }
+
     fn path(&self) -> Vec<&str> {
         vec!["IO", "Load"]
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text_wrapped("this node allows you to render .obj files");
@@ -378,9 +381,7 @@ impl MyNode for Render3DNode {
         NodeType::Render3D
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(

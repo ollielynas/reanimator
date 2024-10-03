@@ -16,20 +16,16 @@ use savefile::prelude::*;
 use crate::{generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage};
 
 pub trait MyNode {
+
     fn savefile_version() -> u32
     where
         Self: Sized;
 
-    fn generic_info(&self) -> GenericNodeInfo {
-        GenericNodeInfo {
-            x: self.x(),
-            y: self.y(),
-            type_: self.type_().to_string(),
-            id: self.id(),
-        }
-    }
+    fn generic_info(&self) -> GenericNodeInfo;
 
-    fn load_assets(&mut self, storage: &Storage) {}
+
+    /// if a node has some large one time cost then that cost should take place in this function
+    fn load_assets(&mut self, _storage: &Storage) {}
 
     fn as_any(&self) -> &dyn Any;
 
@@ -37,26 +33,38 @@ pub trait MyNode {
 
     fn path(&self) -> Vec<&str>;
 
-    fn type_(&self) -> NodeType;
+    fn type_(&self) -> NodeType {
+        self.generic_info().type_
+    }
 
-    fn y(&self) -> f32;
-    fn x(&self) -> f32;
+    fn y(&self) -> f32 {
+        self.generic_info().y
+    }
+    fn x(&self) -> f32 {
+        self.generic_info().x
+    }
 
     fn name(&self) -> String {
         self.type_().name()
     }
-    fn id(&self) -> String;
+    fn id(&self) -> String {
+        self.generic_info().id
+    }
 
     // fn set_pos();
 
+    
     fn inputs(&self) -> Vec<String>;
     fn outputs(&self) -> Vec<String>;
 
     fn set_xy(&mut self, x: f32, y: f32);
 
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer, storage: &Storage) {
+
+    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.text("this node cannot be edited");
     }
+
+
     fn description(&mut self, ui: &Ui) {
         ui.text("this node does not yet have a description");
     }
@@ -71,11 +79,12 @@ pub trait MyNode {
     ///     );
     /// }
     /// ```
-    fn save(&self, path: PathBuf) -> Result<(), SavefileError>;
+    fn save(&self, path: PathBuf) -> Result<(), SavefileError> ;
 
     fn input_id(&self, input: &str) -> String {
         format!("node-{}-input-{input}", self.id())
     }
+
     fn output_id(&self, output: &str) -> String {
         format!("node-{}-output-{output}", self.id())
     }

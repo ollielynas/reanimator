@@ -16,9 +16,10 @@ pub fn link_widget(ui: &Ui, text: impl Into<String>, link: impl Into<String> + C
             .add_line(p1, p2, [0.0, 102.0 / 255.0, 204.0 / 255.0, 1.0])
             .build();
         if ui.is_mouse_clicked(imgui::MouseButton::Left) {
-            open::that(&(link.clone().into()));
-        }
-        ui.tooltip_text(&(link.into()));
+            let _ = open::that(&(link.into()));
+        }else {
+            ui.tooltip_text(&(link.into()));
+    }
     }
 }
 

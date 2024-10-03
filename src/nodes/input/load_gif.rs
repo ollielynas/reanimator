@@ -3,6 +3,7 @@ use crate::{
     storage::Storage,
 };
 use glium::{index, texture::RawImage2d, Texture2d};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use image::EncodableLayout;
 use image::{
@@ -63,12 +64,16 @@ impl MyNode for LoadGifNode {
         self.id = id;
     }
 
-    fn x(&self) -> f32 {
-        self.x
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
     }
-    fn y(&self) -> f32 {
-        self.y
-    }
+
+     
 
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text_wrapped("load gif files");
@@ -104,9 +109,7 @@ impl MyNode for LoadGifNode {
         NodeType::LoadGif
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(

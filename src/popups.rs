@@ -18,10 +18,7 @@ use win_msgbox::Okay;
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
 use crate::{
-    relaunch_program,
-    support::{create_context, init_with_startup},
-    user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION},
-    widgets::{link_widget, path_input},
+    relaunch_program, set_gpu_pref, support::{create_context, init_with_startup}, user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION}, widgets::{link_widget, path_input}
 };
 
 #[derive(EnumIter, ToJsonString, Serialize)]
@@ -29,6 +26,7 @@ enum SetupStage {
     ProjectFolder,
     InstallFfmpeg,
     DefaultApplicationForRepjFiles,
+    SetGpuPref,
 }
 
 /// call this right at the start
@@ -41,7 +39,7 @@ pub fn set_panic_hook() {
     
     
     let message =
-        String::from_utf8(fast_smaz::decompress(&hex::decode(args[2].clone()).unwrap_or_default()).unwrap_or_default())
+        String::from_utf8(fast_smaz::decompress(&hex::decode(&args[2]).unwrap_or_default()).unwrap_or_default())
         .unwrap_or_default();
 
 
@@ -63,6 +61,7 @@ pub fn set_panic_hook() {
     init_with_startup(
         "Error!",
         Some((512,356)),
+        true,
         |_, _, _display| {},
         move |_, ui, _display, _rendererr, _drop_filee, _window| {
             
@@ -144,6 +143,8 @@ pub fn setup_popup(settings: &UserSettings) {
     let mut pick_options = true;
     let mut repj = true;
 
+    let mut attempt_to_set_gpu_pref = true;
+
     let mut ffmpeg_thread: Vec<std::thread::JoinHandle<()>> = vec![];
 
     let mut ctx: imgui::Context = create_context();
@@ -155,6 +156,7 @@ pub fn setup_popup(settings: &UserSettings) {
     init_with_startup(
         "Setup",
         Some((355,355)),
+        true,
         |_, _, _display| {},
         move |_, ui, _display, renderer, drop_file, window| {
             let size_array = ui.io().display_size;
@@ -206,6 +208,10 @@ pub fn setup_popup(settings: &UserSettings) {
                             SetupStage::DefaultApplicationForRepjFiles => {
                                 ui.checkbox("set as default for .repj files", &mut repj);
                             }
+                            SetupStage::SetGpuPref => {
+                                ui.checkbox("GPU priority", &mut repj);
+                                ui.text_wrapped("attempt to tell the computer to prioritize performance when running this application");
+                            }
                         }
                         
                     } else {
@@ -249,6 +255,10 @@ pub fn setup_popup(settings: &UserSettings) {
                                     set_as_default_for_filetype2();
                                     setup_index += 1;
                                 }
+                            }
+                            SetupStage::SetGpuPref => {
+                                set_gpu_pref();
+                                setup_index += 1;
                             }
                         }
                     }
@@ -309,7 +319,7 @@ pub fn set_as_default_for_filetype() {
         .parent()
         .unwrap()
         .join("ReAnimator Setup Util.bat");
-    fs::write(
+    let _ = fs::write(
         current_exe()
             .unwrap()
             .parent()

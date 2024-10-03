@@ -25,7 +25,7 @@ impl Project {
             .set_can_create_directories(true)
             .save_file();
 
-        if let Some(output_path) = output_path.clone() {
+        if let Some(ref output_path) = output_path {
             let out = output_path.display().to_string();
             let input = self.path.display().to_string();
             let compressor = Compressor::new(&input, &out);
@@ -37,9 +37,9 @@ impl Project {
     }
 }
 
-pub fn load_project(path: String, mut user_settings: UserSettings) -> Option<PathBuf> {
+pub fn load_project(path: &str, user_settings: &UserSettings) -> Option<PathBuf> {
+    let mut user_settings = user_settings.clone();
     user_settings.update_projects();
-    // let _projects = user_settings.projects.clone();
     let out = user_settings.project_folder_path.display().to_string();
     let extractor = Extractor::new(&path, &out);
     let _extract_info = extractor.extract();

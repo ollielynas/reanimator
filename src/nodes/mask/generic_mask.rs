@@ -4,6 +4,7 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use node_enum::*;
 use savefile::{save_file, SavefileError};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 
 use strum::IntoEnumIterator;
@@ -90,6 +91,15 @@ impl MyNode for GenericMaskNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn savefile_version() -> u32
     where
         Self: Sized,
@@ -101,20 +111,13 @@ impl MyNode for GenericMaskNode {
         self
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn type_(&self) -> NodeType {
         self.type_
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         if self.input_name.is_empty() {

@@ -34,7 +34,7 @@ impl LocalFiles {
         }
 
         self.files.clear();
-        let files = recurse_files(storage.project_root.clone());
+        let files = recurse_files(&storage.project_root);
         if let Ok(files) = files {
             for f in files {
                 if let Some(file_) = MyFile::new(f) {

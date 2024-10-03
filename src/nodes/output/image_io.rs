@@ -16,6 +16,7 @@ use glium::{
     uniforms::{MagnifySamplerFilter, MinifySamplerFilter, SamplerBehavior},
     Texture2d,
 };
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use glium::{BlitMask, BlitTarget, Frame, GlObject, Rect, Surface};
 use image::gif::{GifDecoder, GifEncoder};
@@ -173,6 +174,15 @@ impl MyNode for OutputNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn set_xy(&mut self, x: f32, y: f32) {
         self.x = x;
         self.y = y;
@@ -194,9 +204,7 @@ impl MyNode for OutputNode {
         NodeType::Output
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(

@@ -32,6 +32,7 @@ pub const FONT_SIZE: f32 = 13.0;
 pub fn init_with_startup<FInit, FUi>(
     title: &str,
     size: Option<(i32, i32)>,
+    visible: bool,
     mut startup: FInit,
     mut run_ui: FUi,
     fullscreen: Option<Fullscreen>,
@@ -59,6 +60,7 @@ pub fn init_with_startup<FInit, FUi>(
     let builder = WindowBuilder::new()
         .with_title(title)
         .with_maximized(fullscreen.is_some())
+        .with_visible(visible)
         .with_window_icon(Some(
             Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap(),
         ))

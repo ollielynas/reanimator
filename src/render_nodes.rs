@@ -60,6 +60,25 @@ impl Project {
     ) {
         // let mut focus
 
+        let node_window_vars = [
+            ui.push_style_var(imgui::StyleVar::ItemSpacing([
+                3.0 * self.scale,
+                3.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::WindowPadding([
+                10.0 * self.scale,
+                10.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::FramePadding([
+                5.0 * self.scale,
+                5.0 * self.scale,
+            ])),
+            ui.push_style_var(imgui::StyleVar::WindowMinSize([
+                5.0 * self.scale,
+                5.0 * self.scale,
+            ])),
+        ];
+
         for (i, node) in self.nodes.iter_mut().enumerate().rev() {
             let mut del_window_not = true;
 
@@ -140,7 +159,7 @@ impl Project {
                 // ui.columns(2, node.id(), false);
                 for input in node.inputs() {
                     let last_pos = ui.cursor_screen_pos();
-                    if ui.button(input.clone()) {
+                    if ui.button(&input) {
                         self.selected_input = Some(node.input_id(&input));
                     }
 
@@ -158,7 +177,7 @@ impl Project {
                 }
                 for output in node.outputs() {
                     let last_pos = ui.cursor_screen_pos();
-                    if ui.button(output.clone()) {
+                    if ui.button(&output) {
                         self.selected_output = Some(node.output_id(&output));
                     }
 
@@ -335,6 +354,9 @@ impl Project {
                 }
             });
         } // end of node loop
+        for var in node_window_vars {
+            var.end();
+        }
     }
 
     pub fn render_background(&self, ui: &Ui, bg_draw_list: &DrawListMut) {

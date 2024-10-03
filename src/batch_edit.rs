@@ -13,6 +13,7 @@ use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
 use numfmt::{Formatter, Precision, Scales};
 use rfd::FileDialog;
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 
 #[derive(Savefile, Clone)]
@@ -157,16 +158,7 @@ impl Project {
                 // output_data.append(&mut output_frame.data.to_vec());
         }
         command.iter()?.collect_metadata()?;
-        // command.quit();
-        // command.wait();
-
-        // command.iter().unwrap().for_each(|e| match e {
-        //     FfmpegEvent::Log(LogLevel::Error, e) => println!("Error: {}", e),
-        //     FfmpegEvent::Progress(p) => println!("Progress: {} / 00:00:15", p.time),
-            
-        //     _ => {}
-        //   });
-
+        
         return Ok(());
     }
 
@@ -225,7 +217,7 @@ impl Project {
             
             let color_token = ui.push_style_color(imgui::StyleColor::Text, [1.0, 0.404, 0.0, 1.0]);
             if self.project_settings.generic_io.input_id.is_none() {
-                ui.text_wrapped("The generic inout node has not been set, you will not be able to perform batch operations");
+                ui.text_wrapped("The generic input node has not been set, you will not be able to perform batch operations");
             }
             if self.project_settings.generic_io.output_id.is_none() {
                 ui.text_wrapped("The generic output node has not been set, you will not be able to perform batch operations");
@@ -246,7 +238,7 @@ impl Project {
                         }
                     }
                 }
-                self.project_settings.batch_files.files = self.project_settings.batch_files.files.iter().unique_by(|x| x.path.clone()).cloned().collect::<Vec<MyFile>>();
+                self.project_settings.batch_files.files = self.project_settings.batch_files.files.iter().unique_by(|x| x.path.as_path().to_str()).cloned().collect::<Vec<MyFile>>();
             } 
             ui.same_line();
             if ui.button("add folder") {
@@ -261,7 +253,7 @@ impl Project {
                             }
                         }
                     }
-                    self.project_settings.batch_files.files = self.project_settings.batch_files.files.iter().unique_by(|x| x.path.clone()).cloned().collect::<Vec<MyFile>>();
+                    self.project_settings.batch_files.files = self.project_settings.batch_files.files.iter().unique_by(|x| x.path.as_os_str()).cloned().collect::<Vec<MyFile>>();
                     
                 }
             }
@@ -283,13 +275,13 @@ impl Project {
 
             
             if ui.button("Name") && self.project_settings.batch_files.files.len()>=2 {
-                let first = self.project_settings.batch_files.files[0].path.clone();
-                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first = self.project_settings.batch_files.files[0].path.to_owned();
+                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.to_owned();
                 self.project_settings.batch_files.files.sort_by_key(|f| f.name());
-                let first2 = self.project_settings.batch_files.files[0].path.clone();
-                let last2 = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first2 = &self.project_settings.batch_files.files[0].path;
+                let last2 = &self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path;
                 
-                if first2 == first && last == last2 {
+                if first2 == &first && &last == last2 {
                     self.project_settings.batch_files.files.reverse();
                 }
             }
@@ -297,13 +289,13 @@ impl Project {
             ui.same_line_with_pos(ui.window_size()[0] / 4.0);
 
             if ui.button("type") && self.project_settings.batch_files.files.len()>=2 {
-                let first = self.project_settings.batch_files.files[0].path.clone();
-                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first = self.project_settings.batch_files.files[0].path.to_owned();
+                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.to_owned();
                 self.project_settings.batch_files.files.sort_by_key(|f| f.type_());
-                let first2 = self.project_settings.batch_files.files[0].path.clone();
-                let last2 = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first2 = &self.project_settings.batch_files.files[0].path;
+                let last2 = &self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path;
 
-                if first2 == first && last == last2 {
+                if first2 == &first && &last == last2 {
                     self.project_settings.batch_files.files.reverse();
                 }
             }
@@ -313,13 +305,13 @@ impl Project {
 
 
             if ui.button("Size") && self.project_settings.batch_files.files.len()>=2 {
-                let first = self.project_settings.batch_files.files[0].path.clone();
-                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first = self.project_settings.batch_files.files[0].path.to_owned();
+                let last = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.to_owned();
                 self.project_settings.batch_files.files.sort_by_key(|f| f.size);
-                let first2 = self.project_settings.batch_files.files[0].path.clone();
-                let last2 = self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path.clone();
+                let first2 = &self.project_settings.batch_files.files[0].path;
+                let last2 = &self.project_settings.batch_files.files[self.project_settings.batch_files.files.len() - 1].path;
 
-                if first2 == first && last == last2 {
+                if first2 == &first && &last == last2 {
                     self.project_settings.batch_files.files.reverse();
                 }
             }

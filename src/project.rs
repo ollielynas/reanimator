@@ -12,6 +12,7 @@ use itertools::Itertools;
 use platform_dirs::{AppDirs, UserDirs};
 use self_update::cargo_crate_version;
 use std::collections::HashSet;
+use std::path::Path;
 use std::thread::{panicking, sleep};
 use std::{
     env::current_exe,
@@ -35,6 +36,7 @@ use strum::IntoEnumIterator;
 
 use crate::generic_io::EditTab;
 use crate::generic_node_info::GenericNodeInfo;
+use anyhow::anyhow;
 use crate::node::random_id;
 use crate::nodes::debug;
 
@@ -105,9 +107,9 @@ impl Project {
     //     // }
     // }
 
-    pub fn new(path: PathBuf, display: Display<WindowSurface>) -> Project {
+    pub fn new<P: AsRef<Path>>(path: P, display: Display<WindowSurface>) -> Project {
         // log::info!("{:?}", fs::create_dir_all(path.join("nodes")));
-
+        let path = path.as_ref();
         let new = Project {
             advanced_color_picker: AdvancedColorPicker::default(),
             return_to_home_menu: false,
@@ -123,7 +125,7 @@ impl Project {
             display_history: false,
             connections: HashMap::new(),
             metrics: false,
-            path: path.clone(),
+            path: path.to_path_buf(),
             node_edit: None,
             new_node_types: vec![],
             // node_render_target: render_target(1000, 1000),
@@ -166,7 +168,7 @@ impl Project {
         self.backup_data = vec![];
 
         // create the save folder if it doesn't already exist
-        fs::create_dir_all(self.path.clone())?;
+        fs::create_dir_all(&self.path)?;
 
         // save the connections
         savefile::save_file(self.path.join("connections.bin"), 0, &self.connections)?;
@@ -206,11 +208,7 @@ impl Project {
             self.project_settings.generic_io.output_id = None;
         }
 
-        savefile::save_file(
-            self.path.join("backup_data.bin"),
-            GenericNodeInfo::savefile_version(),
-            &self.backup_data,
-        );
+        
 
         return Ok(());
     }
@@ -304,7 +302,7 @@ impl Project {
                         5 => {
                             ui.text("Updateing ffmpeg");
                         }
-                        5 => {
+                        6 => {
                             ui.text("Loading assets");
                         }
                         _ => {}
@@ -361,14 +359,7 @@ impl Project {
                             {
                                 self.project_settings = project_settings;
                             }
-                            if let Ok(backup_data) =
-                                savefile::load_file::<Vec<GenericNodeInfo>, PathBuf>(
-                                    self.path.join("backup_data.bin"),
-                                    GenericNodeInfo::savefile_version(),
-                                )
-                            {
-                                self.backup_data = backup_data;
-                            }
+                            
                             if let Ok(project_settings) =
                                 savefile::load_file::<ProjectSettings, PathBuf>(
                                     self.path.join("project_settings.bin"),
@@ -384,7 +375,7 @@ impl Project {
                                     .download_dir
                                     .join(format!("{}", self.name()));
                                 fs::create_dir_all(
-                                    self.project_settings.batch_files.save_path.clone(),
+                                    &self.project_settings.batch_files.save_path,
                                 );
                             }
 
@@ -418,7 +409,7 @@ impl Project {
                                 log::info!("project not found");
                             }
 
-                            self.storage.project_root = self.path.clone().join("root");
+                            self.storage.project_root = self.path.join("root");
                         }
                         2 => {
                             self.recenter_nodes(ui);
@@ -468,12 +459,8 @@ impl Project {
                             self.project_settings.local_files.reload(&self.storage)
                         }
                         4 => {
-                            for node in &self.nodes {
-                                self.backup_data.retain(|x| x.id != node.id());
-                            }
-                            for data in &self.backup_data {
-                                self.nodes.push(data.restore_node());
-                            }
+                            // this step is kinda useless now, remend me to do something with it later
+                            
                         }
                         5 => {
                             if user_settings.install_ffmpeg {
@@ -681,7 +668,7 @@ impl Project {
         if self.edit_tab != EditTab::Nodes {
             return;
         }
-
+       
         let mut run_id = String::new();
         for node in &self.nodes {
             if node.type_() == NodeType::CoverWindow {
@@ -738,42 +725,21 @@ impl Project {
 
         let mouse_pos = ui.io().mouse_pos;
 
-        // ui.get_foreground_draw_list().add_line(mouse_pos, [mouse_pos[0]+params.move_delta[0]*10.0 , mouse_pos[1] +params.move_delta[1] * 10.0], [1.0,0.0,1.0,1.0]).thickness(1.0).build();
-
-        let node_window_vars = [
-            ui.push_style_var(imgui::StyleVar::ItemSpacing([
-                3.0 * self.scale,
-                3.0 * self.scale,
-            ])),
-            ui.push_style_var(imgui::StyleVar::WindowPadding([
-                10.0 * self.scale,
-                10.0 * self.scale,
-            ])),
-            ui.push_style_var(imgui::StyleVar::FramePadding([
-                5.0 * self.scale,
-                5.0 * self.scale,
-            ])),
-            ui.push_style_var(imgui::StyleVar::WindowMinSize([
-                5.0 * self.scale,
-                5.0 * self.scale,
-            ])),
-        ];
-
-        // move_delta[0] /= self.scale * -1.0;
-        // move_delta[1] /= self.scale * -1.0;
 
         if ui.is_mouse_down(imgui::MouseButton::Left)
             && ui.is_mouse_dragging(imgui::MouseButton::Left)
         {
             params.moving = true;
-            // log::info!("")
         }
-
+        
         self.render_node(ui, &mut params, renderer);
 
-        for var in node_window_vars {
-            var.end();
-        }
+
+
+
+
+
+        
 
         if let Some(mut d) = params.duplicate_node {
             d.set_xy(d.x() + 10.0, d.y() + 10.0);
@@ -794,16 +760,14 @@ impl Project {
 
         let mouse_pos = ui.io().mouse_pos;
         match (
-            self.selected_input.clone(),
-            self.selected_output.clone(),
+            &self.selected_input,
+            &self.selected_output,
             mouse_pos,
         ) {
             (None, Some(a), m) => {
-                if let Some(pos) = params.node_pos_map.get(&a) {
-                    let mut pos = pos.clone();
-                    // if pos == ImVec2::new(PI, PI) {
-                    //     pos = ImVec2::new(size_array[0], m[1]);
-                    // }
+                if let Some(pos) = params.node_pos_map.get(a) {
+                    let mut pos = pos;
+
                     let diff = (m[0] - pos.x).abs();
                     draw_list
                         .add_bezier_curve(
@@ -817,7 +781,7 @@ impl Project {
                 }
             }
             (Some(a), None, m) => {
-                if let Some(pos) = params.node_pos_map.get(&a) {
+                if let Some(pos) = params.node_pos_map.get(a) {
                     let diff = (m[0] - pos.x).abs();
 
                     draw_list
@@ -830,11 +794,10 @@ impl Project {
                         )
                         .build();
                 }
-                self.connections.remove(&a);
+                self.connections.remove(a);
             }
             (Some(a), Some(b), _) => {
-                self.connections.insert(a, b);
-
+                self.connections.insert(a.to_owned(), b.to_owned());
                 self.selected_input = None;
                 self.selected_output = None;
             }
@@ -881,8 +844,10 @@ impl Project {
         }
         // });
 
+
+        
         if self.project_settings.render_ticker
-            && self.render_ticker_timer.elapsed().as_secs_f32() > 1.0
+            && self.render_ticker_timer.elapsed().as_secs_f32() > 0.2
         {
             self.render_ticker_timer = Instant::now();
             params.time_list.push(ui.time());
@@ -906,6 +871,8 @@ impl Project {
             }
             first = false;
         }
+
+
 
         let un_round = ui.push_style_var(imgui::StyleVar::WindowRounding(0.0));
 
@@ -953,15 +920,12 @@ impl Project {
             .size_constraints([window_size.x * 0.5, -1.0], [window_size.x * 0.5, -1.0])
             .no_decoration()
             .draw_background(false)
-            // .no_inputs()
-            // .flags(WindowFlags:)
             .position(edit_window_pos, imgui::Condition::Always)
             .position_pivot([0.0, 1.0])
             .build(|| {
                 match (after, before) {
                     (Some(after), Some(before)) => {
                         let elapsed = after.get() - before.get();
-                        // log::info!("{}", elapsed);
                         if elapsed > 100000 {
                             self.total_gpu_frame_time = (elapsed as f64 / 10.0_f64.powi(9)) as f32;
                         }
@@ -996,8 +960,6 @@ impl Project {
             }
 
             self.scale = new_scale;
-            // for i in [1,0] {
-            //     self.graph_offset[0];
         }
 
         if params.moving {
@@ -1006,15 +968,6 @@ impl Project {
             self.graph_offset[1] -= params.move_delta[1] / self.scale;
         }
 
-        // for i in self.nodes {
-
-        // self.run_nodes();
-
-        // }
-
-        // ui.show_demo_window(&mut true);
-
-        // ui.show_user_guide();
     }
 
     pub fn run_nodes(&mut self, renderer: &mut Renderer) {
@@ -1071,7 +1024,7 @@ impl Project {
             self.storage.create_and_set_texture(
                 input.width,
                 input.height,
-                input_texture_id.clone(),
+                input_texture_id.to_owned(),
             );
             self.storage.get_texture(&input_texture_id).unwrap().write(
                 Rect {
@@ -1125,16 +1078,16 @@ impl Project {
                 let color = colors.get(&id).unwrap_or(&0);
                 match color {
                     0 => {
-                        colors.insert(id.clone(), 1);
+                        
                         let mut c = vec![];
-                        for connection in node_graph.get(&id.clone()).unwrap_or(&vec![]) {
+                        for connection in node_graph.get(&id).unwrap_or(&vec![]) {
                             c.push(connection.to_string());
                         }
                         for a in c {
                             dfs(a, colors, order, node_graph);
                         }
                         colors.insert(id.clone(), 1);
-                        order.push(id.clone());
+                        order.push(id);
                         return;
                     }
                     1 => {
@@ -1182,11 +1135,11 @@ impl Project {
                     } else {
                         Ok(())
                     };
-                    if worked.is_ok() {
-                        self.node_speeds.insert(id.to_string(), now.elapsed());
-                    } else {
-                        self.node_speeds.remove(id);
-                    }
+                    // if worked.is_ok() {
+                    //     self.node_speeds.insert(id.to_string(), now.elapsed());
+                    // } else {
+                    //     self.node_speeds.remove(id);
+                    // }
                     self.node_error_value.insert(id.to_owned(), worked);
                 }
             }

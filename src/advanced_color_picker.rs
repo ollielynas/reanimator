@@ -209,10 +209,13 @@ impl AdvancedColorPicker {
                             let color = &self.pantone_colors[i];
                             let a = ui.color_button(&color.code, color.color);
                             ui.same_line();
-                            let b = ui.button(if color.name.is_empty() {
-                                format!("{:?}", color.code)
+
+
+                            let (name, code) = (&color.name, &color.code);
+                            let b = ui.button(if (&color.name).is_empty() {
+                                code
                             } else {
-                                color.name.clone()
+                                name
                             });
 
                             if a || b {

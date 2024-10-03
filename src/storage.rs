@@ -39,7 +39,7 @@ pub struct Storage {
     text: HashMap<String, String>,
     pub display: Display<WindowSurface>,
     unused_textures: HashMap<(u32, u32), Vec<Texture2d>>,
-    shaders: HashMap<(String, String), Program>,
+    shaders: HashMap<String, Program>,
     pub time: f64,
     pub indices: NoIndices,
     pub vertex_buffer: VertexBufferAny,
@@ -181,15 +181,13 @@ impl Storage {
         for (string, _) in self.textures.iter() {
             keys.push(string.clone())
         }
-        // let keys = self.textures.keys().collect::<Vec<&String>>();
-        self.redirect_id_to_cache = HashMap::new();
         for key in keys {
-            self.drop_texture(key.to_string());
+            self.drop_texture(&key);
         }
     }
 
-    pub fn drop_texture(&mut self, id: String) {
-        let texture = self.textures.remove(&id);
+    pub fn drop_texture(&mut self, id: &str) {
+        let texture = self.textures.remove(id);
         if let Some(texture) = texture {
             if let Some(ref mut a) = self
                 .unused_textures
@@ -275,9 +273,9 @@ impl Storage {
                     params.scale_changed = false;
                 }
                 match LOG_TEXT.lock() {
-                    Ok(a2) => {
-                        let a = a2.clone();
-                        drop(a2);
+                    Ok(a) => {
+                        // let a = a2.clone();
+                        // drop(a2);
 
                         let total = a.len();
 
@@ -330,17 +328,18 @@ impl Storage {
     }
 
     pub fn get_shader(&self, vert: String, frag: String) -> Option<&Program> {
-        return self.shaders.get(&(vert, frag));
+        return self.shaders.get(&(vert+&frag));
     }
 
     pub fn gen_shader(&mut self, vert: String, frag: String) -> Option<&Program> {
-        if !self.shaders.contains_key(&(vert.clone(), frag.clone())) {
-            log::info!(
-                "created shader: (vert/frag) {} / {} bytes",
-                vert.bytes().len(),
-                frag.bytes().len()
-            );
-            let program = match glium::Program::from_source(&self.display, &(vert), &frag, None) {
+        let value = &(vert.clone()+ &frag);
+        if  self.shaders.contains_key(value) {
+            return self.shaders.get(value);
+        }else {
+            let program = match glium::Program::from_source(
+                &self.display, 
+                vert.as_str(), 
+                frag.as_str(), None) {
                 Ok(a) => a,
                 Err(a) => {
                     log::info!(
@@ -349,11 +348,14 @@ impl Storage {
                     return None;
                 }
             };
-            self.shaders.insert((vert.clone(), frag.clone()), program);
-        }
-        return self.shaders.get(&(vert, frag));
-    }
+            self.shaders.insert(vert.clone() + &frag, program);
 
+            return self.shaders.get(&(vert+ &frag));
+        }
+
+        
+    }
+    /// I would like to make this function less expensive
     pub fn create_and_set_texture(&mut self, width: u32, height: u32, k: String) {
         match self.unused_textures.get_mut(&(width, height)) {
             Some(a) if a.len() > 0 => {

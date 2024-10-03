@@ -3,6 +3,7 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 
 
@@ -37,6 +38,15 @@ impl MyNode for CombineRgbaNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn savefile_version() -> u32 {
         0
     }
@@ -45,20 +55,13 @@ impl MyNode for CombineRgbaNode {
         self
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn type_(&self) -> NodeType {
         NodeType::CombineRgba
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self

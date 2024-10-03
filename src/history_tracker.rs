@@ -28,7 +28,7 @@ pub struct Snapshot {
 
 impl Project {
     pub fn update_history_and_save(&mut self) -> Result<(), Error> {
-        let mut old = Project::new(self.path.clone(), self.storage.display.clone());
+        let mut old = Project::new(&self.path, self.storage.display.clone());
         let a = self.save();
 
         match a {
@@ -58,7 +58,7 @@ impl Project {
 
         let mut save_dir = match AppDirs::new(Some("ReAnimator"), false) {
             Some(a) => {
-                fs::create_dir_all(a.cache_dir.clone());
+                fs::create_dir_all(&a.cache_dir);
                 a.cache_dir
             }
             None => current_exe().unwrap(),
@@ -76,32 +76,32 @@ impl Project {
         }
 
         let mut hash = Blake2s256::new();
-        let hash_str = file_hashing::get_hash_folder(self.path.clone(), &mut hash, 12, |_| {})
+        let hash_str = file_hashing::get_hash_folder(&self.path, &mut hash, 12, |_| {})
             .unwrap_or("hash error".to_owned());
 
         let new_path = save_dir.join(self.name()).join(hash_str);
+        let binding_new_path = new_path.display().to_string();
+        let binding_old_path = old.path.display().to_string();
+        let compressor: Compressor = Compressor::new(
+            &binding_new_path,
+            &binding_old_path,
+        );
 
         let mut snapshot = Snapshot {
             description: description,
-            path: new_path.clone(),
+            path: new_path,
             time: DateTime::new().format("%d/%m/%Y %H:%M"),
             index: UNIX_EPOCH.elapsed().unwrap().as_secs_f64(),
         };
 
-        let compressor: Compressor = Compressor::new(
-            old.path.as_os_str().to_str().unwrap(),
-            new_path.as_os_str().to_str().unwrap(),
-        );
         let _compress_info = compressor.compress(CompressionLevel::Fast)?;
 
-        let _its_ok_if_this_errors = fs::remove_dir_all(old.path.clone());
+        let _its_ok_if_this_errors = fs::remove_dir_all(&old.path);
 
-        // if fs::metadata(new_path.clone()).is_ok() {
-        //     return Ok(());
-        // }else {
-        // };
 
-        let a = savefile::save_file(new_path.with_extension("snapshot"), 0, &snapshot);
+        let a = savefile::save_file(
+            snapshot.path.with_extension("snapshot")
+            , 0, &snapshot);
 
         match a {
             Ok(_) => {}
@@ -112,7 +112,7 @@ impl Project {
 
         self.snapshots = vec![];
 
-        for file in fs::read_dir(match new_path.parent() {
+        for file in fs::read_dir(match snapshot.path.parent() {
             Some(a) => a,
             None => {
                 return Err(Error::other("no parent"));
@@ -149,7 +149,7 @@ impl Project {
                         );
 
                         log::info!("extractor {:?}", extractor.extract());
-                        let new = Project::new(self.path.clone(), self.storage.display.clone());
+                        let new = Project::new(&self.path, self.storage.display.clone());
 
                         self.nodes = new.nodes;
                         self.connections = new.connections;

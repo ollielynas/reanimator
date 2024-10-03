@@ -3,6 +3,7 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 
 
@@ -40,6 +41,15 @@ impl MyNode for SplitHsvNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn savefile_version() -> u32 {
         1
     }
@@ -48,20 +58,13 @@ impl MyNode for SplitHsvNode {
         self
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn type_(&self) -> NodeType {
         NodeType::SplitHsv
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(

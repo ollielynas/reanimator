@@ -64,7 +64,7 @@ pub fn set_logger_mine() -> anyhow::Result<()> {
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log")?)
         // Apply globally
-        .chain(shared_dispatch.clone())
+        .chain(shared_dispatch)
         .apply()?;
 
     Ok(())

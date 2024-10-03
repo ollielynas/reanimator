@@ -9,6 +9,7 @@ use glium::{uniform, DrawParameters, Surface};
 use imgui_glium_renderer::Renderer;
 use node_enum::*;
 use savefile::{save_file, SavefileError};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 
 
@@ -48,6 +49,15 @@ impl MyNode for RestrictPalletNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn savefile_version() -> u32
     where
         Self: Sized,
@@ -59,12 +69,7 @@ impl MyNode for RestrictPalletNode {
         self
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn type_(&self) -> NodeType {
         NodeType::RestrictPalletRGBA
@@ -73,9 +78,7 @@ impl MyNode for RestrictPalletNode {
         self
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
         // ui.color_edit3_config(label, value)

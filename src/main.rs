@@ -4,12 +4,7 @@
 )]
 
 use std::{
-    env::{self, current_exe},
-    os::windows::process::CommandExt,
-    process::{exit, Command},
-    sync::Mutex,
-    thread::sleep,
-    time::{Duration, Instant},
+    env::{self, current_exe}, os::windows::process::CommandExt, path::Path, process::{exit, Command}, sync::Mutex, thread::sleep, time::{Duration, Instant}
 };
 
 use debug_and_logger::set_logger_mine;
@@ -18,6 +13,7 @@ use imgui_winit_support::winit::{
     dpi::{LogicalSize},
     window::{Fullscreen},
 };
+use winreg::enums::HKEY_CURRENT_USER;
 use import_export::load_project;
 use lazy_static::lazy_static;
 use log::{error, info, set_logger, trace};
@@ -26,6 +22,7 @@ use popups::{set_panic_hook, setup_popup, update};
 use project::Project;
 use savefile;
 use self_update::cargo_crate_version;
+use winreg::RegKey;
 use std::sync::RwLock;
 use support::{create_context, init_with_startup};
 use system_extensions::dialogues::messagebox::{IconType, MessageBox, WindowType};
@@ -34,10 +31,7 @@ use win_msgbox::{raw::w, Okay};
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
 use perf_monitor::cpu::{ThreadStat, ProcessStat, processor_numbers};
-use perf_monitor::fd::fd_count_cur;
-use perf_monitor::io::get_process_io_stats;
-use perf_monitor::mem::get_process_memory_info;
-use anyhow::anyhow;
+
 
 lazy_static! {
     pub static ref LOG_TEXT: Mutex<Vec<Vec<u8>>> = Mutex::new(vec![]);
@@ -159,17 +153,20 @@ fn main() -> anyhow::Result<()> {
     let fullscreen = user_settings.fullscreen;
 
     let mut loaded_project = false;
+    let mut visible = true;
 
     init_with_startup(
         "ReAnimator",
         None,
+        visible,
         |_, _, _display| {
             
         },
         move |_, ui, display, renderer, drop_file, window| {
+
             if !loaded_project && args.len() >= 2 && args[1].contains(".repj") {
-                if let Some(p) = load_project(args[1].clone(), user_settings.clone()) {
-                    project = Some(Project::new(p, display.clone()));
+                if let Some(p) = load_project(&args[1], &user_settings) {
+                    project = Some(Project::new(&p, display.clone()));
                     loaded_project = true;
                 }
             }
@@ -181,6 +178,7 @@ fn main() -> anyhow::Result<()> {
             stat_t = ThreadStat::cur();
             }
             let frame_start = Instant::now();
+
             let mut global_font_tokens = vec![];
             if let Some(font_id) = user_settings.font_id {
                 if ui.fonts().get_font(font_id).is_some() {
@@ -192,7 +190,7 @@ fn main() -> anyhow::Result<()> {
                 project = None;
                 return_to_home = false;
                 window.set_maximized(false);
-                window.request_inner_size(LogicalSize::new(1024, 512));
+                let _ = window.request_inner_size(LogicalSize::new(1024, 512));
             }
 
 
@@ -201,6 +199,10 @@ fn main() -> anyhow::Result<()> {
             let size_array = ui.io().display_size;
 
             if let Some(ref mut project) = project {
+
+                
+
+
                 if let Some(path) = drop_file {
                     project.drop_file(path, ui);
                 }
@@ -326,4 +328,26 @@ pub fn relaunch_program(admin: bool, args: impl Into<String>) {
         .spawn()
         .expect("cannot spawn command");
     exit(0);
+}
+
+
+pub fn set_gpu_pref() -> anyhow::Result<()> {
+
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let path = Path::new("Software")
+        .join("Microsoft")
+        .join("DirectX")
+        .join("UserGpuPreferences")
+        ;
+    let (key, disp) = hkcu.create_subkey(&path)?;
+        match disp {
+            winreg::enums::RegDisposition::REG_CREATED_NEW_KEY => info!("A new key has been created"),
+            winreg::enums::RegDisposition::REG_OPENED_EXISTING_KEY => info!("An existing key has been opened"),
+        }
+        
+        key.set_value(current_exe()?.display().to_string(), &"GpuPreference=2;")?;
+        // let value = key.get_value::<String, _>(current_exe()?.display());
+        // println!("{:?} {:?}", current_exe()?.display().to_string(), value);
+    return Ok(());
 }

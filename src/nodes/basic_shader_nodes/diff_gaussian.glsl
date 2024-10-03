@@ -5,6 +5,8 @@
 in vec2 v_tex_coords;
 out vec4 color;
 
+const float SMAPLES = 25.0;
+
 uniform sampler2D tex;// texture to blur
 
 uniform float u_time;
@@ -35,15 +37,15 @@ void main()
     vec2 p;
     vec4 col=vec4(0.,0.,0.,0.);
     
-    for(float x2=-25.;x2<25.;x2++){
+    for(float x2=-SAMPLES;x2<SAMPLES;x2++){
         dx=1./xs;
         p.x=(pos.x)+(x*dx);
-        x=(x2/25.)*r;
+        x=(x2/SAMPLES)*r;
         xx=x*x;
-        for(float y2=-25.;y2<25.;y2++){
+        for(float y2=-SAMPLES;y2<SAMPLES;y2++){
             dy=1./ys;
             p.y=(pos.y)+(y*dy);
-            y=(y2/25.)*r;
+            y=(y2/SAMPLES)*r;
             yy=y*y;
             if(xx+yy<=rr)
             {
@@ -66,15 +68,15 @@ void main()
     
     col=vec4(0.,0.,0.,0.);
     
-    for(float x2=-25.;x2<25.;x2++){
+    for(float x2=-SAMPLES;x2<SAMPLES;x2++){
         dx=1./xs;
         p.x=(pos.x)+(x*dx);
-        x=(x2/25.)*r;
+        x=(x2/SAMPLES)*r;
         xx=x*x;
-        for(float y2=-25.;y2<25.;y2++){
+        for(float y2=-SAMPLES;y2<SAMPLES;y2++){
             dy=1./ys;
             p.y=(pos.y)+(y*dy);
-            y=(y2/25.)*r;
+            y=(y2/SAMPLES)*r;
             yy=y*y;
             if(xx+yy<=rr)
             {

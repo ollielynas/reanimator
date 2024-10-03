@@ -12,6 +12,7 @@ use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
 use savefile::{load_file, save_file, SavefileError};
 use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
+use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use crate::nodes::node_enum::NodeType;
 
@@ -80,16 +81,20 @@ impl MyNode for WebcamNode {
         self.id = id;
     }
 
+    fn generic_info(&self) -> GenericNodeInfo {
+        GenericNodeInfo {
+            x: self.x,
+            y: self.y,
+            type_: self.type_(),
+            id: self.id.to_owned(),
+        }
+    }
+
     fn path(&self) -> Vec<&str> {
         vec!["IO"]
     }
 
-    fn x(&self) -> f32 {
-        self.x
-    }
-    fn y(&self) -> f32 {
-        self.y
-    }
+     
 
     fn description(&mut self, ui: &imgui::Ui) {
         ui.text_wrapped("Get webcam as input");
@@ -121,9 +126,7 @@ impl MyNode for WebcamNode {
         NodeType::Webcam
     }
 
-    fn id(&self) -> String {
-        self.id.clone()
-    }
+     
 
     fn save(&self, path: PathBuf) -> Result<(), SavefileError> {
         return save_file(

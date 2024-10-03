@@ -100,7 +100,7 @@ impl Default for UserSettings {
         }
         .join("ReAnimator");
 
-        log::info!("{:?}", fs::create_dir_all(project_folder_path.clone()));
+        log::info!("{:?}", fs::create_dir_all(&project_folder_path));
 
         let new = UserSettings {
             new_project_name: "Unnamed Project".to_owned(),
@@ -221,12 +221,13 @@ impl UserSettings {
                             .len()
                     });
                     if fonts.len() > 0 {
-                        font = Some(fonts[0].clone());
+                        font = Some(fonts[0].copy_font_data());
                     }
+                    
                     log::info!("{font:?}");
                 }
                 if let Some(font) = font {
-                    if let Some(data) = font.copy_font_data() {
+                    if let Some(data) = font {
                         log::info!("added font");
                         let id: imgui::FontId = ctx.fonts().add_font(&[FontSource::TtfData {
                             data: &data,
@@ -484,7 +485,7 @@ impl Project {
                     .build();
                 if ui.button("create new project") {
                     new_project = Some(Project::new(
-                        user_settings
+                        &user_settings
                             .project_folder_path
                             .join(user_settings.new_project_name.clone()),
                         display.clone(),
@@ -522,7 +523,7 @@ impl Project {
                         for project in &user_settings.projects {
                             if ui.button(project.file_name().unwrap().to_str().unwrap()) {
                                 let mut new_project_1 =
-                                    Project::new(project.to_path_buf(), display.clone());
+                                    Project::new(project, display.clone());
                                 // let _ = new_project_1.save();
 
                                 // I have no idea what this code does.
@@ -594,6 +595,8 @@ impl Project {
 
         let mut deleted_project = false;
         let mut closed_popup = false;
+
+        
 
         if let Some(project_path) = &user_settings.selected_project {
             ui.open_popup("project_options");
