@@ -505,7 +505,16 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
 dependencies = [
- "bit-vec",
+ "bit-vec 0.6.3",
+]
+
+[[package]]
+name = "bit-set"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
+dependencies = [
+ "bit-vec 0.8.0",
 ]
 
 [[package]]
@@ -513,6 +522,12 @@ name = "bit-vec"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+
+[[package]]
+name = "bit-vec"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bitflags"
@@ -3752,7 +3767,7 @@ dependencies = [
 
 [[package]]
 name = "reanimator"
-version = "0.1.21"
+version = "0.1.23"
 dependencies = [
  "anyhow",
  "blake2",
@@ -4064,13 +4079,15 @@ dependencies = [
 
 [[package]]
 name = "savefile"
-version = "0.17.7"
+version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9916fda480087d511b4c4fa3eab5be6bb60352d0986cbf8fb4a9415d5fe4f0cc"
+checksum = "3b76050c6b560776f84dcfc3f7df34bbd2e8d71e1bec9b1f69878bfe9b3b0459"
 dependencies = [
  "arrayvec",
- "bit-set",
- "bit-vec",
+ "bit-set 0.5.3",
+ "bit-set 0.8.0",
+ "bit-vec 0.6.3",
+ "bit-vec 0.8.0",
  "byteorder",
  "bzip2",
  "indexmap 1.9.3",
@@ -4082,9 +4099,9 @@ dependencies = [
 
 [[package]]
 name = "savefile-derive"
-version = "0.17.7"
+version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891bc374926346e8b25731fcac6113ef5fe0a1870630b56738d9b40c6b241a42"
+checksum = "964ee69da6a3b10dae6ede6902542f59b7467cb4b4a8e3fc5b9eb49467041c17"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",

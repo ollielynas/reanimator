@@ -158,9 +158,9 @@ pub fn setup_popup(settings: &UserSettings) {
         Some((355,355)),
         true,
         |_, _, _display| {},
-        move |_, ui, _display, renderer, drop_file, window| {
+        move |_, ui, _display, _renderer, _drop_file, _window| {
             let size_array = ui.io().display_size;
-            let a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
+            let _a: imgui::StyleStackToken<'_> = ui.push_style_var(imgui::StyleVar::WindowBorderSize(0.0));
             ui.window("setup")
                 // .always_auto_resize(true)
                 .menu_bar(false)
@@ -213,12 +213,14 @@ pub fn setup_popup(settings: &UserSettings) {
                                 ui.text_wrapped("attempt to tell the computer to prioritize performance when running this application");
                             }
                         }
-                        
+
                     } else {
                         if setup_index >= setup_items.len() {
                             finished = true;
                             settings.finished_setup = true;
                             settings.save();
+                            
+                            info!("saved settings");
                             relaunch_program(false, "");
                         }
 
@@ -256,6 +258,7 @@ pub fn setup_popup(settings: &UserSettings) {
                                     setup_index += 1;
                                 }
                             }
+
                             SetupStage::SetGpuPref => {
                                 if attempt_to_set_gpu_pref {
                                 set_gpu_pref();

@@ -1,6 +1,6 @@
 [package]
 name = "reanimator"
-version = "0.1.21" 
+version = "0.1.23" 
 edition = "2021"
 authors = ["Ollie lynas <contactme@ollielynas.com>"]
 description = "ReAnimator"
@@ -17,8 +17,8 @@ eula = false
 
 [dependencies]
 
-savefile = {version = "0.17.7", features = ["bzip2"]}
-savefile-derive = "0.17.7"
+savefile = {version = "0.17.8", features = ["bzip2"]}
+savefile-derive = "0.17.8"
 fastrand = "2.1.0"
 imgui = "0.12.0"
 

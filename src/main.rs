@@ -63,9 +63,9 @@ pub mod widgets;
 
 fn main() -> anyhow::Result<()> {
 
-    #[cfg(debug_assertions)] {
+    // #[cfg(debug_assertions)] {
         set_logger_mine()?;
-    }
+    // }
     
     set_panic_hook();
 
