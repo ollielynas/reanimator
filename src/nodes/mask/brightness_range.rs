@@ -9,7 +9,7 @@ use anyhow::anyhow;
 
 use crate::{
     node::{random_id, MyNode},
-    nodes::node_enum::{self, NodeType},
+    nodes::node_enum::{NodeType},
     storage::Storage,
 };
 
@@ -69,7 +69,7 @@ impl MyNode for BrightnessRangeMaskNode {
 
      
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.slider("low", 0.0, 1.0, &mut self.low);
         ui.slider("high", 0.0, 1.0, &mut self.high);
         let width = ui.item_rect_size()[1];
@@ -112,7 +112,7 @@ impl MyNode for BrightnessRangeMaskNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;

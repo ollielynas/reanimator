@@ -1,7 +1,7 @@
-use std::{clone, collections::HashMap, default};
+
 
 use imgui::Ui;
-use textdistance::{self, Algorithm, Cosine, Sift4Simple};
+use textdistance::{self, Algorithm, Cosine};
 use win_screenshot::prelude::capture_display;
 use windows::Win32::{Foundation::POINT, UI::WindowsAndMessaging::GetCursorPos};
 
@@ -135,7 +135,7 @@ impl AdvancedColorPicker {
             .opened(&mut open)
             .build(|| {
                 if let Some(_tab_bar) = ui.tab_bar("color tab bar") {
-                    if let Some(tab_iter) = ui.tab_item("Color Picker") {
+                    if let Some(_tab_iter) = ui.tab_item("Color Picker") {
                         // ui.columns(2, "advanced col picker", true);
                         ui.set_next_item_width(
                             0.6 * ui.content_region_avail()[0].min(ui.content_region_avail()[1]),
@@ -171,7 +171,7 @@ impl AdvancedColorPicker {
                             self.color = color;
                         }
                     }
-                    if let Some(tab_iter) = ui.tab_item("Pantone Colors") {
+                    if let Some(_tab_iter) = ui.tab_item("Pantone Colors") {
                         // ui.columns(2, "pantone search", true);
                         ui.text(format!("loaded {} colors", self.pantone_colors.len()));
 
@@ -228,7 +228,7 @@ impl AdvancedColorPicker {
         self.open = open;
     }
 
-    fn get_cursor_color(&mut self, ui: &Ui) -> [f32; 4] {
+    fn get_cursor_color(&mut self, _ui: &Ui) -> [f32; 4] {
         let mut color = [0.0; 4];
         if let Ok(display) = capture_display() {
             let mut global_pos: POINT = POINT::default();

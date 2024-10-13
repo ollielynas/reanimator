@@ -1,7 +1,6 @@
 use std::{
     any::Any,
     collections::HashMap,
-    ops::{RangeBounds, RangeInclusive},
     path::PathBuf,
 };
 
@@ -80,7 +79,7 @@ impl MyNode for RestrictPalletNode {
 
      
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         // ui.color_edit3_config(label, value)
         let mut color = [self.red, self.green, self.blue, self.alpha];
         ui.color_edit4_config("restrictions", &mut color)
@@ -128,7 +127,7 @@ impl MyNode for RestrictPalletNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;

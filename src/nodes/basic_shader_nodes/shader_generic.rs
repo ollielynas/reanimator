@@ -162,7 +162,7 @@ impl MyNode for GenericShaderNode {
 
      
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         if self.input_name.is_empty() {
             ui.text("This shader has no inputs");
             return;
@@ -328,7 +328,7 @@ impl MyNode for GenericShaderNode {
             .get_frag_shader(fragment_shader_src.to_string())
             .unwrap();
 
-        let mut uniforms = uniform! {
+        let uniforms = uniform! {
             tex: texture,
             u_time: storage.time as f32,
             u_input: self.input,

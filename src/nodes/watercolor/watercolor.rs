@@ -2,7 +2,7 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{texture::RawImage2d, uniform, DrawParameters, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
-use lumo::tracer::Texture;
+
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
@@ -100,7 +100,7 @@ impl MyNode for WaterColorNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;

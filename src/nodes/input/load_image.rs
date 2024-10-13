@@ -1,15 +1,15 @@
 use crate::{
     node::{random_id, MyNode},
-    storage::{self, Storage},
+    storage::{Storage},
 };
 use glium::{texture::RawImage2d, Texture2d};
 use image::EncodableLayout;
-use image::{self, ImageFormat};
-use imgui::text_filter;
+use image::{self};
+
 use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
-use savefile::{load_file, save_file, SavefileError};
-use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
+use savefile::{save_file, SavefileError};
+use std::{any::Any, collections::HashMap, fs, path::PathBuf};
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use crate::nodes::node_enum::NodeType;
@@ -81,7 +81,7 @@ impl MyNode for LoadImage {
         ui.bullet_text("Farbfeld");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.text(format!(
             "path: {}",
             match &self.path {
@@ -140,8 +140,8 @@ impl MyNode for LoadImage {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         if self.path.is_none() {
             return return Err(anyhow!("path is none"));
@@ -157,13 +157,13 @@ impl MyNode for LoadImage {
             {
                 let bytes = match fs::read(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
-                    Err(e) => {
+                    Err(_e) => {
                         return Err(anyhow!("file not found"));
                     }
                 };
                 let image = match image::load_from_memory(&bytes) {
                     Ok(a) => a,
-                    Err(e) => {
+                    Err(_e) => {
                         return Err(anyhow!("unable to decode file as image"));
                     }
                 }

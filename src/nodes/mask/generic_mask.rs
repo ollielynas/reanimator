@@ -119,7 +119,7 @@ impl MyNode for GenericMaskNode {
 
      
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         if self.input_name.is_empty() {
             ui.text("This shader has no inputs");
             return;

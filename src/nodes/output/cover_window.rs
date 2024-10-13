@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, os::raw::c_void, path::PathBuf, rc::Rc};
+use std::{any::Any, collections::HashMap, path::PathBuf, rc::Rc};
 
 use glium::{
     uniforms::{MagnifySamplerFilter, SamplerBehavior},
@@ -8,7 +8,6 @@ use imgui::{TextureId, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
 use imgui_winit_support::winit::{
     dpi::{Position, Size},
-    raw_window_handle::{HasDisplayHandle, HasWindowHandle},
 };
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -234,7 +233,7 @@ impl MyNode for CoverWindowNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("enable", &mut self.render);
 
         if ui.is_item_hovered() {
@@ -275,7 +274,7 @@ impl MyNode for CoverWindowNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let get_output = match map.get(&input_id) {

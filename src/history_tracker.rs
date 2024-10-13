@@ -56,7 +56,7 @@ impl Project {
             return Ok(());
         }
 
-        let mut save_dir = match AppDirs::new(Some("ReAnimator"), false) {
+        let save_dir = match AppDirs::new(Some("ReAnimator"), false) {
             Some(a) => {
                 fs::create_dir_all(&a.cache_dir);
                 a.cache_dir
@@ -87,7 +87,7 @@ impl Project {
             &binding_old_path,
         );
 
-        let mut snapshot = Snapshot {
+        let snapshot = Snapshot {
             description: description,
             path: new_path,
             time: DateTime::new().format("%d/%m/%Y %H:%M"),

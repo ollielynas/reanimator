@@ -1,11 +1,11 @@
 use std::{
-    error::Error, ffi::OsStr, fmt::Debug, fs::{self, read_dir}, io::Write, path::{Path, PathBuf}
+    ffi::OsStr, fs::{self, read_dir}, io::Write, path::{Path, PathBuf}
 };
 
 use crate::{
     nodes::input::load_video::load_video_bytes, project::Project, sidebar::SidebarParams, user_info::UserSettings, widgets::link_widget
 };
-use ffmpeg_sidecar::event::{FfmpegEvent, LogLevel};
+
 use glium::texture::RawImage2d;
 use image::EncodableLayout;
 use imgui::{sys::ImVec2, Ui};
@@ -13,7 +13,7 @@ use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
 use numfmt::{Formatter, Precision, Scales};
 use rfd::FileDialog;
-use crate::generic_node_info::GenericNodeInfo;
+
 use anyhow::anyhow;
 
 #[derive(Savefile, Clone)]

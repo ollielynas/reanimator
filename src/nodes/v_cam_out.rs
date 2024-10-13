@@ -1,6 +1,6 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{uniform, DrawParameters, Surface};
+
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -91,7 +91,7 @@ impl MyNode for VCamNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let get_output = match map.get(&input_id) {
@@ -99,7 +99,7 @@ impl MyNode for VCamNode {
             None => return  Err(anyhow!("missing input")),
         };
 
-        let texture_size: (u32, u32) = match storage.get_texture(get_output) {
+        let _texture_size: (u32, u32) = match storage.get_texture(get_output) {
             Some(a) => (a.width(), a.height()),
             None => return Err(anyhow!("cannot find input texture")),
         };
@@ -109,7 +109,7 @@ impl MyNode for VCamNode {
             None => return Err(anyhow!("failed to get input texture from storage")),
         };
 
-        let px: glium::pixel_buffer::PixelBuffer<(u8, u8, u8, u8)> = texture.read_to_pixel_buffer();
+        let _px: glium::pixel_buffer::PixelBuffer<(u8, u8, u8, u8)> = texture.read_to_pixel_buffer();
 
         return Ok(());
     }

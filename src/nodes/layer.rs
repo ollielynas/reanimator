@@ -2,10 +2,10 @@ use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{
     uniform,
-    uniforms::{self, Uniforms},
+    uniforms::{self},
     BlitTarget, DrawParameters, Rect, Surface,
 };
-use imgui::{sys::ImColor, ImColor32};
+use imgui::{ImColor32};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -95,7 +95,7 @@ impl MyNode for LayerNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let output_id =self.output_id(&self.outputs()[0]);;
 
@@ -261,7 +261,7 @@ impl MyNode for LayerNode {
         }
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.columns(2, "", true);
         let mut remove = None;
         ui.text(format!("base size: {:?}", self.base_texture_size));

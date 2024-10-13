@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr};
 
-use imgui::{Ui, Window};
-use lumo::tracer::Color;
+use imgui::{Ui};
+
 
 /// link can be a file path pr a url
 pub fn link_widget(ui: &Ui, text: impl Into<String>, link: impl Into<String> + Clone) {

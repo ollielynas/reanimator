@@ -2,21 +2,20 @@ use crate::{
     generic_node_info::GenericNodeInfo, node::{random_id, MyNode}, storage::Storage
 };
 use glium::{texture::RawImage2d, Texture2d};
-use image::EncodableLayout;
-use image::{self, ImageFormat};
-use imgui::text_filter;
+
+use image::{self};
+
 use imgui_glium_renderer::Renderer;
 use lumo::tracer::*;
 use lumo::*;
 use platform_dirs::AppDirs;
 use rfd::FileDialog;
-use savefile::{load_file, save_file, SavefileError};
+use savefile::{save_file, SavefileError};
 use std::{
     any::Any,
     collections::HashMap,
     env::current_exe,
     fs::{self, remove_dir_all},
-    hash::Hash,
     path::PathBuf,
 };
 use strum::IntoEnumIterator;
@@ -171,7 +170,7 @@ impl Render3DNode {
             }
         };
 
-        let mut obj = parser::mesh_from_path(
+        let obj = parser::mesh_from_path(
             <Option<PathBuf> as Clone>::clone(&self.obj_path)
                 .unwrap()
                 .to_str()
@@ -279,7 +278,7 @@ impl MyNode for Render3DNode {
         ui.text_wrapped("this node allows you to render .obj files");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.columns(3, "render col", true);
 
         let mut input_val = [self.width as i32, self.height as i32];
@@ -407,8 +406,8 @@ impl MyNode for Render3DNode {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let output_id =self.output_id(&self.outputs()[0]);;
 
@@ -441,7 +440,7 @@ impl MyNode for Render3DNode {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
-    fn load_assets(&mut self, storage: &Storage) {
+    fn load_assets(&mut self, _storage: &Storage) {
         let a = self.render();
 
         if a.is_err() {

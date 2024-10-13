@@ -1,4 +1,4 @@
-use std::{fs, thread, time::{Duration, SystemTime}};
+use std::{fs, time::{SystemTime}};
 
 use fast_smaz::Smaz;
 use imgui::Ui;

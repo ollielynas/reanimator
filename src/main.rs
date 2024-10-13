@@ -16,18 +16,18 @@ use imgui_winit_support::winit::{
 use winreg::enums::HKEY_CURRENT_USER;
 use import_export::load_project;
 use lazy_static::lazy_static;
-use log::{error, info, set_logger, trace};
-use platform_dirs::{AppDirs, UserDirs};
+use log::{info};
+use platform_dirs::{AppDirs};
 use popups::{set_panic_hook, setup_popup, update};
 use project::Project;
 use savefile;
 use self_update::cargo_crate_version;
 use winreg::RegKey;
-use std::sync::RwLock;
+
 use support::{create_context, init_with_startup};
 use system_extensions::dialogues::messagebox::{IconType, MessageBox, WindowType};
 use user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION};
-use win_msgbox::{raw::w, Okay};
+
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
 use perf_monitor::cpu::{ThreadStat, ProcessStat, processor_numbers};
@@ -153,7 +153,7 @@ fn main() -> anyhow::Result<()> {
     let fullscreen = user_settings.fullscreen;
 
     let mut loaded_project = false;
-    let mut visible = true;
+    let visible = true;
 
     init_with_startup(
         "ReAnimator",
@@ -173,7 +173,7 @@ fn main() -> anyhow::Result<()> {
             let mut stat_p: Result<ProcessStat, std::io::Error> = Err(std::io::Error::other("not debug mode"));
             let mut stat_t: Result<ThreadStat, std::io::Error> =   Err(std::io::Error::other("not debug mode"));
             #[cfg(debug_assertions)] {
-            let core_num = processor_numbers().unwrap();
+            let _core_num = processor_numbers().unwrap();
             stat_p = ProcessStat::cur();
             stat_t = ThreadStat::cur();
             }

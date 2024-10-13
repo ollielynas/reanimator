@@ -26,7 +26,7 @@ use mask::text_mask::TextMaskNode;
 use debug::DebugNode;
 use dither::{BayerDitherNode, LinearErrorDitherNode};
 use frame_delay::DelayNode;
-use glium::Display;
+
 use layer::LayerNode;
 use mask::color_noise::ColorNoiseNode;
 use mask::generic_mask::GenericMaskNode;

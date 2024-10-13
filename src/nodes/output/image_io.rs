@@ -1,27 +1,26 @@
 use std::any::Any;
 use std::collections::HashMap;
-use std::fs::{self, File};
+use std::fs::{File};
 use std::path::PathBuf;
 use std::rc::Rc;
 
 use crate::node::{random_id, MyNode};
 use crate::nodes::node_enum::*;
 use crate::storage;
-use fastrand;
-use glium::buffer::BufferMutSlice;
-use glium::framebuffer::SimpleFrameBuffer;
+
+
+
 use glium::{
-    backend::Facade,
-    texture::{ClientFormat, RawImage2d},
-    uniforms::{MagnifySamplerFilter, MinifySamplerFilter, SamplerBehavior},
+    texture::{RawImage2d},
+    uniforms::{MagnifySamplerFilter, SamplerBehavior},
     Texture2d,
 };
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
-use glium::{BlitMask, BlitTarget, Frame, GlObject, Rect, Surface};
-use image::gif::{GifDecoder, GifEncoder};
+use glium::{BlitTarget, Rect, Surface};
+use image::gif::{GifEncoder};
 use image::{Delay, DynamicImage, ImageBuffer, Rgba};
-use imgui::draw_list::Image;
+
 use imgui::{TextureId, Ui};
 use imgui_glium_renderer::{Renderer, Texture};
 use platform_dirs::UserDirs;
@@ -60,8 +59,8 @@ impl OutputType {
     fn name(&self) -> String {
         match self {
             OutputType::LiveDisplay {
-                run,
-                fps,
+                run: _,
+                fps: _,
                 last_frame: _,
             } => "Live Output",
             OutputType::RenderImage => "Render Image",
@@ -214,12 +213,12 @@ impl MyNode for OutputNode {
         );
     }
 
-    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &Ui, renderer: &mut Renderer, _storage: &Storage) {
         let items = OutputType::iter().collect::<Vec<_>>();
         ui.columns(3, "3 col", true);
         // ui.set_column_width(0, ui.window_size()[0] * 0.2);
 
-        if let Some(cb) = ui.begin_combo("##", self.output.name()) {
+        if let Some(_cb) = ui.begin_combo("##", self.output.name()) {
             for cur in &items {
                 if &self.output == cur {
                     // Auto-scroll to selected item
@@ -334,7 +333,7 @@ impl MyNode for OutputNode {
                                 // };
                                 // let mut buffer: Vec<u8> = vec![];
 
-                                let mut buffer = File::create(path).unwrap();
+                                let buffer = File::create(path).unwrap();
 
                                 let mut gif_encoder = GifEncoder::new_with_speed(
                                     buffer, // ((1.0/ *fps)*100.0) as i32

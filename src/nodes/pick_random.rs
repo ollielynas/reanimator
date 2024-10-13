@@ -97,7 +97,7 @@ impl MyNode for RandomInputNode {
         ui.text_wrapped("randomly picks an input based on a set of user defined weights");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.text("inputs: ");
 
         for (i, value) in self.weights.iter_mut().enumerate() {

@@ -1,24 +1,23 @@
 use std::{
-    env::{self, current_exe}, fs, os::windows::process::CommandExt, path::PathBuf, process::{exit, Command}, ptr, str::FromStr, thread::{self, Thread}
+    env::{self, current_exe}, fs, os::windows::process::CommandExt, process::{exit, Command}, thread::{self}
 };
 
 use enum_to_string::ToJsonString;
-use humantime::Duration;
-use imgui::{sys, Ui};
+
+use imgui::Ui;
 use imgui_winit_support::winit::window::Fullscreen;
-use itertools::Itertools;
-use log::{error, info, log};
+use log::info;
 use platform_dirs::AppDirs;
 use rfd::FileDialog;
 use self_update::cargo_crate_version;
 use serde::Serialize;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use win_msgbox::Okay;
+
 use winapi::um::winbase::CREATE_NO_WINDOW;
 
 use crate::{
-    relaunch_program, set_gpu_pref, support::{create_context, init_with_startup}, user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION}, widgets::{link_widget, path_input}
+    relaunch_program, set_gpu_pref, support::{create_context, init_with_startup}, user_info::{UserSettings, USER_SETTINGS_SAVEFILE_VERSION}, widgets::{path_input}
 };
 
 #[derive(EnumIter, ToJsonString, Serialize)]
@@ -333,7 +332,7 @@ pub fn set_as_default_for_filetype() {
         command,
     );
     // command = command.replace("\"", "\\`\"");
-    let res = Command::new("powershell")
+    let _res = Command::new("powershell")
         .arg(format!(
             "Start-Process -FilePath \"{}\" -Verb RunAs",
             path.display().to_string()
@@ -365,7 +364,7 @@ pub fn set_as_default_for_filetype2() {
         current_exe().unwrap().as_os_str().to_str().unwrap()
     );
     info!("{command}");
-    let res = Command::new("cmd")
+    let _res = Command::new("cmd")
         .raw_arg("/C ".to_owned() + &command)
         .creation_flags(CREATE_NO_WINDOW)
         .output();
@@ -375,7 +374,7 @@ pub fn set_as_default_for_filetype2() {
 pub fn update() -> Result<(), Box<dyn (::std::error::Error)>> {
     info!("updating");
 
-    let relase_builds = self_update::backends::github::ReleaseList::configure()
+    let _relase_builds = self_update::backends::github::ReleaseList::configure()
         .repo_owner("ollielynas")
         .repo_name("reanimator")
         .build();

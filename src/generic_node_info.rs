@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use strum::IntoEnumIterator;
 
-use crate::{node::MyNode, nodes::node_enum::NodeType};
+use crate::{nodes::node_enum::NodeType};
 
 
 pub struct GenericNodeInfo {

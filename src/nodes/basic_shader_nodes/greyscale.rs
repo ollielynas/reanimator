@@ -121,7 +121,7 @@ impl MyNode for GreyScaleNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;
@@ -177,7 +177,7 @@ impl MyNode for GreyScaleNode {
         ui.text_wrapped("a greyscale node with several presets to chose from")
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.color_edit3("weights", &mut self.weights);
         let items = GreyscaleType::iter().collect::<Vec<GreyscaleType>>();
         let (mut item_index, _) = items

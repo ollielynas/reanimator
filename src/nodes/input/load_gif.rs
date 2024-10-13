@@ -2,20 +2,20 @@ use crate::{
     node::{random_id, MyNode},
     storage::Storage,
 };
-use glium::{index, texture::RawImage2d, Texture2d};
+use glium::{texture::RawImage2d, Texture2d};
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use image::EncodableLayout;
 use image::{
     self,
-    gif::{GifDecoder, GifReader},
-    AnimationDecoder, DynamicImage, GenericImageView, ImageDecoder, ImageFormat, Rgba,
+    gif::{GifDecoder},
+    AnimationDecoder, DynamicImage, GenericImageView, ImageDecoder,
 };
-use imgui::text_filter;
+
 use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
-use savefile::{load_file, save_file, SavefileError};
-use std::{any::Any, collections::HashMap, fs, hash::Hash, io::Read, path::PathBuf};
+use savefile::{save_file, SavefileError};
+use std::{any::Any, collections::HashMap, fs, path::PathBuf};
 
 use crate::nodes::node_enum::NodeType;
 
@@ -79,7 +79,7 @@ impl MyNode for LoadGifNode {
         ui.text_wrapped("load gif files");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         ui.text(format!(
             "path: {}",
             match &self.path {
@@ -135,8 +135,8 @@ impl MyNode for LoadGifNode {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         if self.path.is_none() {
             return Err(anyhow!("no path set"));
@@ -151,14 +151,14 @@ impl MyNode for LoadGifNode {
                 self.length = 0.0;
                 let file = match fs::File::open(apply_path_root::get_with_root(path, &storage)) {
                     Ok(a) => a,
-                    Err(e) => {
+                    Err(_e) => {
                         return Err(anyhow!("file not found"));
                     }
                 };
 
                 let gif = match GifDecoder::new(file) {
                     Ok(a) => a,
-                    Err(e) => {
+                    Err(_e) => {
                         return Err(anyhow!("unable to decode file to gif"));
                     }
                 };

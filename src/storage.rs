@@ -1,12 +1,12 @@
-use core::{hash, panic};
+use core::{panic};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hasher};
 use std::path::PathBuf;
 
 use fast_smaz::Smaz;
-use font_kit::sources::multi::MultiSource;
+
 use glium::index::NoIndices;
-use glium::program::Attribute;
+
 use glium::texture::{self, RawImage2d};
 use glium::vertex::VertexBufferAny;
 use glium::{glutin::surface::WindowSurface, Display, Texture2d};
@@ -59,7 +59,7 @@ pub struct Storage {
 impl Storage {
     pub fn new(display: Display<WindowSurface>) -> Storage {
         let error_image = image::load_from_memory(include_bytes!("img/th.jpg"))
-            .unwrap_or_else(|x| DynamicImage::new_rgb8(20, 20))
+            .unwrap_or_else(|_x| DynamicImage::new_rgb8(20, 20))
             .flipv()
             .into_rgba8();
         let not_texture = RawImage2d::from_raw_rgba(
@@ -107,7 +107,7 @@ impl Storage {
         let vertex_buffer: glium::VertexBuffer<Vertex> =
             glium::VertexBuffer::new(&display, &shape).unwrap();
 
-        let mut s = Storage {
+        let s = Storage {
             textures: HashMap::new(),
             text: HashMap::new(),
             display,
@@ -208,7 +208,7 @@ impl Storage {
             return;
         }
 
-        let window: Option<imgui::WindowToken> = ui
+        let _window: Option<imgui::WindowToken> = ui
             .window("debug window")
             .opened(&mut self.show_debug_window)
             .begin();
@@ -233,7 +233,7 @@ impl Storage {
         }
 
         let mut total = 0;
-        for (k, v) in &self.unused_textures {
+        for (_k, v) in &self.unused_textures {
             total += v.len();
         }
 
@@ -311,7 +311,7 @@ impl Storage {
                             index += 1;
                         }
                     }
-                    Err(e) => {
+                    Err(_e) => {
                         ui.text_wrapped("cannot get output");
                     }
                 }

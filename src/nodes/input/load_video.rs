@@ -1,10 +1,9 @@
-use std::{any::Any, collections::HashMap, io::Read, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use ffmpeg_sidecar::{
     command::FfmpegCommand,
-    event::{FfmpegEvent, FfmpegInput},
 };
-use glium::{texture::RawImage2d, uniform, DrawParameters, Rect, Surface};
+use glium::{texture::RawImage2d, Rect};
 use imgui_glium_renderer::Renderer;
 use itertools::Itertools;
 use rfd::FileDialog;
@@ -140,7 +139,7 @@ impl MyNode for LoadVideoNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
         let mut changed_path = false;
         ui.disabled(self.custom_input, || {
             ui.text(format!(
@@ -220,8 +219,8 @@ impl MyNode for LoadVideoNode {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         if self.path.is_none() {
             return Err(anyhow!("path is none"));
@@ -333,11 +332,11 @@ pub fn load_video_bytes(
     let mut width = 0;
     let mut inital_timestamp = -10.0;
     let mut final_timestamp = 0.0;
-    let mut finished = false;
+    let _finished = false;
     log::info!("loading video");
     let mut bytes = Vec::new();
     let mut binding = FfmpegCommand::new();
-    let args = custom_args.replace("\n", " ");
+    let _args = custom_args.replace("\n", " ");
     let command = binding // <- Builder API like `std::process::Command`
         .hide_banner()
         .input(if path == &PathBuf::new() {

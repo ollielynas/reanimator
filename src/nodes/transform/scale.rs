@@ -1,7 +1,7 @@
-use std::{any::Any, collections::HashMap, fs::FileType, path::PathBuf};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use glium::{
-    uniform, uniforms::MagnifySamplerFilter, Blend, BlitTarget, DrawParameters, Rect, Surface,
+    uniforms::MagnifySamplerFilter, BlitTarget, Rect, Surface,
 };
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
@@ -123,7 +123,7 @@ impl MyNode for ScaleNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.text(format!("original size: {:?}", self.og_size));
         ui.checkbox("use percent based scaling", &mut self.use_percent);
 
@@ -165,7 +165,7 @@ impl MyNode for ScaleNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         if self.use_percent {
             // round evan to annoy anatol

@@ -162,7 +162,7 @@ let shader = storage
         self
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("invert alpha", &mut self.invert_alpha);
     }
 }

@@ -6,13 +6,13 @@ use crate::{
 use glium::{texture::RawImage2d, Texture2d};
 use image;
 use image::EncodableLayout;
-use imgui::text_filter;
+
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
-use anyhow::anyhow;
 
-use std::{any::Any, collections::HashMap, hash::Hash, path::PathBuf};
+
+use std::{any::Any, collections::HashMap, path::PathBuf};
 
 use crate::nodes::node_enum::NodeType;
 
@@ -93,8 +93,8 @@ impl MyNode for DefaultImage {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let output_id =self.output_id(&self.outputs()[0]);;
 
@@ -139,7 +139,7 @@ impl MyNode for DefaultImage {
         return Ok(());
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         if ui.button("new image") {
             self.texture_cache = None;
         }

@@ -1,6 +1,6 @@
 use glium::backend::Backend;
 use glium::glutin::surface::WindowSurface;
-use glium::texture::MipmapsOption;
+
 use glium::{Display, Surface};
 use image::{load_from_memory_with_format, GenericImageView};
 use imgui::{Context, FontConfig, FontSource, Ui};

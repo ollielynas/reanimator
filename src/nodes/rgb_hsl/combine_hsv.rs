@@ -82,7 +82,7 @@ impl MyNode for CombineHsvNode {
         ui.text_wrapped("Creates an image by combining Hue, Saturation, and Value (brightness)")
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("use raw/greyscale inputs", &mut self.raw);
     }
 

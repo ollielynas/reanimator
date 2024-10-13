@@ -187,7 +187,7 @@ let shader = storage
         ui.text_wrapped("source of white noise");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {
             let mut input_val = [self.size.0 as i32, self.size.1 as i32];

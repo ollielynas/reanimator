@@ -1,6 +1,6 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use glium::{uniform, BlitMask, BlitTarget, DrawParameters, Rect, Surface, Texture2d};
+use glium::{uniform, BlitTarget, DrawParameters, Rect, Surface, Texture2d};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -97,7 +97,7 @@ impl MyNode for LayerTrailNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;
@@ -197,7 +197,7 @@ impl MyNode for LayerTrailNode {
         }
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         if ui.button("reset") {
             self.last_frame = None;
         }

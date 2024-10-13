@@ -1,43 +1,31 @@
-use glium::{program, BlitTarget, Display, Program, Surface};
-use imgui::drag_drop::PayloadIsWrongType;
-use imgui::{sys::ImVec2, ImColor32, TreeNodeToken, Ui};
-use imgui::{DrawListMut, Style, WindowHoveredFlags};
-use imgui_glium_renderer::Renderer;
-use platform_dirs::AppDirs;
-use std::collections::HashSet;
-use std::thread::sleep;
-use std::{
-    env::current_exe,
-    f32::{consts::PI, NAN},
-    ffi::OsString,
-    hash::{DefaultHasher, Hash, Hasher},
-    task::ready,
-    time,
-};
 
-use glium::{backend::Facade, glutin::surface::WindowSurface, Texture2d};
-use savefile::SavefileError;
+
+use imgui::{sys::ImVec2, ImColor32, Ui};
+use imgui::{DrawListMut};
+use imgui_glium_renderer::Renderer;
+
+
+
+
+
+
+
 use std::{
     collections::HashMap,
     fs,
-    path::PathBuf,
-    time::{Duration, Instant},
 };
-use strum::IntoEnumIterator;
 
-use crate::node::random_id;
+
+
 use crate::nodes::output::image_io::OutputNode;
 use crate::project::{graph_to_screen_pos, screen_to_graph_pos, Project};
 use crate::{
-    advanced_color_picker::AdvancedColorPicker, history_tracker::Snapshot, node,
     nodes::node_enum::*,
 };
 use crate::{
     node::MyNode,
-    storage::Storage,
-    user_info::{self, UserSettings},
 };
-use rfd::FileDialog;
+
 
 pub struct RenderNodesParams {
     pub duplicate_node: Option<Box<dyn MyNode>>,
@@ -247,7 +235,7 @@ impl Project {
                     }
                 }
 
-                if let Some(popup) = ui.begin_popup_context_window() {
+                if let Some(_popup) = ui.begin_popup_context_window() {
                     if node.inputs().len() == 0 && node.outputs().len() == 1 {
                         if ui.menu_item("set as generic input") {
                             self.project_settings.generic_io.input_id = Some(node.id());
@@ -288,7 +276,7 @@ impl Project {
             let mut focus_pop_out_window = false;
             if let Some(open) = self.pop_out_edit_window.get_mut(&node.id()) {
                 if *open {
-                    let node_window_vars2 = [
+                    let _node_window_vars2 = [
                         ui.push_style_var(imgui::StyleVar::ItemSpacing([3.0, 3.0])),
                         ui.push_style_var(imgui::StyleVar::WindowPadding([10.0, 10.0])),
                         ui.push_style_var(imgui::StyleVar::FramePadding([5.0, 5.0])),

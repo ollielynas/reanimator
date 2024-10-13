@@ -7,14 +7,14 @@
 //     utils::{FrameInfoExt, OutputDescExt},
 // };
 
-use glium::backend::glutin::GlutinBackend;
+
 use regex::Regex;
-use std::time::Duration;
+
 use std::{any::Any, collections::HashMap, path::PathBuf};
 use win_screenshot::prelude::*;
 
 use glium::texture::RawImage2d;
-use glium::{glutin, uniform, DrawParameters, Rect, Surface};
+use glium::{uniform, DrawParameters, Rect, Surface};
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -111,7 +111,7 @@ impl MyNode for CaptureWindowNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("capture entire screen", &mut self.entire_screen);
 
         ui.disabled(self.entire_screen, || {
@@ -145,8 +145,8 @@ impl MyNode for CaptureWindowNode {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let output_id =self.output_id(&self.outputs()[0]);;
 

@@ -91,7 +91,7 @@ impl MyNode for SplitHsvNode {
         ui.text_wrapped("Splits an image into Hue, Saturation, and Value (brightness)")
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("use raw/greyscale output", &mut self.raw);
     }
 
@@ -106,7 +106,7 @@ impl MyNode for SplitHsvNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_ids = self

@@ -1,9 +1,8 @@
 use std::{any::Any, collections::HashMap, path::PathBuf};
 
-use blake2::digest::typenum::Pow;
+
 use glium::{
-    pixel_buffer::PixelBuffer,
-    texture::{RawImage2d, Texture2dDataSource},
+    texture::{RawImage2d},
     uniform, DrawParameters, Rect, Surface,
 };
 use imgui_glium_renderer::Renderer;
@@ -222,7 +221,7 @@ impl MyNode for LinearErrorDitherNode {
         self.y = y;
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         let space = ui.content_region_avail();
         ui.columns(2, "dither col", true);
         ui.input_text_multiline("Pattern", &mut self.notation, [space[0], space[1]])
@@ -254,7 +253,7 @@ impl MyNode for LinearErrorDitherNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;
@@ -428,7 +427,7 @@ impl MyNode for BayerDitherNode {
         NodeType::BayerDither
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.text(format!("size: {}x{}", self.size, self.size));
         ui.separator();
         if ui.button("2x2") {
@@ -469,7 +468,7 @@ impl MyNode for BayerDitherNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;

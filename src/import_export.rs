@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use crate::project::Project;
-use crate::user_info::{self, UserSettings};
+use crate::user_info::{UserSettings};
 use comprexor::Extractor;
 use comprexor::{CompressionLevel, Compressor};
 use platform_dirs::UserDirs;
 use rfd::FileDialog;
-use system_extensions::dialogues::messagebox::{self, IconType, MessageBox, WindowType};
+
 
 impl Project {
     pub fn export(&mut self) -> Option<PathBuf> {

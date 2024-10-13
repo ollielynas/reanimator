@@ -170,7 +170,7 @@ let shader = storage
         ui.text_wrapped("basic node, for debugging purposes")
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.columns(2, "color col", true);
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {

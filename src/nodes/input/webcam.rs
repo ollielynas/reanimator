@@ -5,13 +5,13 @@ use crate::{
 use glium::{
     texture::RawImage2d, uniforms::MagnifySamplerFilter, BlitTarget, Rect, Surface, Texture2d,
 };
-use image::EncodableLayout;
-use image::{self, ImageFormat};
-use imgui::text_filter;
+
+use image::{self};
+
 use imgui_glium_renderer::Renderer;
-use rfd::FileDialog;
-use savefile::{load_file, save_file, SavefileError};
-use std::{any::Any, collections::HashMap, fs, hash::Hash, path::PathBuf};
+
+use savefile::{save_file, SavefileError};
+use std::{any::Any, collections::HashMap, path::PathBuf};
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use crate::nodes::node_enum::NodeType;
@@ -100,7 +100,7 @@ impl MyNode for WebcamNode {
         ui.text_wrapped("Get webcam as input");
     }
 
-    fn edit_menu_render(&mut self, ui: &imgui::Ui, renderer: &mut Renderer, storage: &Storage) {
+    fn edit_menu_render(&mut self, ui: &imgui::Ui, _renderer: &mut Renderer, _storage: &Storage) {
         ui.checkbox("use input texture for dimensions", &mut self.input);
         ui.disabled(self.input, || {
             let mut input_val = [self.size.0 as i32, self.size.1 as i32];
@@ -156,8 +156,8 @@ impl MyNode for WebcamNode {
     fn run(
         &mut self,
         storage: &mut Storage,
-        map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _map: HashMap<String, String>,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         // return Err(anyhow!("this node is broken"));
         let output_id =self.output_id(&self.outputs()[0]);;

@@ -3,8 +3,7 @@ use std::{
     env::current_exe,
     fs::{self, DirEntry},
     path::PathBuf,
-    sync::{Mutex, MutexGuard},
-    thread::Thread,
+    sync::{Mutex},
     time::SystemTime,
 };
 
@@ -17,10 +16,10 @@ use strum_macros::{EnumIter, EnumString};
 
 use glium::Display;
 
-use log::*;
+
 
 use glium::glutin::surface::WindowSurface;
-use std::thread;
+
 use win_msgbox::Okay;
 
 use crate::{
@@ -411,8 +410,8 @@ impl UserSettings {
                         ui.tooltip_text("Use CTRL + Mousewheel to change the \n font size of an individual window");
                     }
                     
-                    let mut current_font = match fonts.font_names.iter().enumerate().find(|(i,x)|  x == &&self.font) {
-                        Some((i,v)) => i + 1,
+                    let mut current_font = match fonts.font_names.iter().enumerate().find(|(_i,x)|  x == &&self.font) {
+                        Some((i,_v)) => i + 1,
                         None => 0,
                     };
 
@@ -461,7 +460,7 @@ impl Project {
         ui: &Ui,
         display: &Display<WindowSurface>,
         user_settings: &mut UserSettings,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> Option<Project> {
         let mut new_project = None;
         let size_array = ui.io().display_size;

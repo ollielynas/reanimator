@@ -1,13 +1,11 @@
 use std::{
     any::Any,
-    borrow::BorrowMut,
     collections::HashMap,
     path::PathBuf,
-    rc::{self, Rc},
 };
 
-use glium::{backend::Facade, Texture2d};
-use imgui::DrawData;
+use glium::{Texture2d};
+
 use imgui_glium_renderer::Renderer;
 use savefile::{save_file, SavefileError};
 use crate::generic_node_info::GenericNodeInfo;
@@ -54,7 +52,7 @@ impl Default for TextMaskNode {
 }
 
 impl TextMaskNode {
-    fn gen_font_data(&mut self, storage: &Storage, renderer: &mut Renderer) {
+    fn gen_font_data(&mut self, _storage: &Storage, _renderer: &mut Renderer) {
         let fonts = MyFonts::new();
 
         if self.font != "Default" {
@@ -82,8 +80,8 @@ impl TextMaskNode {
                     }
                     log::info!("{font:?}");
                 }
-                if let Some(font) = font {
-                    if let Some(data) = &self.font_data {
+                if let Some(_font) = font {
+                    if let Some(_data) = &self.font_data {
                         // imgui_glium_renderer::Renderer::render(&mut self, target, draw_data)
                         // reder
                         // let system = glium_text_rusttype::TextSystem::new(&rcc);
@@ -156,16 +154,16 @@ impl MyNode for TextMaskNode {
         &mut self,
         storage: &mut Storage,
         map: HashMap<String, String>,
-        renderer: &mut Renderer,
+        _renderer: &mut Renderer,
     ) -> anyhow::Result<()> {
         let input_id = self.input_id(&self.inputs()[0]);
         let output_id =self.output_id(&self.outputs()[0]);;
-        let get_output = match map.get(&input_id) {
+        let _get_output = match map.get(&input_id) {
             Some(a) => a,
             None => return  Err(anyhow!("missing input")),
         };
 
-        let text = storage.get_text(&input_id);
+        let _text = storage.get_text(&input_id);
 
         // if let Some(text) = text {
         //     if let Some(font_data) = self.font_data {
@@ -179,7 +177,7 @@ impl MyNode for TextMaskNode {
                 self.output_size.1,
                 output_id.clone(),
             );
-            let texture: &Texture2d = storage.get_texture(&output_id).unwrap();
+            let _texture: &Texture2d = storage.get_texture(&output_id).unwrap();
             // texture.write(Rect {
             //     bottom: 0,
             //     left: 0,

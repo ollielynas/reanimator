@@ -1,7 +1,5 @@
 use std::{
-    error::Error,
     ffi::OsStr,
-    fmt::Debug,
     fs::{self, read_dir},
     path::{Path, PathBuf},
 };
@@ -10,14 +8,14 @@ use crate::{
     batch_edit::MyFile, project::Project, sidebar::SidebarParams, storage::Storage,
     user_info::UserSettings, widgets::link_widget,
 };
-use glium::texture::{RawImage1d, RawImage2d};
-use image::EncodableLayout;
-use image::{self, ImageFormat};
-use image::{DynamicImage, ImageBuffer, ImageDecoder, Rgba};
-use imgui::text_filter;
+
+
+use image::{self};
+
+
 use imgui::{sys::ImVec2, Ui};
-use imgui_glium_renderer::Renderer;
-use imgui_winit_support::winit::error::OsError;
+
+
 use itertools::Itertools;
 use numfmt::{Formatter, Precision, Scales};
 use rfd::FileDialog;
