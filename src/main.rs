@@ -123,14 +123,14 @@ fn main() -> anyhow::Result<()> {
 
     let mut project: Option<Project> = None;
 
-    if !assoc {
-        if MessageBox::new("ReAnimator", "ReAnimator has not been set a the default application for .repj files. Press Ok to set as default")
-                .set_icon_type(IconType::ICON_WARNING)
-                .set_window_type(WindowType::OK_CANCEL)
-                .show().is_ok() {
-                    relaunch_program(true, "");
-                };
-    }
+    // if !assoc {
+    //     if MessageBox::new("ReAnimator", "ReAnimator has not been set a the default application for .repj files. Press Ok to set as default")
+    //             .set_icon_type(IconType::ICON_WARNING)
+    //             .set_window_type(WindowType::OK_CANCEL)
+    //             .show().is_ok() {
+    //                 relaunch_program(true, "");
+    //             };
+    // }
 
     if !user_settings.finished_setup && false {
         setup_popup(&user_settings);
