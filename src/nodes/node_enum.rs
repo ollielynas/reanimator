@@ -55,6 +55,8 @@ use win_screenshot::utils::{window_list, HwndName};
 
 use crate::nodes::*;
 
+use super::data::histogram::HistogramNode;
+
 #[derive(Savefile, EnumIter, PartialEq, Eq, Copy, Clone, Debug, Hash, Serialize, ToJsonString)]
 pub enum NodeType {
     Debug,
@@ -107,6 +109,8 @@ pub enum NodeType {
     LogicNot,
     LogicAnd,
     LogicOr,
+    HueShift,
+    Histogram,
 }
 
 impl NodeType {
@@ -162,6 +166,8 @@ impl NodeType {
             NodeType::LogicAnd => "And",
             NodeType::LogicOr => "Or",
             NodeType::LogicNot => "Not",
+            NodeType::HueShift => "Hue Shift",
+            NodeType::Histogram => "Color Histogram",
 
         }
         .to_owned();
@@ -177,6 +183,17 @@ impl NodeType {
             NodeType::LogicAnd => {
                 let a: Result<LogicAndNode, SavefileError> =
                     savefile::load_file(project_file, LogicAndNode::savefile_version());
+                match a {
+                    Ok(b) => Some(Box::new(b)),
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
+                }
+            }
+            NodeType::Histogram => {
+                let a: Result<HistogramNode, SavefileError> =
+                    savefile::load_file(project_file, HistogramNode::savefile_version());
                 match a {
                     Ok(b) => Some(Box::new(b)),
                     Err(e) => {
@@ -631,6 +648,7 @@ impl NodeType {
             | NodeType::Blur
             | NodeType::Dot
             | NodeType::Sharpness
+            | NodeType::HueShift
             | NodeType::BlurSp
             | NodeType::Crystal => {
                 let a: Result<GenericShaderNode, SavefileError> =
@@ -664,11 +682,13 @@ impl NodeType {
             NodeType::Output => Box::new(OutputNode::default()),
             NodeType::DefaultImageOut => Box::new(DefaultImage::default()),
             NodeType::InvertTexture => Box::new(InvertTextureNode::default()),
+            NodeType::Histogram => Box::new(HistogramNode::default()),
             NodeType::VHS
             | NodeType::ChromaticAberration
             | NodeType::Blur
             | NodeType::Dot
             | NodeType::Sharpness
+            | NodeType::HueShift
             | NodeType::BlurSp
             | NodeType::Crystal => Box::new(GenericShaderNode::new(self)),
             NodeType::BrightnessMask => Box::new(GenericMaskNode::new(self)),
@@ -720,6 +740,14 @@ impl NodeType {
             | NodeType::DisplayText
             | NodeType::WaterColor
             | NodeType::Error)
+    }
+    pub fn proc_output(&self) -> bool {
+        matches!(
+            self,
+            NodeType::Output
+            | NodeType::CoverWindow 
+            | NodeType::Histogram 
+        )
     }
     pub fn deprecated(&self) -> bool {
         matches!(

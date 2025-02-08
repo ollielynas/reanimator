@@ -90,7 +90,7 @@ impl Project {
         let snapshot = Snapshot {
             description: description,
             path: new_path,
-            time: DateTime::new().format("%d/%m/%Y %H:%M"),
+            time: DateTime::new().format("%d/%m/%Y %H:%M").unwrap(),
             index: UNIX_EPOCH.elapsed().unwrap().as_secs_f64(),
         };
 
@@ -160,7 +160,7 @@ impl Project {
                     for snapshot in &self.snapshots {
                         let time = snapshot
                             .time
-                            .replace(&DateTime::new().format("%d/%m/%Y"), "");
+                            .replace(&DateTime::new().format("%d/%m/%Y").unwrap(), "");
                         options.push(format!("{} : {}", time, snapshot.description));
                     }
                     let item_width = ui.push_item_width(-1.0);

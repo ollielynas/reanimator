@@ -11,7 +11,7 @@ use imgui_glium_renderer::Renderer;
 use savefile::prelude::*;
 
 
-use crate::{generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, storage::Storage};
+use crate::{generic_node_info::GenericNodeInfo, nodes::node_enum::NodeType, render_nodes::RenderNodesParams, storage::Storage};
 
 pub trait MyNode {
 
@@ -88,6 +88,10 @@ pub trait MyNode {
     }
 
     fn set_id(&mut self, id: String);
+
+    fn render_in_node(&self, _ui: &Ui,ui_scale: f32,  _renderer: &mut Renderer, _params: &mut RenderNodesParams) {
+        
+    }
 
     fn run(
         &mut self,

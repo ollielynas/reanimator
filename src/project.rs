@@ -276,15 +276,14 @@ impl Project {
                         .clamp(0.0, 100.0)
                         .round()
                     ));
+                    
                     ui.set_window_font_scale(1.0);
                     log::info!("loading step: {}", self.loading);
 
-                    if self.loading != 0 {
-                        // sleep(Duration::from_secs_f32(0.25));
-                    }
                     // the text id displayed before each state starts loading
                     match self.loading {
                         0 => {
+
                             ui.text("loading node types into memory and checking assertions");
                         }
                         1 => {
@@ -306,7 +305,8 @@ impl Project {
                             ui.text("Loading assets");
                         }
                         _ => {}
-                    }
+                    }  
+
 
                     // start loading each node with a 1 tick delay
                     match self.loading - 1 {
@@ -314,6 +314,8 @@ impl Project {
                             // do nothing
                         }
                         0 => {
+
+
                             let mut nodes: Vec<Box<dyn MyNode>> = vec![
                                 NodeType::Output.new_node(),
                                 NodeType::DefaultImageOut.new_node(),
@@ -374,9 +376,6 @@ impl Project {
                                     .unwrap()
                                     .download_dir
                                     .join(format!("{}", self.name()));
-                                fs::create_dir_all(
-                                    &self.project_settings.batch_files.save_path,
-                                );
                             }
 
                             if let Ok(connections) =
@@ -1105,11 +1104,7 @@ impl Project {
             let mut outputs: Vec<String> = vec![];
             if outputs.len() == 0 {
                 for (_, n) in self.nodes.iter().enumerate() {
-                    if matches!(
-                        n.type_(),
-                        NodeType::Output //| NodeType::Output
-                        | NodeType::CoverWindow //| NodeType::Output
-                    ) {
+                    if n.type_().proc_output() {
                         outputs.push(n.id());
                     }
                 }

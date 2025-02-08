@@ -40,7 +40,10 @@ pub fn set_panic_hook() {
     let message =
         String::from_utf8(fast_smaz::decompress(&hex::decode(&args[2]).unwrap_or_default()).unwrap_or_default())
         .unwrap_or_default();
+    
 
+    println!("{}", message);
+    
 
     let mut ctx: imgui::Context = create_context();
     let app_dirs = match AppDirs::new(Some("ReAnimator"), false) {
@@ -112,7 +115,7 @@ pub fn set_panic_hook() {
         exit(0);
     }
 
-    std::panic::set_hook(Box::new(|info: &std::panic::PanicInfo<'_>| {
+    std::panic::set_hook(Box::new(|info: &std::panic::PanicHookInfo<'_>| {
 
         let text = match (
             info.payload().downcast_ref::<&str>(),
@@ -130,6 +133,8 @@ pub fn set_panic_hook() {
         if info.location().is_some() {format!("location: {} {} {}\n", info.location().unwrap().file(), info.location().unwrap().line(), info.location().unwrap().column())} else {String::new()},
         text,
     );
+
+    log::error!("{message}");
     
     relaunch_program(false, format!("-ErrorMessage {}",hex::encode(fast_smaz::encode(&message))));
 

@@ -67,7 +67,7 @@ fn main() -> anyhow::Result<()> {
         set_logger_mine()?;
     // }
     
-    set_panic_hook();
+    // set_panic_hook();
 
 
     let a = update();
@@ -172,11 +172,13 @@ fn main() -> anyhow::Result<()> {
             }
             let mut stat_p: Result<ProcessStat, std::io::Error> = Err(std::io::Error::other("not debug mode"));
             let mut stat_t: Result<ThreadStat, std::io::Error> =   Err(std::io::Error::other("not debug mode"));
+            
             #[cfg(debug_assertions)] {
             let _core_num = processor_numbers().unwrap();
             stat_p = ProcessStat::cur();
             stat_t = ThreadStat::cur();
             }
+            
             let frame_start = Instant::now();
 
             let mut global_font_tokens = vec![];
@@ -207,6 +209,8 @@ fn main() -> anyhow::Result<()> {
                     project.drop_file(path, ui);
                 }
                 project.render(ui, &mut user_settings, renderer, window);
+
+                
                 return_to_home = project.return_to_home_menu;
                 // ui.show_default_style_editor();
                 if save_timer.elapsed().as_secs_f32() > 2.0 {

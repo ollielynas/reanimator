@@ -20,6 +20,7 @@ impl NodeType {
             NodeType::Sharpness => 4,
             NodeType::BlurSp => 5,
             NodeType::Crystal => 6,
+            NodeType::HueShift => 7,
             _a => {
                 -1
                 // unreachable!("node type: {a:?} has no index")
@@ -82,6 +83,7 @@ impl GenericShaderNode {
                 NodeType::Sharpness => 1.0,
                 NodeType::BlurSp => 0.1,
                 NodeType::Crystal => 4000.0,
+                NodeType::HueShift => 0.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
                 }
@@ -92,6 +94,7 @@ impl GenericShaderNode {
                 NodeType::Dot => "Radius".to_owned(),
                 NodeType::Sharpness => "Sharpness".to_owned(),
                 NodeType::BlurSp => "Threshold".to_owned(),
+                NodeType::HueShift => "Shift Deg".to_owned(),
                 NodeType::Crystal => "Crystal Count (eprox)".to_owned(),
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the input name fully implemented")
@@ -105,6 +108,7 @@ impl GenericShaderNode {
                 NodeType::Dot => 0.001,
                 NodeType::Sharpness => 0.0,
                 NodeType::BlurSp => 0.0,
+                NodeType::HueShift => 0.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the min value fully implemented")
                 }
@@ -117,6 +121,7 @@ impl GenericShaderNode {
                 NodeType::Dot => 20.0,
                 NodeType::Blur => f32::MAX,
                 NodeType::Sharpness => 4.0,
+                NodeType::HueShift => 360.0,
                 a => {
                     unreachable!("node type: {a:?} is not a generic shader type or has not has the max value fully implemented")
                 }
@@ -194,6 +199,9 @@ impl MyNode for GenericShaderNode {
             }
             NodeType::VHS => {
                 ui.text_wrapped("Adds a VHS effect");
+            }
+            NodeType::HueShift => {
+                ui.text_wrapped("Adds a hue shift effect");
             }
             NodeType::Blur => {
                 ui.text_wrapped("Blur Image using Gaussian blur");
@@ -299,13 +307,14 @@ impl MyNode for GenericShaderNode {
             "#
             }
             NodeType::VHS => include_str!("VHS.glsl"),
+            NodeType::HueShift => include_str!("hue_shift.glsl"),
             NodeType::Blur => include_str!("gaussian.glsl"),
             NodeType::Dot => include_str!("dot.glsl"),
             NodeType::Sharpness => include_str!("sharp.glsl"),
             NodeType::BlurSp => include_str!("blursp.glsl"),
             NodeType::Crystal => include_str!("crystal.glsl"),
             a => {
-                unreachable!("node type: {a:?} is not a generic shader type or has not has the input default value fully implemented")
+                unreachable!("node type: {a:?} is not a generic shader type or has no glsl code linked")
             }
         };
 

@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use crate::node::{random_id, MyNode};
 use crate::nodes::node_enum::*;
+use crate::render_nodes::RenderNodesParams;
 use crate::storage;
 
 
@@ -15,10 +16,10 @@ use glium::{
     uniforms::{MagnifySamplerFilter, SamplerBehavior},
     Texture2d,
 };
+use image::codecs::gif::GifEncoder;
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
 use glium::{BlitTarget, Rect, Surface};
-use image::gif::{GifEncoder};
 use image::{Delay, DynamicImage, ImageBuffer, Rgba};
 
 use imgui::{TextureId, Ui};
@@ -362,7 +363,7 @@ impl MyNode for OutputNode {
                                     // log::info!("a");
                                 }
                                 gif_encoder
-                                    .set_repeat(image::gif::Repeat::Infinite)
+                                    .set_repeat(image::codecs::gif::Repeat::Infinite)
                                     .unwrap();
 
                                 // log::info!("{:?}", buffer);
@@ -381,7 +382,7 @@ impl MyNode for OutputNode {
                             .unwrap();
                             let img = DynamicImage::ImageRgba8(img);
 
-                            let data = img.to_bytes();
+                            let data = img.into_bytes();
                             frames.push(data);
                             // let data2 =
                         }
@@ -433,5 +434,38 @@ impl MyNode for OutputNode {
     }
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
+    }
+
+    fn render_in_node(&self, ui: &Ui, ui_scale: f32,  renderer: &mut Renderer, params: &mut RenderNodesParams) {
+            params
+                .time_list
+                .append(&mut self.run_with_time.clone());
+        
+    if let Some(image_id) = self.texture_id {
+        let avail = [50.0 * ui_scale, 50.0 * ui_scale];
+        let image_dimensions_bad = renderer
+            .textures()
+            .get(image_id)
+            .unwrap()
+            .texture
+            .dimensions();
+        let image_dimensions =
+            [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
+
+        let scale = (avail[0] / image_dimensions[0])
+            .min(avail[1] / image_dimensions[1]);
+        if scale != 0.0
+            && image_dimensions[0] != 0.0
+            && image_dimensions[1] != 0.0
+        {
+            if ui.image_button(
+                "image",
+                image_id,
+                [image_dimensions[0] * scale, image_dimensions[1] * scale],
+            ) {
+                // params.time_list.push(ui.time());
+            }
+        }
+    }
     }
 }

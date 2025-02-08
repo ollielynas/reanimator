@@ -5,12 +5,13 @@ use crate::{
 use glium::{texture::RawImage2d, Texture2d};
 use crate::generic_node_info::GenericNodeInfo;
 use anyhow::anyhow;
-use image::EncodableLayout;
+use image::{codecs::gif::GifDecoder, EncodableLayout};
 use image::{
     self,
-    gif::{GifDecoder},
     AnimationDecoder, DynamicImage, GenericImageView, ImageDecoder,
 };
+
+use std::io::{BufRead, BufReader};
 
 use imgui_glium_renderer::Renderer;
 use rfd::FileDialog;
@@ -156,13 +157,15 @@ impl MyNode for LoadGifNode {
                     }
                 };
 
-                let gif = match GifDecoder::new(file) {
+                
+
+                let gif: GifDecoder<BufReader<fs::File>> = match GifDecoder::new(BufReader::new(file)) {
                     Ok(a) => a,
                     Err(_e) => {
                         return Err(anyhow!("unable to decode file to gif"));
                     }
                 };
-
+                
                 let mut image = DynamicImage::new_rgba8(gif.dimensions().0, gif.dimensions().1);
 
                 for a in gif.into_frames() {

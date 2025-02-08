@@ -12,6 +12,9 @@ use rfd::FileDialog;
 
 impl Project {
     pub fn export(&mut self) -> Option<PathBuf> {
+
+        log::info!("exporting: {}", self.name());
+
         if self.save().is_err() {
             return None;
         };

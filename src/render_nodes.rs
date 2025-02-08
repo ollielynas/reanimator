@@ -127,7 +127,7 @@ impl Project {
                             ui.text(format!("{:?}", e));
                         });
                     }
-                } 
+                }
 
                 if self.project_settings.generic_io.input_id == Some(node.id()) {
                     ui.text("generic input")
@@ -139,6 +139,8 @@ impl Project {
                 if ui.is_window_focused() {
                     self.node_edit = Some(i);
                 }
+
+                
 
                 // ui.cursor_screen_pos();
 
@@ -165,6 +167,7 @@ impl Project {
                 }
                 for output in node.outputs() {
                     let last_pos = ui.cursor_screen_pos();
+                    
                     if ui.button(&output) {
                         self.selected_output = Some(node.output_id(&output));
                     }
@@ -193,45 +196,15 @@ impl Project {
                         window_pos_relative_to_graph[1],
                     );
                 }
+
+                node.render_in_node(ui, self.scale, renderer, params);
+
                 if node.type_() == NodeType::Output {
                     let a: Option<&OutputNode> = (*node).as_any().downcast_ref::<OutputNode>();
                     if let Some(output_node) = a {
                         params
                             .time_list
                             .append(&mut output_node.run_with_time.clone());
-                        if let Some(image_id) = output_node.texture_id {
-                            let avail = [50.0 * self.scale, 50.0 * self.scale];
-                            let image_dimensions_bad = renderer
-                                .textures()
-                                .get(image_id)
-                                .unwrap()
-                                .texture
-                                .dimensions();
-                            let image_dimensions =
-                                [image_dimensions_bad.0 as f32, image_dimensions_bad.1 as f32];
-
-                            let scale = (avail[0] / image_dimensions[0])
-                                .min(avail[1] / image_dimensions[1]);
-                            // ui.get_foreground_draw_list()
-                            //     .add_image(
-                            //         image_id,
-                            //         [pos[0], pos[1] + image_dimensions[1] * scale],
-                            //         [pos[0] + image_dimensions[0] * scale, pos[1]],
-                            //     )
-                            //     .build();
-                            if scale != 0.0
-                                && image_dimensions[0] != 0.0
-                                && image_dimensions[1] != 0.0
-                            {
-                                if ui.image_button(
-                                    "image",
-                                    image_id,
-                                    [image_dimensions[0] * scale, image_dimensions[1] * scale],
-                                ) {
-                                    params.time_list.push(ui.time());
-                                }
-                            }
-                        }
                     }
                 }
 

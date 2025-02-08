@@ -112,10 +112,7 @@ impl MyNode for DefaultImage {
                     include_bytes!("img/image-7.jpg").to_vec(),
                     include_bytes!("img/image-8.jpg").to_vec(),
                     include_bytes!("img/image-9.jpg").to_vec(),
-                    include_bytes!("img/image-10.jpg").to_vec(),
-                    include_bytes!("img/image-11.jpg").to_vec(),
-                    include_bytes!("img/image-12.jpg").to_vec(),
-                    include_bytes!("img/image-13.jpg").to_vec(),
+
                 ])
                 .unwrap(),
                 image::ImageFormat::Jpeg,

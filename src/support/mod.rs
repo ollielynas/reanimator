@@ -1,6 +1,7 @@
 use glium::backend::Backend;
 use glium::glutin::surface::WindowSurface;
 
+use glium::winit::window::WindowAttributes;
 use glium::{Display, Surface};
 use image::{load_from_memory_with_format, GenericImageView};
 use imgui::{Context, FontConfig, FontSource, Ui};
@@ -8,7 +9,7 @@ use imgui_glium_renderer::Renderer;
 use imgui_winit_support::winit::dpi::LogicalSize;
 use imgui_winit_support::winit::event::{Event, WindowEvent};
 use imgui_winit_support::winit::event_loop::EventLoop;
-use imgui_winit_support::winit::window::{Fullscreen, Icon, Window, WindowBuilder};
+use imgui_winit_support::winit::window::{Fullscreen, Icon, Window};
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use platform_dirs::AppDirs;
 use std::env::current_exe;
@@ -57,13 +58,17 @@ pub fn init_with_startup<FInit, FUi>(
         None => (1024, 512),
     };
 
-    let builder = WindowBuilder::new()
+    let icon_width = icon.width();
+    let icon_height = icon.height();
+
+    let builder = WindowAttributes::default()
         .with_title(title)
         .with_maximized(fullscreen.is_some())
         .with_visible(visible)
         .with_window_icon(Some(
-            Icon::from_rgba(icon.to_bytes(), icon.width(), icon.height()).unwrap(),
+            Icon::from_rgba(icon.into_bytes(), icon_width, icon_height).unwrap(),
         ))
+        
         // .with_fullscreen(fullscreen)
         .with_inner_size(LogicalSize::new(window_size.0, window_size.1));
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
@@ -91,11 +96,8 @@ pub fn init_with_startup<FInit, FUi>(
         } else {
             HiDpiMode::Default
         };
-        // renderer.textures().insert(texture)
         platform.attach_window(imgui.io_mut(), &window, dpi_mode);
-        // platform.attach_window(imgui.io_mut(), &window2, dpi_mode);
     }
-    // window.set_cursor_hittest(false);
     let mut last_frame = Instant::now();
 
     startup(imgui, &mut renderer, &display);
@@ -169,13 +171,15 @@ pub fn init_with_startup<FInit, FUi>(
 
                 target.clear_color_srgb(col[0], col[1], col[2], 1.0);
                 platform.prepare_render(ui, &window);
-
+                
                 let draw_data = imgui.render();
-
-                renderer
+                if draw_data.draw_lists_count() > 0 {    
+                    renderer
                     .render(&mut target, draw_data)
                     .expect("Rendering failed");
+                }
                 target.finish().expect("Failed to swap buffers");
+                
             }
             Event::WindowEvent {
                 event: WindowEvent::Resized(new_size),

@@ -5,7 +5,7 @@
 in vec2 v_tex_coords;
 out vec4 color;
 
-const float SMAPLES = 25.0;
+const float SAMPLES = 25.0;
 
 uniform sampler2D tex;// texture to blur
 
