@@ -67,7 +67,7 @@ fn main() -> anyhow::Result<()> {
         set_logger_mine()?;
     // }
     
-    // set_panic_hook();
+    set_panic_hook();
 
 
     let a = update();

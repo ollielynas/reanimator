@@ -2,7 +2,7 @@
 
 #version 420 core
 
-const float SAMPLES = 30.0;
+const float SAMPLES = 15.0;
 
 in vec2 v_tex_coords;
 out vec4 color;
@@ -40,8 +40,6 @@ void main()
         yy=y*y;
         if (xx+yy<=rr)
         {
-            
-            // w=w0*(1.0+((-xx-yy)/(2.0*rr))+(((-xx-yy)/(2.0*rr))*((-xx-yy)/(2.0*rr)))/2.0);
             w=w0*exp((-xx-yy)/(2.0*rr));
             weight_total += w;
             col+=texture2D(tex,p)*w;
@@ -50,14 +48,5 @@ void main()
     }
     color=col/weight_total;
 
-    // for (dx=1.0/xs,x=-r,p.x=(pos.x)+(x*dx);x<=r;x+=pow(sample_disperse, 0.5),p.x+=dx){ 
-    //     xx=x*x;
-    //  for (dy=1.0/ys,y=-r,p.y=(pos.y)+(y*dy);y<=r;y+=pow(sample_disperse, 0.5),p.y+=dy){ 
-    //     yy=y*y;
-    //   if (xx+yy<=rr)
-    //     {
-    //     w=w0*exp((-xx-yy)/(2.0*rr));
-    //     weight_total += w;
-    //     col+=texture2D(tex,p)*w;
-    //     }}}
+
     }
